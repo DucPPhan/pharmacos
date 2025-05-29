@@ -1,7 +1,9 @@
 import { Suspense, lazy } from "react";
-import { useRoutes, Routes, Route } from "react-router-dom";
-// import Home from "./components/home";
-import routes from "tempo-routes";
+import { useRoutes, Routes, Route, BrowserRouter as Router } from "react-router-dom";
+import Home from "./screens/Home";
+// import routes from "tempo-routes";
+import Header from "./components/Header";
+import Footer from "./components/Footer";
 // import Login from "./pages/login";
 // import Cart from "./pages/cart";
 // import Profile from "./pages/profile";
@@ -11,20 +13,22 @@ import routes from "tempo-routes";
 
 function App() {
   return (
-    <Suspense fallback={<p>Loading...</p>}>
-      <>
-        <Routes>
-          {/* <Route path="/" element={<Home />} /> */}
-          {/* <Route path="/login" element={<Login />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/profile/personal-info" element={<PersonalInfo />} />
-          <Route path="/profile/change-password" element={<ChangePassword />} />
-          <Route path="/admin/dashboard" element={<AdminDashboard />} /> */}
-        </Routes>
-        {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
-      </>
-    </Suspense>
+    <Router>
+      <Header />
+      <Suspense fallback={<p>Loading...</p>}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            {/* <Route path="/login" element={<Login />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/profile/personal-info" element={<PersonalInfo />} />
+            <Route path="/profile/change-password" element={<ChangePassword />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} /> */}
+          </Routes>
+          {/* {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)} */}
+      </Suspense>
+      <Footer />
+    </Router>
   );
 }
 
