@@ -1,32 +1,24 @@
-
-import { Suspense, lazy } from "react";
+import { Suspense } from "react";
 import { useRoutes, Routes, Route } from "react-router-dom";
 import Home from "./components/home";
 import routes from "tempo-routes";
 import Dashboard from "./page/admin/Admindashboard";
 
 function App() {
+  // Call the hook conditionally but at the top level
+  const tempoRoutes = import.meta.env.VITE_TEMPO === "true" ? useRoutes(routes) : null;
+
+  return (
     <Suspense fallback={<p>Loading...</p>}>
       <>
         <Routes>
           <Route path="/" element={<Home />} />
-          {/* <Route path="/login" element={<Login />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/profile/personal-info" element={<PersonalInfo />} />
-          <Route path="/profile/change-password" element={<ChangePassword />} />
-          <Route path="/admin/dashboard" element={<AdminDashboard />} /> */}
-
-          <Route path="/admin/dashboard" element={<Dashboard/>} 
-          
-          />
-
+          <Route path="/admin/dashboard" element={<Dashboard />} />
         </Routes>
-        {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
+        {tempoRoutes}
       </>
     </Suspense>
   );
-
 }
 
 export default App;
