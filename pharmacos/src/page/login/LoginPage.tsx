@@ -63,18 +63,15 @@ const LoginPage: React.FC = () => {
     setShowTokenNotice(false);
     setShowVerifyBtn(false);
     try {
-      const res = await axios.post(
-        "https://pharmacos-server-be.onrender.com/api/auth/register",
-        {
-          username: registerUsername,
-          password: registerPassword,
-          name: registerName,
-          email: registerEmail,
-          gender: registerGender,
-          dateOfBirth: registerDateOfBirth,
-          skinType: registerSkinType,
-        }
-      );
+      const res = await axios.post("http://localhost:3000/api/auth/register", {
+        username: registerUsername,
+        password: registerPassword,
+        name: registerName,
+        email: registerEmail,
+        gender: registerGender,
+        dateOfBirth: registerDateOfBirth,
+        skinType: registerSkinType,
+      });
       setRegisterSuccess(
         "Đăng ký thành công! Vui lòng kiểm tra email để xác thực."
       );
@@ -94,13 +91,10 @@ const LoginPage: React.FC = () => {
     setLoginError("");
     setLoginSuccess("");
     try {
-      const res = await axios.post(
-        "https://pharmacos-server-be.onrender.com/api/auth/login",
-        {
-          username: loginUsername,
-          password: loginPassword,
-        }
-      );
+      const res = await axios.post("http://localhost:3000/api/auth/login", {
+        username: loginUsername,
+        password: loginPassword,
+      });
       setLoginSuccess("Đăng nhập thành công!");
       localStorage.setItem("token", res.data.token);
       setTimeout(() => {
