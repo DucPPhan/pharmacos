@@ -1,0 +1,14 @@
+.category-dropdown {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.category-dropdown.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+:root {
+  --category-nav-height: 48px;
+}

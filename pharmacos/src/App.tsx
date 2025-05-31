@@ -1,11 +1,26 @@
-import { Suspense, lazy } from "react";
-import { useRoutes, Routes, Route } from "react-router-dom";
+import { Suspense } from "react";
+import ReactDOM from "react-dom/client";
+import {
+  useLocation,
+  BrowserRouter,
+  useRoutes,
+  Routes,
+  Route,
+} from "react-router-dom";
+import LoginPage from "./page/login/LoginPage";
 import Home from "./components/home";
 import routes from "tempo-routes";
 import Profile from "./page/profile/UserProfile";
 
 
 function App() {
+  const location = useLocation();
+  if (location.pathname === "/login") {
+    return <LoginPage />;
+  }
+  if (location.pathname === "/verify-email") {
+    return <VerifyEmailPage />;
+  }
   return (
     <Suspense fallback={<p>Loading...</p>}>
       <>
