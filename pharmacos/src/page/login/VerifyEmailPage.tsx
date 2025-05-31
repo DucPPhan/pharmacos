@@ -1,22 +1,29 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./LoginPage.css";
+import axios from "axios";
 
 const VerifyEmailPage: React.FC = () => {
   const [token, setToken] = useState("");
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Giả lập xác thực token, bạn có thể thay bằng gọi API thực tế
-    if (token.trim() === "123456") {
+    setMessage("");
+    try {
+      const res = await axios.get(
+        `https://pharmacos-server-be.onrender.com/api/auth/verify-email?token=${token}`
+      );
       setMessage("Xác thực thành công!");
       setTimeout(() => {
         navigate("/login");
       }, 1500);
-    } else {
-      setMessage("Token không hợp lệ. Vui lòng kiểm tra lại!");
+    } catch (err: any) {
+      setMessage(
+        err.response?.data?.message ||
+          "Token không hợp lệ. Vui lòng kiểm tra lại!"
+      );
     }
   };
 
