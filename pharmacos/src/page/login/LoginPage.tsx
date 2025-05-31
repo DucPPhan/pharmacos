@@ -1,10 +1,12 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./LoginPage.css";
 
 const LoginPage: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const [showTokenNotice, setShowTokenNotice] = useState(false);
+  const [showVerifyBtn, setShowVerifyBtn] = useState(false);
 
   const handleRegisterClick = () => {
     containerRef.current?.classList.add("login-active");
@@ -18,6 +20,16 @@ const LoginPage: React.FC = () => {
     navigate("/");
   };
 
+  const handleRegisterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setShowTokenNotice(true);
+    setShowVerifyBtn(true);
+  };
+
+  const handleVerifyEmail = () => {
+    navigate("/verify-email");
+  };
+
   return (
     <div className="login-root">
       <button
@@ -27,6 +39,15 @@ const LoginPage: React.FC = () => {
       >
         ← Back to Home
       </button>
+      {showVerifyBtn && (
+        <button
+          className="login-verify-btn"
+          onClick={handleVerifyEmail}
+          type="button"
+        >
+          Verify Email
+        </button>
+      )}
       <div className="login-container" ref={containerRef}>
         <div className="login-form-box login-login">
           <form action="#">
@@ -63,7 +84,7 @@ const LoginPage: React.FC = () => {
           </form>
         </div>
         <div className="login-form-box login-register">
-          <form action="#">
+          <form action="#" onSubmit={handleRegisterSubmit}>
             <h1>Registration</h1>
             <div className="login-input-box">
               <input type="text" placeholder="Username" required />
@@ -80,6 +101,11 @@ const LoginPage: React.FC = () => {
             <button type="submit" className="login-btn">
               Register
             </button>
+            {showTokenNotice && (
+              <div className="login-token-notice">
+                Token đã được gửi qua gmail!
+              </div>
+            )}
             <p>or register with social platforms</p>
             <div className="login-social-icons">
               <a href="#">

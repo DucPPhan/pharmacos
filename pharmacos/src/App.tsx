@@ -13,13 +13,16 @@ import routes from "tempo-routes";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Dashboard from "./page/admin/Admindashboard";
+import VerifyEmailPage from "./page/login/VerifyEmailPage";
 
 function App() {
   const location = useLocation();
   if (location.pathname === "/login") {
     return <LoginPage />;
   }
-
+  if (location.pathname === "/verify-email") {
+    return <VerifyEmailPage />;
+  }
   return (
     <Suspense fallback={<p>Loading...</p>}>
       <div className="min-h-screen bg-background">
@@ -29,6 +32,7 @@ function App() {
         <>
           <Routes>
             <Route path="/" element={<Home />} />
+
             {/* <Route path="/login" element={<Login />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/profile" element={<Profile />} />
