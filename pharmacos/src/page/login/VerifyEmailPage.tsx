@@ -22,7 +22,7 @@ const VerifyEmailPage: React.FC = () => {
     setMessage("");
     try {
       const res = await axios.get(
-        `https://pharmacos-server-be.onrender.com/api/auth/verify-email?token=${token}`
+        `http://localhost:10000/api/auth/verify-email?token=${token}`
       );
       setMessage("Xác thực thành công!");
       setTimeout(() => {

@@ -63,7 +63,7 @@ const LoginPage: React.FC = () => {
     setShowTokenNotice(false);
     setShowVerifyBtn(false);
     try {
-      const res = await axios.post("http://localhost:3000/api/auth/register", {
+      const res = await axios.post("http://localhost:10000/api/auth/register", {
         username: registerUsername,
         password: registerPassword,
         name: registerName,
@@ -91,7 +91,7 @@ const LoginPage: React.FC = () => {
     setLoginError("");
     setLoginSuccess("");
     try {
-      const res = await axios.post("http://localhost:3000/api/auth/login", {
+      const res = await axios.post("http://localhost:10000/api/auth/login", {
         username: loginUsername,
         password: loginPassword,
       });
