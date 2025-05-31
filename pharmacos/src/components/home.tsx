@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import AIImageSearch from "./AIImageSearch";
 import ProductGrid from "./ProductGrid";
 import { useNavigate } from "react-router-dom";
+import CategoryNav from "./CategoryNav";
 
 const categories = [
   {
@@ -100,7 +101,8 @@ const Home = () => {
   const isLoggedIn = !!localStorage.getItem("user");
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className=" bg-background">
+      <CategoryNav/>
       <main>
         {/* Hero Section */}
         <section className="bg-gradient-to-r from-primary/10 to-secondary/10 py-16">
