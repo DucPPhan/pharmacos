@@ -11,6 +11,7 @@ import LoginPage from "./page/login/LoginPage";
 import Home from "./components/home";
 import routes from "tempo-routes";
 import Profile from "./page/profile/UserProfile";
+import VerifyEmailPage from "./page/login/VerifyEmailPage";
 
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/profile" element={<Profile />} />
+
           {/* <Route path="/login" element={<Login />} />
           <Route path="/cart" element={<Cart />} />
           

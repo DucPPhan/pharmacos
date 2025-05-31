@@ -140,48 +140,48 @@ const UserManagement = () => {
         }
     };
 
-   const handleAddUser = async () => {
-    const { username, email, password, confirmPassword, role } = newUser;
+    const handleAddUser = async () => {
+        const { username, email, password, confirmPassword, role } = newUser;
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!username || !email || !password || !confirmPassword) {
-        alert("Please fill in all fields.");
-        return;
-    }
+        if (!username || !email || !password || !confirmPassword) {
+            alert("Please fill in all fields.");
+            return;
+        }
 
-    if (!emailRegex.test(email)) {
-        alert("Please enter a valid email address.");
-        return;
-    }
+        if (!emailRegex.test(email)) {
+            alert("Please enter a valid email address.");
+            return;
+        }
 
-    if (password !== confirmPassword) {
-        alert("Passwords do not match.");
-        return;
-    }
+        if (password !== confirmPassword) {
+            alert("Passwords do not match.");
+            return;
+        }
 
-    try {
-        const response = await axios.post(API_URL, {
-            username,
-            email,
-            password,
-            role,
-            status: "active",
-        });
+        try {
+            const response = await axios.post(API_URL, {
+                username,
+                email,
+                password,
+                role,
+                status: "active",
+            });
 
-        setUsers((prev) => [...prev, response.data]);
-        setShowAddDialog(false);
-        setNewUser({
-            username: "",
-            email: "",
-            password: "",
-            confirmPassword: "",
-            role: "user",
-        });
-    } catch (error) {
-        console.error("Error adding user:", error);
-    }
-};
+            setUsers((prev) => [...prev, response.data]);
+            setShowAddDialog(false);
+            setNewUser({
+                username: "",
+                email: "",
+                password: "",
+                confirmPassword: "",
+                role: "user",
+            });
+        } catch (error) {
+            console.error("Error adding user:", error);
+        }
+    };
 
 
 
@@ -222,6 +222,7 @@ const UserManagement = () => {
                                     <TableCell>{user.username}</TableCell>
                                     <TableCell>
                                         <select
+                                            aria-label="User Role"
                                             value={user.role}
                                             onChange={(e) =>
                                                 setPendingChange({
@@ -240,6 +241,7 @@ const UserManagement = () => {
                                     <TableCell>{user.email}</TableCell>
                                     <TableCell>
                                         <select
+                                            aria-label="User Role"
                                             value={user.status}
                                             onChange={(e) =>
                                                 setPendingChange({
@@ -353,6 +355,7 @@ const UserManagement = () => {
                                     <div>
                                         <label className="block text-sm font-medium">Username</label>
                                         <input
+                                            aria-label="User Role"
                                             type="text"
                                             value={editUsername}
                                             onChange={(e) => setEditUsername(e.target.value)}
@@ -362,6 +365,7 @@ const UserManagement = () => {
                                     <div>
                                         <label className="block text-sm font-medium">Email</label>
                                         <input
+                                            aria-label="User Role"
                                             type="email"
                                             value={editEmail}
                                             onChange={(e) => setEditEmail(e.target.value)}
@@ -440,6 +444,7 @@ const UserManagement = () => {
                                         onChange={(e) => setNewUser({ ...newUser, confirmPassword: e.target.value })}
                                     />
                                     <select
+                                        aria-label="User Role"
                                         className="w-full border rounded px-2 py-1"
                                         value={newUser.role}
                                         onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
