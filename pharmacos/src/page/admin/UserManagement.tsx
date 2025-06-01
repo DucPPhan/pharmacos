@@ -66,7 +66,7 @@ const UserManagement = () => {
     if (!pendingChange) return;
     const { id, field, value } = pendingChange;
     try {
-      const updatedUser = users.find((user) => user.id === id);
+      const updatedUser = users.find((user) => user._id === id);
       if (!updatedUser) return;
       const newUser = { ...updatedUser, [field]: value };
 
@@ -75,7 +75,7 @@ const UserManagement = () => {
       });
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
-          user.id === id ? { ...user, [field]: value } : user
+          user._id === id ? { ...user, [field]: value } : user
         )
       );
     } catch (error) {
@@ -120,7 +120,7 @@ const UserManagement = () => {
 
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
-          user.id === confirmEditData.id
+          user._id === confirmEditData.id
             ? {
                 ...user,
                 username: confirmEditData.username,
@@ -174,7 +174,7 @@ const UserManagement = () => {
         },
         { headers: getAuthHeader() }
       );
-      setUsers((prev) => [...prev, response.data]);
+      setUsers((prev) => [...prev, response.data.staff]);
       setShowAddDialog(false);
       setNewUser({
         username: "",
@@ -232,7 +232,7 @@ const UserManagement = () => {
                       value={user.status}
                       onChange={(e) =>
                         setPendingChange({
-                          id: user.id,
+                          id: user._id,
                           field: "status",
                           value: e.target.value,
                         })
@@ -248,7 +248,7 @@ const UserManagement = () => {
                     <Button
                       variant="outline"
                       onClick={() => {
-                        setEditingUserId(user.id);
+                        setEditingUserId(user._id);
                         setEditUsername(user.username);
                         setEditEmail(user.email);
                       }}
@@ -257,13 +257,13 @@ const UserManagement = () => {
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => setDetailsUserId(user.id)}
+                      onClick={() => setDetailsUserId(user._id)}
                     >
                       Details
                     </Button>
                     <Button
                       variant="destructive"
-                      onClick={() => deleteUser(user.id)}
+                      onClick={() => deleteUser(user._id)}
                     >
                       Delete
                     </Button>
