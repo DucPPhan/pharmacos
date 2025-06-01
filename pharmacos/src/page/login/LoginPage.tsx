@@ -98,7 +98,13 @@ const LoginPage: React.FC = () => {
       setLoginSuccess("Đăng nhập thành công!");
       localStorage.setItem("token", res.data.token);
       setTimeout(() => {
-        navigate("/");
+        const role = res.data.user?.role;
+        console.log("ROLE:", role);
+        if (role && role.toLowerCase() === "admin") {
+          navigate("/admin/dashboard");
+        } else {
+          navigate("/");
+        }
       }, 1200);
     } catch (err: any) {
       setLoginError(err.response?.data?.message || "Đăng nhập thất bại!");
