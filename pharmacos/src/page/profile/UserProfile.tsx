@@ -394,7 +394,6 @@ const UserProfile: React.FC = () => {
 
     return (
         <>
-            <Header />
             <CategoryNav />
             <Layout
                 className="user-profile-layout"
