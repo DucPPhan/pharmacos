@@ -14,6 +14,7 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Dashboard from "./page/admin/Admindashboard";
 import VerifyEmailPage from "./page/login/VerifyEmailPage";
+import StaffDashboard from "./page/staff/Staffdashboard";
 
 function App() {
   const location = useLocation();
@@ -40,6 +41,8 @@ function App() {
             <Route path="/profile/change-password" element={<ChangePassword />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} /> */}
             <Route path="/admin/dashboard" element={<Dashboard />} />
+            <Route path="/staff/dashboard" element={<StaffDashboard />} />
+
           </Routes>
           {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
         </>
