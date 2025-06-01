@@ -11,8 +11,8 @@
 
 .login-container {
   position: relative;
-  width: 850px;
-  height: 550px;
+  width: 1050px;
+  height: 850px;
   background: #fff;
   margin: 20px;
   border-radius: 30px;
@@ -54,8 +54,15 @@ form {
 }
 
 .login-form-box.login-register {
+  min-height: 600px;
+  height: auto;
   visibility: hidden;
 }
+
+.login-form-box.login-register form {
+  height: auto;
+}
+
 .login-container.login-active .login-form-box.login-register {
   visibility: visible;
 }
@@ -194,7 +201,7 @@ form {
 }
 
 .login-back-home-btn {
-  position: absolute;
+  position: fixed;
   top: 24px;
   left: 24px;
   z-index: 10;
@@ -214,7 +221,7 @@ form {
 }
 
 .login-verify-btn {
-  position: absolute;
+  position: fixed;
   top: 24px;
   right: 24px;
   z-index: 10;
