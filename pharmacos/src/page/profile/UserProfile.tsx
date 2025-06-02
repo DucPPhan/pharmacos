@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Menu, Card, Avatar, Button, Spin, Modal, Form, Input, DatePicker, Select, Upload, message } from 'antd';
+import { Layout, Menu, Card, Avatar, Button, Spin, Modal, Form, Input, DatePicker, Select, Upload, message, Tooltip } from 'antd';
 import {
     UserOutlined,
     ShoppingCartOutlined,
@@ -7,7 +7,10 @@ import {
     FileTextOutlined,
     LogoutOutlined,
     EditOutlined,
-    CameraOutlined
+    CameraOutlined,
+    PlusOutlined,
+    GiftOutlined,
+    MedicineBoxOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import CategoryNav from '@/components/CategoryNav';
@@ -75,12 +78,14 @@ const PersonalInfo: React.FC<{
         bodyStyle={{ padding: 0 }}
     >
         <div className="user-profile-card-header">
-            <Avatar
-                size={120}
-                src={user.avatarUrl || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}
-                icon={<UserOutlined />}
-                className="user-profile-avatar"
-            />
+            <Tooltip title="Thông tin cá nhân" placement="bottom">
+                <Avatar
+                    size={120}
+                    src={user.avatarUrl || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}
+                    icon={<UserOutlined />}
+                    className="user-profile-avatar"
+                />
+            </Tooltip>
             <div className="user-profile-name">{user.name}</div>
             <div className="user-profile-phone">{user.phone}</div>
         </div>
@@ -135,6 +140,7 @@ const EditProfileModal: React.FC<{
     user: UserInfo;
 }> = ({ visible, onCancel, onSave, user }) => {
     const [form] = Form.useForm();
+    const [avatarUrl, setAvatarUrl] = useState<string>(user.avatarUrl || '');
 
     useEffect(() => {
         if (visible) {
@@ -142,6 +148,7 @@ const EditProfileModal: React.FC<{
                 ...user,
                 birthday: user.birthday ? dayjs(user.birthday, 'DD/MM/YYYY') : null
             });
+            setAvatarUrl(user.avatarUrl || '');
         }
     }, [visible, user, form]);
 
@@ -151,10 +158,23 @@ const EditProfileModal: React.FC<{
                 onSave({
                     ...user,
                     ...values,
+                    avatarUrl,
                     birthday: values.birthday ? values.birthday.format('DD/MM/YYYY') : undefined
                 });
             })
             .catch(() => { });
+    };
+
+    const handleAvatarChange = (info: any) => {
+        if (info.file.status === 'done') {
+            // This is a placeholder for future API integration
+            // In a real app, you would get the URL from the server response
+            // For now, we'll use a placeholder URL
+            message.success('Tải ảnh lên thành công!');
+            setAvatarUrl('https://cdn-icons-png.flaticon.com/512/3135/3135715.png');
+        } else if (info.file.status === 'error') {
+            message.error('Tải ảnh lên thất bại.');
+        }
     };
 
     return (
@@ -172,6 +192,32 @@ const EditProfileModal: React.FC<{
             maskClosable={false}
             className="user-profile-modal"
         >
+            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <Upload
+                    name="avatar"
+                    listType="picture-circle"
+                    className="avatar-uploader"
+                    showUploadList={false}
+                    action="https://run.mocky.io/v3/435e224c-44fb-4773-9faf-380c5e6a2188" // Placeholder URL
+                    onChange={handleAvatarChange}
+                >
+                    {avatarUrl ? (
+                        <Avatar
+                            size={100}
+                            src={avatarUrl}
+                            style={{
+                                border: '3px solid #1677ff',
+                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                            }}
+                        />
+                    ) : (
+                        <div>
+                            <PlusOutlined />
+                            <div style={{ marginTop: 8 }}>Tải ảnh</div>
+                        </div>
+                    )}
+                </Upload>
+            </div>
             <Form
                 form={form}
                 layout="vertical"
@@ -331,9 +377,11 @@ const UserProfile: React.FC = () => {
                         bodyStyle={{ padding: 0 }}
                     >
                         <div className="user-profile-section-content">
-                            <ShoppingCartOutlined className="user-profile-section-icon" />
+                            <div className="user-profile-section-icon">
+                                <GiftOutlined />
+                            </div>
                             <div className="user-profile-section-empty-title">Không có đơn hàng nào</div>
-                            <div className="user-profile-section-empty-desc">Bạn chưa có đơn hàng nào. Hãy mua sắm ngay!</div>
+                            <div className="user-profile-section-empty-desc">Bạn chưa có đơn hàng nào. Hãy mua sắm ngay để chăm sóc sức khỏe của bạn!</div>
                             <Button
                                 type="primary"
                                 shape="round"
@@ -342,6 +390,7 @@ const UserProfile: React.FC = () => {
                                 onClick={() => {
                                     window.location.href = '/';
                                 }}
+                                icon={<ShoppingCartOutlined />}
                             >
                                 Mua sắm ngay
                             </Button>
@@ -356,9 +405,11 @@ const UserProfile: React.FC = () => {
                         bodyStyle={{ padding: 0 }}
                     >
                         <div className="user-profile-section-content">
-                            <HomeOutlined className="user-profile-section-icon" />
+                            <div className="user-profile-section-icon">
+                                <HomeOutlined />
+                            </div>
                             <div className="user-profile-section-empty-title">Chưa có địa chỉ nào</div>
-                            <div className="user-profile-section-empty-desc">Vui lòng thêm địa chỉ để thuận tiện cho việc đặt hàng</div>
+                            <div className="user-profile-section-empty-desc">Vui lòng thêm địa chỉ để thuận tiện cho việc đặt hàng và giao thuốc tận nơi</div>
                             <Button
                                 type="primary"
                                 shape="round"
@@ -367,6 +418,7 @@ const UserProfile: React.FC = () => {
                                 onClick={() => {
                                     message.info('Chức năng thêm địa chỉ mới!');
                                 }}
+                                icon={<PlusOutlined />}
                             >
                                 Thêm địa chỉ mới
                             </Button>
@@ -381,9 +433,23 @@ const UserProfile: React.FC = () => {
                         bodyStyle={{ padding: 0 }}
                     >
                         <div className="user-profile-section-content">
-                            <FileTextOutlined className="user-profile-section-icon" />
+                            <div className="user-profile-section-icon">
+                                <MedicineBoxOutlined />
+                            </div>
                             <div className="user-profile-section-empty-title">Bạn chưa có đơn thuốc nào</div>
-                            <div className="user-profile-section-empty-desc">Các đơn thuốc của bạn sẽ hiển thị ở đây</div>
+                            <div className="user-profile-section-empty-desc">Tải lên đơn thuốc của bạn để dễ dàng mua thuốc theo toa và theo dõi lịch sử điều trị</div>
+                            <Button
+                                type="primary"
+                                shape="round"
+                                size="large"
+                                className="user-profile-section-btn"
+                                onClick={() => {
+                                    message.info('Chức năng tải lên đơn thuốc!');
+                                }}
+                                icon={<FileTextOutlined />}
+                            >
+                                Tải lên đơn thuốc
+                            </Button>
                         </div>
                     </Card>
                 );
@@ -408,12 +474,14 @@ const UserProfile: React.FC = () => {
                         collapsedWidth="0"
                     >
                         <div className="user-profile-sider-header">
-                            <Avatar
-                                size={100}
-                                src={user?.avatarUrl || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}
-                                icon={<UserOutlined />}
-                                className="user-profile-sider-avatar"
-                            />
+                            <Tooltip title="Thông tin người dùng" placement="right">
+                                <Avatar
+                                    size={100}
+                                    src={user?.avatarUrl || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}
+                                    icon={<UserOutlined />}
+                                    className="user-profile-sider-avatar"
+                                />
+                            </Tooltip>
                             <div className="user-profile-sider-name">{user?.name}</div>
                             <div className="user-profile-sider-phone">{user?.phone}</div>
                         </div>
@@ -460,7 +528,6 @@ const UserProfile: React.FC = () => {
                     </Content>
                 </Layout>
             </Layout>
-            <Footer />
         </>
     );
 };
