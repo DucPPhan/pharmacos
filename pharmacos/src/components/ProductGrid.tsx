@@ -104,9 +104,9 @@ const ProductGrid = ({
     selectedCategory === "all"
       ? products
       : products.filter(
-          (product) =>
-            product.category.toLowerCase() === selectedCategory.toLowerCase()
-        );
+        (product) =>
+          product.category.toLowerCase() === selectedCategory.toLowerCase()
+      );
 
   // Sort products
   const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -236,6 +236,7 @@ const ProductGrid = ({
                     size="sm"
                     disabled={!product.inStock}
                     onClick={() => handleAddToCart(product.id)}
+                    style={{ backgroundColor: '#7494ec' }}
                   >
                     <ShoppingCart className="h-4 w-4 mr-2" />
                     Add

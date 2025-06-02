@@ -1,13 +1,14 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Search, ShoppingCart, User, Menu, X, Camera } from "lucide-react";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Card, CardContent } from "./ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
-import AIImageSearch from "./AIImageSearch";
-import ProductGrid from "./ProductGrid";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Card, CardContent } from "../../components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../components/ui/tabs";
+import AIImageSearch from "../../components/AIImageSearch";
+import ProductGrid from "../../components/ProductGrid";
 import { useNavigate } from "react-router-dom";
+import CategoryNav from "./CategoryNav";
 
 const categories = [
   {
@@ -100,98 +101,8 @@ const Home = () => {
   const isLoggedIn = !!localStorage.getItem("user");
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-white border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Link to="/" className="text-2xl font-bold text-primary">
-                PharmaCos
-              </Link>
-            </div>
-
-            <div className="hidden md:flex items-center flex-1 mx-8">
-              <div className="relative w-full max-w-md">
-                <Input
-                  type="text"
-                  placeholder="Search products..."
-                  className="pr-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <Search className="absolute right-3 top-2.5 h-5 w-5 text-muted-foreground" />
-              </div>
-            </div>
-
-            <div className="hidden md:flex items-center space-x-4">
-              <Button variant="ghost" size="icon">
-                <ShoppingCart className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  if (!isLoggedIn) {
-                    navigate("/login");
-                  } else {
-                    navigate("/profile");
-                  }
-                }}
-              >
-                <User className="h-5 w-5" />
-              </Button>
-            </div>
-
-            <div className="md:hidden">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                {mobileMenuOpen ? (
-                  <X className="h-5 w-5" />
-                ) : (
-                  <Menu className="h-5 w-5" />
-                )}
-              </Button>
-            </div>
-          </div>
-
-          {/* Mobile menu */}
-          {mobileMenuOpen && (
-            <div className="md:hidden mt-4 pb-4">
-              <div className="relative mb-4">
-                <Input
-                  type="text"
-                  placeholder="Search products..."
-                  className="pr-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <Search className="absolute right-3 top-2.5 h-5 w-5 text-muted-foreground" />
-              </div>
-              <div className="flex flex-col space-y-2">
-                <Link
-                  to="/cart"
-                  className="flex items-center p-2 hover:bg-muted rounded-md"
-                >
-                  <ShoppingCart className="h-5 w-5 mr-2" />
-                  <span>Cart</span>
-                </Link>
-                <Link
-                  to="/account"
-                  className="flex items-center p-2 hover:bg-muted rounded-md"
-                >
-                  <User className="h-5 w-5 mr-2" />
-                  <span>Account</span>
-                </Link>
-              </div>
-            </div>
-          )}
-        </div>
-      </header>
-
+    <div className=" bg-background">
+      <CategoryNav/>
       <main>
         {/* Hero Section */}
         <section className="bg-gradient-to-r from-primary/10 to-secondary/10 py-16">
@@ -205,7 +116,7 @@ const Home = () => {
                   Upload a photo of any product and our AI will identify it for
                   you.
                 </p>
-                <Button className="flex items-center">
+                <Button className="flex items-center" style={{backgroundColor: '#7494ec'}}>
                   <Camera className="mr-2 h-5 w-5" />
                   Try Image Search
                 </Button>
@@ -229,10 +140,10 @@ const Home = () => {
             </h2>
 
             <Tabs defaultValue="categories" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-8">
+              <TabsList className="grid w-full grid-cols-2 mb-8">
                 <TabsTrigger value="categories">Browse Categories</TabsTrigger>
                 <TabsTrigger value="featured">Featured Products</TabsTrigger>
-                <TabsTrigger value="ai-search">AI Image Search</TabsTrigger>
+                {/* <TabsTrigger value="ai-search">AI Image Search</TabsTrigger> */}
               </TabsList>
 
               <TabsContent value="categories" className="space-y-4">
@@ -267,9 +178,9 @@ const Home = () => {
                 <ProductGrid products={featuredProducts} />
               </TabsContent>
 
-              <TabsContent value="ai-search">
+              {/* <TabsContent value="ai-search">
                 <AIImageSearch />
-              </TabsContent>
+              </TabsContent> */}
             </Tabs>
           </div>
         </section>
@@ -279,7 +190,7 @@ const Home = () => {
           <div className="container mx-auto px-4">
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-3xl font-bold">Featured Products</h2>
-              <Link to="/products" className="text-primary hover:underline">
+              <Link to="/products" className="text-primary hover:underline hover:text-blue-400">
                 View All
               </Link>
             </div>
@@ -306,87 +217,13 @@ const Home = () => {
                     Get 20% off on all skincare products this week. Use code
                     SKIN20 at checkout.
                   </p>
-                  <Button>Shop Now</Button>
+                  <Button style={{backgroundColor: '#7494ec'}}>Shop Now</Button>
                 </div>
               </div>
             </div>
           </div>
         </section>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-xl font-bold mb-4">PharmaCos</h3>
-              <p className="text-gray-400">
-                Your one-stop shop for pharmaceutical and cosmetic products.
-              </p>
-            </div>
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
-              <ul className="space-y-2">
-                <li>
-                  <Link to="/" className="text-gray-400 hover:text-white">
-                    Home
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/products"
-                    className="text-gray-400 hover:text-white"
-                  >
-                    Products
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/about" className="text-gray-400 hover:text-white">
-                    About Us
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/contact"
-                    className="text-gray-400 hover:text-white"
-                  >
-                    Contact
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Categories</h4>
-              <ul className="space-y-2">
-                {categories.slice(0, 4).map((category) => (
-                  <li key={category.id}>
-                    <Link
-                      to={`/category/${category.id}`}
-                      className="text-gray-400 hover:text-white"
-                    >
-                      {category.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Contact Us</h4>
-              <address className="text-gray-400 not-italic">
-                <p>123 Pharmacy Street</p>
-                <p>Cosmetic City, PC 12345</p>
-                <p className="mt-2">Email: info@pharmacos.com</p>
-                <p>Phone: (123) 456-7890</p>
-              </address>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>
-              &copy; {new Date().getFullYear()} PharmaCos. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

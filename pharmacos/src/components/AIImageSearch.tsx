@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { Upload, Camera, Loader2 } from "lucide-react";
+import { Upload, Camera, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,6 +13,8 @@ import { Progress } from "@/components/ui/progress";
 
 interface AIImageSearchProps {
   onSearchComplete?: (results: ProductMatch[]) => void;
+  onClose?: () => void; // Add onClose prop for popup integration
+  isPopup?: boolean; // Optional flag to adjust styling when used in popup
 }
 
 interface ProductMatch {
@@ -23,7 +25,11 @@ interface ProductMatch {
   confidence: number;
 }
 
-const AIImageSearch = ({ onSearchComplete = () => {} }: AIImageSearchProps) => {
+const AIImageSearch = ({
+  onSearchComplete = () => { },
+  onClose,
+  isPopup = false
+}: AIImageSearchProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -151,22 +157,42 @@ const AIImageSearch = ({ onSearchComplete = () => {} }: AIImageSearchProps) => {
     setProgress(0);
   };
 
+  // Handle view product and close popup if needed
+  const handleViewProduct = (productId: string) => {
+    // In a real app, navigate to product detail page
+    console.log(`Viewing product ${productId}`);
+
+    // If in popup mode and results are shown, optionally close the popup
+    if (isPopup && onClose) {
+      onClose();
+    }
+  };
+
   return (
-    <Card className="w-full max-w-3xl mx-auto bg-white">
-      <CardHeader>
+    <Card className={`w-full ${isPopup ? 'border-0 shadow-none' : 'max-w-3xl mx-auto'} bg-white`}>
+      <CardHeader className="relative">
         <CardTitle className="text-2xl font-bold">
           AI Product Recognition
         </CardTitle>
         <CardDescription>
           Upload a photo of a product to find it in our store
         </CardDescription>
+        {isPopup && onClose && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-2 top-2"
+            onClick={onClose}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         {!preview ? (
           <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center ${
-              isDragging ? "border-primary bg-primary/5" : "border-gray-300"
-            }`}
+            className={`border-2 border-dashed rounded-lg p-8 text-center ${isDragging ? "border-primary bg-primary/5" : "border-gray-300"
+              }`}
             onDragEnter={handleDragEnter}
             onDragLeave={handleDragLeave}
             onDragOver={handleDragOver}
@@ -251,7 +277,11 @@ const AIImageSearch = ({ onSearchComplete = () => {} }: AIImageSearchProps) => {
                           <span className="font-bold">
                             ${product.price.toFixed(2)}
                           </span>
-                          <Button size="sm" variant="outline">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleViewProduct(product.id)}
+                          >
                             View
                           </Button>
                         </div>
@@ -272,6 +302,11 @@ const AIImageSearch = ({ onSearchComplete = () => {} }: AIImageSearchProps) => {
         {(preview || results.length > 0) && (
           <Button variant="outline" onClick={resetSearch}>
             Try Another Image
+          </Button>
+        )}
+        {isPopup && onClose && (
+          <Button variant="outline" onClick={onClose}>
+            Close
           </Button>
         )}
       </CardFooter>
