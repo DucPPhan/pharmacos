@@ -140,10 +140,10 @@ const Home = () => {
             </h2>
 
             <Tabs defaultValue="categories" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-8">
+              <TabsList className="grid w-full grid-cols-2 mb-8">
                 <TabsTrigger value="categories">Browse Categories</TabsTrigger>
                 <TabsTrigger value="featured">Featured Products</TabsTrigger>
-                <TabsTrigger value="ai-search">AI Image Search</TabsTrigger>
+                {/* <TabsTrigger value="ai-search">AI Image Search</TabsTrigger> */}
               </TabsList>
 
               <TabsContent value="categories" className="space-y-4">
@@ -178,9 +178,9 @@ const Home = () => {
                 <ProductGrid products={featuredProducts} />
               </TabsContent>
 
-              <TabsContent value="ai-search">
+              {/* <TabsContent value="ai-search">
                 <AIImageSearch />
-              </TabsContent>
+              </TabsContent> */}
             </Tabs>
           </div>
         </section>

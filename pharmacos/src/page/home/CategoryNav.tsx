@@ -153,9 +153,8 @@ const categories: CategoryItem[] = [
 
 export default function CategoryNav() {
     const [activeCategory, setActiveCategory] = useState<string | null>(null);
-    const navRef = useRef<HTMLDivElement>(null);
-    const dropdownRef = useRef<HTMLDivElement>(null);
     const [dropdownVisible, setDropdownVisible] = useState(false);
+    const navRef = useRef<HTMLDivElement>(null);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
@@ -166,22 +165,22 @@ export default function CategoryNav() {
     }, []);
 
     useEffect(() => {
+        const classList = document.body.classList;
         if (activeCategory) {
             document.body.classList.add('dropdown-active');
+            classList.add('overflow-hidden');
         } else {
             document.body.classList.remove('dropdown-active');
+            classList.remove('overflow-hidden');
         }
-
         return () => {
             document.body.classList.remove('dropdown-active');
+            classList.remove('overflow-hidden');
         };
     }, [activeCategory]);
 
-    // Handle mouse events for dropdown menu
     const handleMouseEnter = (categoryId: string) => {
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current); // Hủy nếu đang đếm ngược ẩn
-        }
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
         setActiveCategory(categoryId);
         setDropdownVisible(true);
     };
@@ -195,7 +194,6 @@ export default function CategoryNav() {
 
     return (
         <>
-            {/* Overlay to dim the rest of the page */}
             {activeCategory && (
                 <div
                     className="fixed inset-0 bg-black/40 z-40 pointer-events-none transition-opacity duration-300 ease-in-out"
@@ -205,44 +203,41 @@ export default function CategoryNav() {
                     }}
                 />
             )}
+
             <div ref={navRef} className="bg-white border-b">
                 <div className="container mx-auto px-4">
                     <ul className="flex items-center justify-between text-sm md:text-base overflow-x-auto gap-3 md:gap-4">
                         {categories.map((category) => (
-                            <li
+                            <div
                                 key={category.id}
-                                className="relative flex-shrink-0"
+                                className="relative"
+                                onMouseEnter={() => handleMouseEnter(category.id)}
+                                onMouseLeave={handleMouseLeave}
                             >
-                                <div
-                                    className="cursor-pointer hover:bg-gray-50 rounded-md md:px-3 md:py-3"
-                                    onMouseEnter={() => handleMouseEnter(category.id)}
-                                    onMouseLeave={handleMouseLeave}
-                                >
-                                    <div className="flex items-center gap-1 whitespace-nowrap group">
-                                        <span className={`transition-colors ${activeCategory === category.id
-                                            ? 'text-[#7494ec]'
-                                            : 'hover:text-[#7494ec]'
-                                            }`}>
-                                            {category.name}
-                                        </span>
-
-                                        {/* Rotating ChevronDown icon */}
-                                        <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${activeCategory === category.id
-                                            ? 'text-[#7494ec] rotate-180'
-                                            : 'group-hover:text-[#7494ec]'
-                                            }`} />
-
-                                        {/* Underline effect */}
-                                        <div className={`absolute bottom-1 left-3 right-3 h-0.5 bg-[#7494ec] transform transition-transform duration-300 ${activeCategory === category.id
-                                            ? 'scale-x-100'
-                                            : 'scale-x-0 group-hover:scale-x-100'
-                                            }`} />
+                                <li className="relative flex-shrink-0">
+                                    <div className="cursor-pointer hover:bg-gray-50 rounded-md md:px-3 md:py-3">
+                                        <div className="flex items-center gap-1 whitespace-nowrap group">
+                                            <span className={`transition-colors ${activeCategory === category.id
+                                                    ? 'text-[#7494ec]'
+                                                    : 'hover:text-[#7494ec]'
+                                                }`}>
+                                                {category.name}
+                                            </span>
+                                            <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${activeCategory === category.id
+                                                    ? 'text-[#7494ec] rotate-180'
+                                                    : 'group-hover:text-[#7494ec]'
+                                                }`} />
+                                            <div className={`absolute bottom-1 left-3 right-3 h-0.5 bg-[#7494ec] transform transition-transform duration-300 ${activeCategory === category.id
+                                                    ? 'scale-x-100'
+                                                    : 'scale-x-0 group-hover:scale-x-100'
+                                                }`} />
+                                        </div>
                                     </div>
-                                </div>
+                                </li>
 
-                                {/* Dropdown with fixed positioning */}
+                                {/* Dropdown */}
                                 <AnimatePresence>
-                                    {activeCategory && (
+                                    {activeCategory === category.id && dropdownVisible && (
                                         <motion.div
                                             key={activeCategory}
                                             initial={{ opacity: 0, y: -10 }}
@@ -255,29 +250,23 @@ export default function CategoryNav() {
                                                 maxHeight: 'calc(100vh - var(--category-nav-height))',
                                                 overflowY: 'auto'
                                             }}
-                                            onMouseEnter={() => setDropdownVisible(true)}
-                                            onMouseLeave={() => {
-                                                setDropdownVisible(false);
-                                                setActiveCategory(null);
-                                            }}
                                         >
                                             <div className="container mx-auto px-4 py-6">
-                                                {/* Render dynamic content here */}
                                                 {(() => {
-                                                    const category = categories.find((cat) => cat.id === activeCategory);
-                                                    if (!category) return null;
+                                                    const cat = categories.find((c) => c.id === activeCategory);
+                                                    if (!cat) return null;
 
                                                     return (
                                                         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                                                             <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
-                                                                {category.subcategories.map((subcategory, idx) => (
+                                                                {cat.subcategories.map((subcategory, idx) => (
                                                                     <div key={idx} className="space-y-3">
                                                                         <h3 className="font-medium text-gray-900 text-lg border-b pb-2">{subcategory.title}</h3>
                                                                         <ul className="space-y-2">
                                                                             {subcategory.items.map((item, itemIdx) => (
                                                                                 <li key={itemIdx}>
                                                                                     <Link
-                                                                                        to={`/category/${category.id}/${item.toLowerCase().replace(/\s+/g, '-')}`}
+                                                                                        to={`/category/${cat.id}/${item.toLowerCase().replace(/\s+/g, '-')}`}
                                                                                         className="text-gray-600 hover:text-primary hover:underline"
                                                                                     >
                                                                                         {item}
@@ -293,7 +282,7 @@ export default function CategoryNav() {
                                                             <div className="md:col-span-1">
                                                                 <h3 className="font-medium text-gray-900 text-lg border-b pb-2 mb-3">Best seller</h3>
                                                                 <div className="space-y-4">
-                                                                    {category.popularProducts.map((product) => (
+                                                                    {cat.popularProducts.map((product) => (
                                                                         <Link
                                                                             to={`/product/${product.id}`}
                                                                             key={product.id}
@@ -314,7 +303,7 @@ export default function CategoryNav() {
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
-                            </li>
+                            </div>
                         ))}
                     </ul>
                 </div>
