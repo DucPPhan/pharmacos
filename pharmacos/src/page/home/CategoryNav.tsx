@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
-import './CategoryNav.css'
+import './CategoryNav.css';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type CategoryItem = {
     id: string;
@@ -154,6 +155,8 @@ export default function CategoryNav() {
     const [activeCategory, setActiveCategory] = useState<string | null>(null);
     const navRef = useRef<HTMLDivElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const [dropdownVisible, setDropdownVisible] = useState(false);
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         if (navRef.current) {
@@ -176,23 +179,27 @@ export default function CategoryNav() {
 
     // Handle mouse events for dropdown menu
     const handleMouseEnter = (categoryId: string) => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current); // Hủy nếu đang đếm ngược ẩn
+        }
         setActiveCategory(categoryId);
+        setDropdownVisible(true);
     };
 
     const handleMouseLeave = () => {
-        // Only close if mouse isn't over dropdown
-        if (!dropdownRef.current || !dropdownRef.current.matches(':hover')) {
+        timeoutRef.current = setTimeout(() => {
+            setDropdownVisible(false);
             setActiveCategory(null);
-        }
+        }, 200);
     };
 
     return (
         <>
             {/* Overlay to dim the rest of the page */}
             {activeCategory && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black/40 z-40 pointer-events-none transition-opacity duration-300 ease-in-out"
-                    style={{ 
+                    style={{
                         top: 'calc(var(--category-nav-height) + 9%)',
                         opacity: activeCategory ? 1 : 0
                     }}
@@ -212,93 +219,101 @@ export default function CategoryNav() {
                                     onMouseLeave={handleMouseLeave}
                                 >
                                     <div className="flex items-center gap-1 whitespace-nowrap group">
-                                        <span className={`transition-colors ${
-                                            activeCategory === category.id 
-                                                ? 'text-[#7494ec]' 
-                                                : 'hover:text-[#7494ec]'
-                                        }`}>
+                                        <span className={`transition-colors ${activeCategory === category.id
+                                            ? 'text-[#7494ec]'
+                                            : 'hover:text-[#7494ec]'
+                                            }`}>
                                             {category.name}
                                         </span>
-                                        
+
                                         {/* Rotating ChevronDown icon */}
-                                        <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${
-                                            activeCategory === category.id 
-                                                ? 'text-[#7494ec] rotate-180' 
-                                                : 'group-hover:text-[#7494ec]'
-                                        }`} />
-                                        
+                                        <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${activeCategory === category.id
+                                            ? 'text-[#7494ec] rotate-180'
+                                            : 'group-hover:text-[#7494ec]'
+                                            }`} />
+
                                         {/* Underline effect */}
-                                        <div className={`absolute bottom-1 left-3 right-3 h-0.5 bg-[#7494ec] transform transition-transform duration-300 ${
-                                            activeCategory === category.id 
-                                                ? 'scale-x-100' 
-                                                : 'scale-x-0 group-hover:scale-x-100'
-                                        }`} />
+                                        <div className={`absolute bottom-1 left-3 right-3 h-0.5 bg-[#7494ec] transform transition-transform duration-300 ${activeCategory === category.id
+                                            ? 'scale-x-100'
+                                            : 'scale-x-0 group-hover:scale-x-100'
+                                            }`} />
                                     </div>
                                 </div>
 
                                 {/* Dropdown with fixed positioning */}
-                                {activeCategory === category.id && (
-                                    <div
-                                        ref={dropdownRef}
-                                        className="fixed left-0 right-0 bg-white shadow-xl border-t z-50"
-                                        style={{
-                                            top: 'calc(9% + var(--category-nav-height))',
-                                            maxHeight: 'calc(100vh - var(--category-nav-height))',
-                                            overflowY: 'auto'
-                                        }}
-                                        onMouseEnter={() => setActiveCategory(category.id)}
-                                        onMouseLeave={() => setActiveCategory(null)}
-                                    >
-                                        <div className="container mx-auto px-4 py-6">
-                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                                                {/* Subcategories */}
-                                                <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
-                                                    {category.subcategories.map((subcategory, idx) => (
-                                                        <div key={idx} className="space-y-3">
-                                                            <h3 className="font-medium text-gray-900 text-lg border-b pb-2">{subcategory.title}</h3>
-                                                            <ul className="space-y-2">
-                                                                {subcategory.items.map((item, itemIdx) => (
-                                                                    <li key={itemIdx}>
-                                                                        <Link
-                                                                            to={`/category/${category.id}/${item.toLowerCase().replace(/\s+/g, '-')}`}
-                                                                            className="text-gray-600 hover:text-primary hover:underline"
-                                                                        >
-                                                                            {item}
-                                                                        </Link>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                <AnimatePresence>
+                                    {activeCategory && (
+                                        <motion.div
+                                            key={activeCategory}
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -10 }}
+                                            transition={{ duration: 0.3 }}
+                                            className="fixed left-0 right-0 bg-white shadow-xl border-t z-50"
+                                            style={{
+                                                top: 'calc(9% + var(--category-nav-height))',
+                                                maxHeight: 'calc(100vh - var(--category-nav-height))',
+                                                overflowY: 'auto'
+                                            }}
+                                            onMouseEnter={() => setDropdownVisible(true)}
+                                            onMouseLeave={() => {
+                                                setDropdownVisible(false);
+                                                setActiveCategory(null);
+                                            }}
+                                        >
+                                            <div className="container mx-auto px-4 py-6">
+                                                {/* Render dynamic content here */}
+                                                {(() => {
+                                                    const category = categories.find((cat) => cat.id === activeCategory);
+                                                    if (!category) return null;
 
-                                                {/* Popular products */}
-                                                <div className="md:col-span-1">
-                                                    <h3 className="font-medium text-gray-900 text-lg border-b pb-2 mb-3">Best seller</h3>
-                                                    <div className="space-y-4">
-                                                        {category.popularProducts.map((product) => (
-                                                            <Link
-                                                                to={`/product/${product.id}`}
-                                                                key={product.id}
-                                                                className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded transition-colors"
-                                                            >
-                                                                <div className="w-16 h-16 bg-gray-200 rounded overflow-hidden flex-shrink-0">
-                                                                    {/* Uncomment when you have actual images */}
-                                                                    {/* <img 
-                                                                        src={product.image} 
-                                                                        alt={product.name} 
-                                                                        className="w-full h-full object-cover"
-                                                                    /> */}
+                                                    return (
+                                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                                                            <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                                {category.subcategories.map((subcategory, idx) => (
+                                                                    <div key={idx} className="space-y-3">
+                                                                        <h3 className="font-medium text-gray-900 text-lg border-b pb-2">{subcategory.title}</h3>
+                                                                        <ul className="space-y-2">
+                                                                            {subcategory.items.map((item, itemIdx) => (
+                                                                                <li key={itemIdx}>
+                                                                                    <Link
+                                                                                        to={`/category/${category.id}/${item.toLowerCase().replace(/\s+/g, '-')}`}
+                                                                                        className="text-gray-600 hover:text-primary hover:underline"
+                                                                                    >
+                                                                                        {item}
+                                                                                    </Link>
+                                                                                </li>
+                                                                            ))}
+                                                                        </ul>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+
+                                                            {/* Popular Products */}
+                                                            <div className="md:col-span-1">
+                                                                <h3 className="font-medium text-gray-900 text-lg border-b pb-2 mb-3">Best seller</h3>
+                                                                <div className="space-y-4">
+                                                                    {category.popularProducts.map((product) => (
+                                                                        <Link
+                                                                            to={`/product/${product.id}`}
+                                                                            key={product.id}
+                                                                            className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded transition-colors"
+                                                                        >
+                                                                            <div className="w-16 h-16 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+                                                                                <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                                                                            </div>
+                                                                            <span className="text-sm font-medium">{product.name}</span>
+                                                                        </Link>
+                                                                    ))}
                                                                 </div>
-                                                                <span className="text-sm font-medium">{product.name}</span>
-                                                            </Link>
-                                                        ))}
-                                                    </div>
-                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
-                                        </div>
-                                    </div>
-                                )}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </li>
                         ))}
                     </ul>
