@@ -41,14 +41,14 @@ const Dashboard = () => {
             <Users className="mr-2 h-4 w-4" />
             Users
           </Button>
-          <Button
+          {/* <Button
             variant={activeTab === "ai-training" ? "default" : "ghost"}
             className="w-full justify-start"
             onClick={() => setActiveTab("ai-training")}
           >
             <Upload className="mr-2 h-4 w-4" />
             AI Training
-          </Button>
+          </Button> */}
           <Button
             variant={activeTab === "settings" ? "default" : "ghost"}
             className="w-full justify-start"
