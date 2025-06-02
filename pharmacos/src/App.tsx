@@ -8,7 +8,7 @@ import {
   Route,
 } from "react-router-dom";
 import LoginPage from "./page/login/LoginPage";
-import Home from "./components/home";
+import Home from "./page/home/home";
 import routes from "tempo-routes";
 import Header from "./components/Header";
 import Footer from "./components/Footer";

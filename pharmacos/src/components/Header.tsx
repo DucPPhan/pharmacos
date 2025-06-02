@@ -12,11 +12,11 @@ export default function Header() {
 
     return (
         <div className="bg-background">
-            <header className="sticky top-0 z-50 w-full bg-white border-b shadow-sm">
+            <header className="sticky top-0 z-50 w-full border-b shadow-sm" style={{backgroundColor: '#7494ec'}}>
                 <div className="container mx-auto px-4 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                            <Link to="/" className="text-2xl font-bold text-primary">
+                            <Link to="/" className="text-2xl font-bold text-primary text-white">
                                 PharmaCos
                             </Link>
                         </div>
@@ -29,6 +29,7 @@ export default function Header() {
                                     className="pr-10"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
+                                    style={{backgroundColor: 'white'}}
                                 />
                                 <Search className="absolute right-3 top-2.5 h-5 w-5 text-muted-foreground" />
                             </div>
