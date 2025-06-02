@@ -6,7 +6,6 @@ import "./LoginPage.css";
 const LoginPage: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const [showTokenNotice, setShowTokenNotice] = useState(false);
   const [showVerifyBtn, setShowVerifyBtn] = useState(false);
   const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -18,7 +17,6 @@ const LoginPage: React.FC = () => {
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerGender, setRegisterGender] = useState("male");
   const [registerDateOfBirth, setRegisterDateOfBirth] = useState("");
-  const [registerSkinType, setRegisterSkinType] = useState("oily");
   const [registerError, setRegisterError] = useState("");
   const [registerSuccess, setRegisterSuccess] = useState("");
   const [year, setYear] = useState("");
@@ -60,7 +58,6 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setRegisterError("");
     setRegisterSuccess("");
-    setShowTokenNotice(false);
     setShowVerifyBtn(false);
     try {
       const res = await axios.post("http://localhost:10000/api/auth/register", {
@@ -70,12 +67,10 @@ const LoginPage: React.FC = () => {
         email: registerEmail,
         gender: registerGender,
         dateOfBirth: registerDateOfBirth,
-        skinType: registerSkinType,
       });
       setRegisterSuccess(
         "Đăng ký thành công! Vui lòng kiểm tra email để xác thực."
       );
-      setShowTokenNotice(true);
       setShowVerifyBtn(true);
     } catch (err: any) {
       setRegisterError(err.response?.data?.message || "Đăng ký thất bại!");
@@ -321,27 +316,6 @@ const LoginPage: React.FC = () => {
                 </select>
               </div>
             </div>
-            <div className="login-input-box">
-              <select
-                value={registerSkinType}
-                onChange={(e) => setRegisterSkinType(e.target.value)}
-                required
-                style={{
-                  width: "100%",
-                  padding: "13px 20px",
-                  borderRadius: 8,
-                  border: "none",
-                  background: "#eee",
-                  fontSize: 16,
-                }}
-              >
-                <option value="oily">Oily</option>
-                <option value="dry">Dry</option>
-                <option value="combination">Combination</option>
-                <option value="normal">Normal</option>
-                <option value="sensitive">Sensitive</option>
-              </select>
-            </div>
             <button type="submit" className="login-btn">
               Register
             </button>
@@ -361,11 +335,7 @@ const LoginPage: React.FC = () => {
                 {registerSuccess}
               </div>
             )}
-            {showTokenNotice && (
-              <div className="login-token-notice">
-                Token đã được gửi qua gmail!
-              </div>
-            )}
+
             <p>or register with social platforms</p>
             <div className="login-social-icons">
               <a href="#">
