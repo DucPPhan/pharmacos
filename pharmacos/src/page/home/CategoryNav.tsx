@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import './CategoryNav.css';
 import { motion, AnimatePresence } from 'framer-motion';
+import { saveFilterState } from '@/utils/homeSessionStorage';
 
 type CategoryItem = {
     id: string;
@@ -33,8 +34,8 @@ const categories: CategoryItem[] = [
             }
         ],
         popularProducts: [
-            { id: 'p1', name: 'Vitamin C Serum', image: '/images/products/serum-c.jpg' },
-            { id: 'p2', name: 'Cerave Facial Cleanser', image: '/images/products/cerave-cleanser.jpg' }
+            { id: '1', name: 'Vitamin C Serum', image: '/images/products/serum-c.jpg' },
+            { id: '2', name: 'Cerave Facial Cleanser', image: '/images/products/cerave-cleanser.jpg' }
         ]
     },
     {
@@ -156,6 +157,7 @@ export default function CategoryNav() {
     const [dropdownVisible, setDropdownVisible] = useState(false);
     const navRef = useRef<HTMLDivElement>(null);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (navRef.current) {
@@ -178,6 +180,22 @@ export default function CategoryNav() {
             classList.remove('overflow-hidden');
         };
     }, [activeCategory]);
+
+    const handleCategoryClick = (categoryId: string, subcategory?: string) => {
+        console.log("handleCategoryClick called with:", { categoryId, subcategory });
+        const filteredSubcategory = subcategory && subcategory.trim() !== '' ? subcategory : undefined;
+
+        // Save filter state to session storage
+        saveFilterState({
+            category: categoryId,
+            subcategory: filteredSubcategory
+        });
+
+        console.log("Session storage after save:", sessionStorage.getItem('pharmacos_filter_state'));
+
+        // Navigate to products page
+        navigate('/products');
+    };
 
     const handleMouseEnter = (categoryId: string) => {
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -218,18 +236,18 @@ export default function CategoryNav() {
                                     <div className="cursor-pointer hover:bg-gray-50 rounded-md md:px-3 md:py-3">
                                         <div className="flex items-center gap-1 whitespace-nowrap group">
                                             <span className={`transition-colors ${activeCategory === category.id
-                                                    ? 'text-[#7494ec]'
-                                                    : 'hover:text-[#7494ec]'
+                                                ? 'text-[#7494ec]'
+                                                : 'hover:text-[#7494ec]'
                                                 }`}>
                                                 {category.name}
                                             </span>
                                             <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${activeCategory === category.id
-                                                    ? 'text-[#7494ec] rotate-180'
-                                                    : 'group-hover:text-[#7494ec]'
+                                                ? 'text-[#7494ec] rotate-180'
+                                                : 'group-hover:text-[#7494ec]'
                                                 }`} />
                                             <div className={`absolute bottom-1 left-3 right-3 h-0.5 bg-[#7494ec] transform transition-transform duration-300 ${activeCategory === category.id
-                                                    ? 'scale-x-100'
-                                                    : 'scale-x-0 group-hover:scale-x-100'
+                                                ? 'scale-x-100'
+                                                : 'scale-x-0 group-hover:scale-x-100'
                                                 }`} />
                                         </div>
                                     </div>
@@ -266,7 +284,8 @@ export default function CategoryNav() {
                                                                             {subcategory.items.map((item, itemIdx) => (
                                                                                 <li key={itemIdx}>
                                                                                     <Link
-                                                                                        to={`/category/${cat.id}/${item.toLowerCase().replace(/\s+/g, '-')}`}
+                                                                                        to="/products"
+                                                                                        onClick={() => handleCategoryClick(cat.id, item.toLowerCase().replace(/\s+/g, '-'))}
                                                                                         className="text-gray-600 hover:text-primary hover:underline"
                                                                                     >
                                                                                         {item}

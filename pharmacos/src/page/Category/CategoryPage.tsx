@@ -1,6 +1,6 @@
 // src/page/category/CategoryPage.tsx
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Slider } from "../../components/ui/slider";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Label } from "../../components/ui/label";
@@ -14,6 +14,7 @@ import {
 } from "../../components/ui/select";
 import ProductGrid from '../../components/ProductGrid';
 import { FilterX, SlidersHorizontal } from 'lucide-react';
+import { saveFilterState } from '@/utils/homeSessionStorage';
 
 interface Product {
     id: string;
@@ -206,6 +207,7 @@ const allBrands = [...new Set(allProducts.filter(p => p.brand).map(p => p.brand)
 const allTags = [...new Set(allProducts.flatMap(p => p.tags || []))];
 
 const CategoryPage = () => {
+    const navigate = useNavigate();
     const { categoryId } = useParams<{ categoryId: string }>();
     const [category, setCategory] = useState<Category | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
@@ -218,6 +220,7 @@ const CategoryPage = () => {
     const [inStockOnly, setInStockOnly] = useState<boolean>(false);
     const [sortBy, setSortBy] = useState<string>("featured");
     const [filtersVisible, setFiltersVisible] = useState<boolean>(true);
+    const [showSortingSelect, setShowSortingSelect] = useState(false);
 
     // Calculate min and max prices from products
     const minProductPrice = Math.min(...allProducts.map(p => p.price));
@@ -316,6 +319,13 @@ const CategoryPage = () => {
         return <div className="container mx-auto px-4 py-8">Loading...</div>;
     }
 
+    const handleViewAll = () => {
+        saveFilterState({
+            category: categoryId,
+        });
+        navigate('/products');
+    };
+
     return (
         <div className="container mx-auto px-4 py-8">
             {/* Category Header */}
@@ -325,21 +335,25 @@ const CategoryPage = () => {
                         <h1 className="text-3xl font-bold">{category.name}</h1>
                         <p className="text-gray-600">{filteredProducts.length} products</p>
                     </div>
-
                     <div className="flex items-center gap-4">
-                        {/* <div className="w-48">
-                            <Select onValueChange={setSortBy} value={sortBy}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Sort by" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="featured">Featured</SelectItem>
-                                    <SelectItem value="price-low-high">Price: Low to High</SelectItem>
-                                    <SelectItem value="price-high-low">Price: High to Low</SelectItem>
-                                    <SelectItem value="rating">Highest Rated</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div> */}
+                        <div>
+                            <Button onClick={handleViewAll}>View All Products</Button>
+                        </div>
+                        {showSortingSelect && (
+                            <div className="w-48">
+                                <Select onValueChange={setSortBy} value={sortBy}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Sort by" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="featured">Featured</SelectItem>
+                                        <SelectItem value="price-low-high">Price: Low to High</SelectItem>
+                                        <SelectItem value="price-high-low">Price: High to Low</SelectItem>
+                                        <SelectItem value="rating">Highest Rated</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
 
                         <Button
                             variant="outline"

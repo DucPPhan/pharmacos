@@ -17,8 +17,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Heart, Filter } from "lucide-react";
+import { ShoppingCart, Heart, Filter, Star, Plus, Minus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Product {
   id: string;
@@ -27,12 +28,15 @@ interface Product {
   image: string;
   category: string;
   inStock: boolean;
+  rating?: number;
+  discount?: number;
 }
 
 interface ProductGridProps {
   products?: Product[];
   title?: string;
   showFilters?: boolean;
+  onAddToCart?: (product: Product, quantity: number) => void;
 }
 
 const ProductGrid = ({
@@ -45,6 +49,7 @@ const ProductGrid = ({
         "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400&q=80",
       category: "Skincare",
       inStock: true,
+      rating: 4.8,
     },
     {
       id: "2",
@@ -54,6 +59,7 @@ const ProductGrid = ({
         "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400&q=80",
       category: "Medication",
       inStock: true,
+      rating: 4.2,
     },
     {
       id: "3",
@@ -63,6 +69,7 @@ const ProductGrid = ({
         "https://images.unsplash.com/photo-1593642634402-b0eb5e2eebc9?w=400&q=80",
       category: "Skincare",
       inStock: true,
+      rating: 4.5,
     },
     {
       id: "4",
@@ -72,6 +79,7 @@ const ProductGrid = ({
         "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=400&q=80",
       category: "Medication",
       inStock: false,
+      rating: 3.9,
     },
     {
       id: "5",
@@ -81,6 +89,8 @@ const ProductGrid = ({
         "https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?w=400&q=80",
       category: "Supplements",
       inStock: true,
+      rating: 4.3,
+      discount: 10,
     },
     {
       id: "6",
@@ -90,14 +100,24 @@ const ProductGrid = ({
         "https://images.unsplash.com/photo-1556229174-5e42a09e45af?w=400&q=80",
       category: "Skincare",
       inStock: true,
+      rating: 4.7,
+      discount: 15,
     },
   ],
   title = "Featured Products",
   showFilters = true,
+  onAddToCart,
 }: ProductGridProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("default");
+  // Keep track of quantity for each product
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [hoverStates, setHoverStates] = useState<Record<string, boolean>>({});
+
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const isLoggedIn = !!localStorage.getItem("user");
 
   // Filter products by category
   const filteredProducts =
@@ -113,6 +133,7 @@ const ProductGrid = ({
     if (sortBy === "price-low") return a.price - b.price;
     if (sortBy === "price-high") return b.price - a.price;
     if (sortBy === "name") return a.name.localeCompare(b.name);
+    if (sortBy === "rating" && a.rating && b.rating) return b.rating - a.rating;
     return 0; // default sorting
   });
 
@@ -131,20 +152,99 @@ const ProductGrid = ({
     indexOfLastProduct
   );
   const totalPages = Math.ceil(sortedProducts.length / productsPerPage);
-  const navigate = useNavigate();
-  const isLoggedIn = !!localStorage.getItem("user");
 
-  const handleAddToCart = (productId: string) => {
+  // Initialize quantity if not set
+  const getQuantity = (productId: string): number => {
+    return quantities[productId] || 1;
+  };
+
+  // Handle quantity change
+  const handleQuantityChange = (productId: string, change: number) => {
+    const currentQty = getQuantity(productId);
+    const newQty = Math.max(1, currentQty + change);
+
+    setQuantities({
+      ...quantities,
+      [productId]: newQty,
+    });
+  };
+
+  // Navigate to product detail page
+  const handleProductClick = (productId: string) => {
+    navigate(`/product/${productId}`);
+  };
+
+  // Handle add to cart
+  const handleAddToCart = (e: React.MouseEvent, product: Product) => {
+    e.stopPropagation(); // Prevent navigation to product page
+
     if (!isLoggedIn) {
       navigate("/login");
       return;
     }
-    console.log(`Added product ${productId} to cart`);
+
+    const quantity = getQuantity(product.id);
+
+    if (onAddToCart) {
+      onAddToCart(product, quantity);
+    } else {
+      // Default implementation if no onAddToCart is provided
+      toast({
+        title: "Added to cart",
+        description: `${quantity} × ${product.name} added to your cart`,
+        duration: 3000,
+      });
+    }
+
+    // Reset quantity after adding to cart
+    setQuantities({
+      ...quantities,
+      [product.id]: 1,
+    });
   };
 
-  const handleWishlist = (productId: string) => {
+  const handleWishlist = (e: React.MouseEvent, productId: string) => {
+    e.stopPropagation(); // Prevent navigation to product page
+
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+
     // Placeholder for wishlist functionality
-    console.log(`Added product ${productId} to wishlist`);
+    toast({
+      title: "Added to wishlist",
+      description: "Product has been added to your wishlist",
+      duration: 3000,
+    });
+  };
+
+  // Set hover state for a product
+  const setProductHover = (productId: string, isHovered: boolean) => {
+    setHoverStates({
+      ...hoverStates,
+      [productId]: isHovered,
+    });
+  };
+
+  // Star rating component
+  const StarRating = ({ rating }: { rating?: number }) => {
+    if (!rating) return null;
+    return (
+      <div className="flex items-center mt-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            size={14}
+            className={`${star <= Math.round(rating)
+                ? "text-yellow-400 fill-yellow-400"
+                : "text-gray-300"
+              }`}
+          />
+        ))}
+        <span className="ml-1 text-xs text-gray-500">{rating.toFixed(1)}</span>
+      </div>
+    );
   };
 
   return (
@@ -186,6 +286,7 @@ const ProductGrid = ({
                 <SelectItem value="price-low">Price: Low to High</SelectItem>
                 <SelectItem value="price-high">Price: High to Low</SelectItem>
                 <SelectItem value="name">Name</SelectItem>
+                <SelectItem value="rating">Highest Rated</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -198,53 +299,121 @@ const ProductGrid = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {currentProducts.map((product) => (
-            <Card
-              key={product.id}
-              className="overflow-hidden h-full flex flex-col transition-all duration-200 hover:shadow-lg"
-            >
-              <div className="relative">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-64 object-cover"
-                />
-                {!product.inStock && (
-                  <div className="absolute top-2 right-2">
-                    <Badge variant="destructive">Out of Stock</Badge>
-                  </div>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 left-2 bg-white/80 hover:bg-white rounded-full"
-                  onClick={() => handleWishlist(product.id)}
-                >
-                  <Heart className="h-5 w-5 text-gray-600" />
-                </Button>
-              </div>
-              <CardContent className="p-4 flex flex-col flex-grow">
-                <div className="flex-grow">
-                  <p className="text-sm text-gray-500 mb-1">
-                    {product.category}
-                  </p>
-                  <h3 className="font-medium text-lg mb-2">{product.name}</h3>
-                </div>
-                <div className="flex justify-between items-center mt-4">
-                  <span className="font-bold">${product.price.toFixed(2)}</span>
+          {currentProducts.map((product) => {
+            // Calculate discounted price if applicable
+            const discountedPrice = product.discount
+              ? (product.price * (1 - product.discount / 100)).toFixed(2)
+              : null;
+
+            const isHovered = hoverStates[product.id] || getQuantity(product.id) > 1;
+
+            return (
+              <Card
+                key={product.id}
+                className="overflow-hidden h-full flex flex-col transition-all duration-200 hover:shadow-lg cursor-pointer"
+                onClick={() => handleProductClick(product.id)}
+                onMouseEnter={() => setProductHover(product.id, true)}
+                onMouseLeave={() => setProductHover(product.id, false)}
+              >
+                <div className="relative">
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="w-full h-64 object-cover transition-transform duration-300 hover:scale-105"
+                  />
+
+                  {/* Out of stock badge */}
+                  {!product.inStock && (
+                    <div className="absolute top-2 right-2">
+                      <Badge variant="destructive">Out of Stock</Badge>
+                    </div>
+                  )}
+
+                  {/* Discount badge */}
+                  {product.discount && (
+                    <div className="absolute top-2 right-2">
+                      <Badge className="bg-red-500">{product.discount}% OFF</Badge>
+                    </div>
+                  )}
+
+                  {/* Wishlist button */}
                   <Button
-                    size="sm"
-                    disabled={!product.inStock}
-                    onClick={() => handleAddToCart(product.id)}
-                    style={{ backgroundColor: '#7494ec' }}
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 left-2 bg-white/80 hover:bg-white rounded-full"
+                    onClick={(e) => handleWishlist(e, product.id)}
                   >
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    Add
+                    <Heart className="h-5 w-5 text-gray-600" />
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+
+                <CardContent className="p-4 flex flex-col flex-grow">
+                  <div className="flex-grow">
+                    <p className="text-sm text-gray-500 mb-1">
+                      {product.category}
+                    </p>
+                    <h3 className="font-medium text-lg mb-1 hover:text-primary transition-colors">
+                      {product.name}
+                    </h3>
+
+                    {/* Star rating */}
+                    <StarRating rating={product.rating} />
+                  </div>
+
+                  {/* Price */}
+                  <div className="mt-4 mb-2">
+                    {discountedPrice ? (
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-bold">${discountedPrice}</span>
+                        <span className="text-sm text-gray-500 line-through">
+                          ${product.price.toFixed(2)}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="font-bold">${product.price.toFixed(2)}</span>
+                    )}
+                  </div>
+
+                  {/* Add to cart controls */}
+                  <div className={`flex items-center justify-between mt-2 transition-opacity duration-200 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+                    <div className="flex items-center border rounded">
+                      <button
+                        className="px-2 py-1 text-gray-500 hover:text-gray-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleQuantityChange(product.id, -1);
+                        }}
+                        disabled={!product.inStock}
+                      >
+                        <Minus size={14} />
+                      </button>
+                      <span className="px-2 py-1 text-sm">{getQuantity(product.id)}</span>
+                      <button
+                        className="px-2 py-1 text-gray-500 hover:text-gray-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleQuantityChange(product.id, 1);
+                        }}
+                        disabled={!product.inStock}
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      disabled={!product.inStock}
+                      onClick={(e) => handleAddToCart(e, product)}
+                      style={{ backgroundColor: '#7494ec' }}
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      Add
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 

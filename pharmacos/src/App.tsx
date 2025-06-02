@@ -16,6 +16,8 @@ import Dashboard from "./page/admin/Admindashboard";
 import VerifyEmailPage from "./page/login/VerifyEmailPage";
 import StaffDashboard from "./page/staff/Staffdashboard";
 import CategoryPage from "./page/Category/CategoryPage";
+import ProductDetailPage from "./page/ProductDetail/ProductDetailPage";
+import ProductsPage from "./page/Products/ProductsPage";
 
 function App() {
   const location = useLocation();
@@ -41,7 +43,9 @@ function App() {
             <Route path="/profile/personal-info" element={<PersonalInfo />} />
             <Route path="/profile/change-password" element={<ChangePassword />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} /> */}
+            <Route path="/products" element={<ProductsPage />} />
             <Route path="/category/:categoryId" element={<CategoryPage />} />
+            <Route path="/product/:productId" element={<ProductDetailPage />} />
             <Route path="/admin/dashboard" element={<Dashboard />} />
             <Route path="/staff/dashboard" element={<StaffDashboard />} />
 
