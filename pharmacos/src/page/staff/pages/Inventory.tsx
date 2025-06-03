@@ -19,13 +19,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Search, MoreHorizontal, Plus } from "lucide-react";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -33,27 +26,55 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
+import { Search, Plus } from "lucide-react";
 
 export function Inventory() {
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
+  const [brands, setBrands] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<any>(null);
-
   const [newProduct, setNewProduct] = useState({
     name: "",
+    description: "",
+    benefits: "",
+    skinType: "",
+    size: "",
     category: "",
+    brand: "",
+    imageUrl: "",
     price: 0,
-    stock: 0,
+    stockQuantity: 0,
   });
+
+  const benefitsOptions = [
+    "Brightens skin tone and reduces hyperpigmentation",
+    "Fights free radical damage from UV rays and pollution",
+    "Stimulates collagen production for firmer skin",
+    "Improves skin texture and reduces fine lines",
+  ];
+
+  const skinTypeOptions = [
+    "oily",
+    "dry",
+    "combination",
+    "sensitive",
+    "normal",
+    "all",
+  ];
 
   const fetchProducts = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch("http://localhost:10000/api/products");
+      const token = localStorage.getItem('token');
+      const res = await fetch("http://localhost:10000/api/products", {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await res.json();
       const productList = Array.isArray(data.products) ? data.products : data;
       setProducts(productList);
@@ -61,6 +82,10 @@ export function Inventory() {
         new Set(productList.map((p) => String(p.category)))
       ).filter(Boolean) as string[];
       setCategories(uniqueCategories);
+      const uniqueBrands = Array.from(
+        new Set(productList.map((p) => String(p.brand)))
+      ).filter(Boolean) as string[];
+      setBrands(uniqueBrands);
     } catch (err) {
       toast({
         title: "Error",
@@ -85,49 +110,152 @@ export function Inventory() {
     return matchesSearch && matchesCategory;
   });
 
-  const createOrUpdateProduct = async () => {
-    try {
-      const method = currentProduct ? "PUT" : "POST";
-      const url = currentProduct
-        ? `http://localhost:10000/api/products/${currentProduct.id}`
-        : `http://localhost:10000/api/products`;
-
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newProduct),
-      });
-
-      if (!res.ok) throw new Error("Save failed");
-      toast({
-        title: currentProduct ? "Product Updated" : "Product Created",
-        description: newProduct.name,
-      });
-
-      setShowAddDialog(false);
-      setCurrentProduct(null);
-      setNewProduct({ name: "", category: "", price: 0, stock: 0 });
-      await fetchProducts();
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to save product",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleDelete = async (id: string, name: string) => {
+    if (!window.confirm(`Delete ${name}?`)) return;
     try {
-      await fetch(`http://localhost:10000/api/products/${id}`, {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`http://localhost:10000/api/products/${id}`, {
         method: "DELETE",
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
-      toast({ title: "Deleted", description: name });
+      if (!res.ok) throw new Error("Failed to delete");
+      toast({ title: "Product Deleted", description: name });
       await fetchProducts();
     } catch {
       toast({
         title: "Error",
         description: "Failed to delete",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const isValidProduct = () => {
+    const {
+      name,
+      category,
+      price,
+      stockQuantity,
+      benefits,
+      skinType,
+      description,
+      size,
+      brand,
+    } = newProduct;
+    if (
+      !name ||
+      !category ||
+      !benefits ||
+      !skinType ||
+      !description ||
+      !size ||
+      !brand
+    )
+      return false;
+    if (price <= 0 || stockQuantity < 0) return false;
+    return true;
+  };
+
+  const resetForm = () => {
+    setNewProduct({
+      name: "",
+      description: "",
+      benefits: "",
+      skinType: "",
+      size: "",
+      category: "",
+      brand: "",
+      imageUrl: "",
+      price: 0,
+      stockQuantity: 0,
+    });
+    setCurrentProduct(null);
+  };
+
+  const createProduct = async () => {
+    if (!isValidProduct()) {
+      toast({
+        title: "Validation Error",
+        description:
+          "Please fill in all required fields and ensure values are valid.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`http://localhost:10000/api/products`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(newProduct),
+      });
+
+      if (!res.ok) throw new Error("Failed");
+
+      toast({
+        title: "Product Created",
+        description: newProduct.name,
+      });
+
+      setShowAddDialog(false);
+      resetForm();
+      await fetchProducts();
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to create product",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateProduct = async () => {
+    if (!isValidProduct()) {
+      toast({
+        title: "Validation Error",
+        description:
+          "Please fill in all required fields and ensure values are valid.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!currentProduct) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(
+        `http://localhost:10000/api/products/${currentProduct._id}`,
+        {
+          method: "PATCH",
+          headers: { 
+            "Content-Type": "application/json",
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(newProduct),
+        }
+      );
+
+      if (!res.ok) throw new Error("Failed");
+
+      toast({
+        title: "Product Updated",
+        description: newProduct.name,
+      });
+
+      setShowAddDialog(false);
+      resetForm();
+      await fetchProducts();
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to update product",
         variant: "destructive",
       });
     }
@@ -142,7 +270,7 @@ export function Inventory() {
         <Button
           onClick={() => {
             setCurrentProduct(null);
-            setNewProduct({ name: "", category: "", price: 0, stock: 0 });
+            resetForm();
             setShowAddDialog(true);
           }}
         >
@@ -165,28 +293,29 @@ export function Inventory() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Select
-              value={selectedCategory}
-              onValueChange={setSelectedCategory}
-            >
-              <SelectTrigger className="md:w-[180px]">
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-wrap gap-2 items-center">
+              <Button
+                variant={selectedCategory === "all" ? "default" : "outline"}
+                onClick={() => setSelectedCategory("all")}
+              >
+                All Categories
+              </Button>
+              {categories.map((c) => (
+                <Button
+                  key={c}
+                  variant={selectedCategory === c ? "default" : "outline"}
+                  onClick={() => setSelectedCategory(c)}
+                >
+                  {c}
+                </Button>
+              ))}
+            </div>
           </div>
 
           {isLoading ? (
             <div className="text-center py-6">Loading...</div>
           ) : (
-            <div className="border rounded-md">
+            <div className="border rounded-md overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -194,6 +323,9 @@ export function Inventory() {
                     <TableHead>Image</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Brand</TableHead>
+                    <TableHead>Size</TableHead>
+                    <TableHead>Skin Type</TableHead>
+                    <TableHead>Benefits</TableHead>
                     <TableHead>Stock</TableHead>
                     <TableHead>Price</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -202,7 +334,7 @@ export function Inventory() {
                 <TableBody>
                   {filteredProducts.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-6">
+                      <TableCell colSpan={10} className="text-center py-6">
                         No products found
                       </TableCell>
                     </TableRow>
@@ -228,38 +360,41 @@ export function Inventory() {
                         </TableCell>
                         <TableCell>{p.category}</TableCell>
                         <TableCell>{p.brand}</TableCell>
+                        <TableCell>{p.size}</TableCell>
+                        <TableCell>{p.skinType}</TableCell>
+                        <TableCell>{p.benefits}</TableCell>
                         <TableCell>{p.stockQuantity}</TableCell>
                         <TableCell>${p.price}</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setCurrentProduct(p);
-                                  setNewProduct({
-                                    name: p.name,
-                                    category: p.category,
-                                    price: p.price,
-                                    stock: p.stockQuantity,
-                                  });
-                                  setShowAddDialog(true);
-                                }}
-                              >
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDelete(p._id, p.name)}
-                                className="text-red-600"
-                              >
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                        <TableCell className="text-right space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setCurrentProduct(p);
+                              setNewProduct({
+                                name: p.name,
+                                description: p.description,
+                                benefits: p.benefits,
+                                skinType: p.skinType,
+                                size: p.size,
+                                category: p.category,
+                                brand: p.brand,
+                                imageUrl: p.imageUrl,
+                                price: p.price,
+                                stockQuantity: p.stockQuantity,
+                              });
+                              setShowAddDialog(true);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDelete(p._id, p.name)}
+                          >
+                            Delete
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))
@@ -271,23 +406,13 @@ export function Inventory() {
         </CardContent>
       </Card>
 
-      {/* Add/Edit Product Dialog */}
-      <Dialog
-        open={showAddDialog}
-        onOpenChange={(open) => {
-          setShowAddDialog(open);
-          if (!open) {
-            setCurrentProduct(null);
-            setNewProduct({ name: "", category: "", price: 0, stock: 0 });
-          }
-        }}
-      >
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{currentProduct ? "Edit Product" : "Add Product"}</DialogTitle>
-            <DialogDescription>
-              {currentProduct ? `Editing ${currentProduct.name}` : "Fill in product info"}
-            </DialogDescription>
+            <DialogTitle>
+              {currentProduct ? "Edit Product" : "Add Product"}
+            </DialogTitle>
+            <DialogDescription>Fill in product info</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <Input
@@ -295,6 +420,49 @@ export function Inventory() {
               value={newProduct.name}
               onChange={(e) =>
                 setNewProduct({ ...newProduct, name: e.target.value })
+              }
+            />
+            <Select
+              onValueChange={(value) =>
+                setNewProduct({ ...newProduct, benefits: value })
+              }
+              value={newProduct.benefits || ""}
+              defaultValue=""
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Benefit" />
+              </SelectTrigger>
+              <SelectContent>
+                {benefitsOptions.map((b) => (
+                  <SelectItem key={b} value={b}>
+                    {b}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              onValueChange={(value) =>
+                setNewProduct({ ...newProduct, skinType: value })
+              }
+              value={newProduct.skinType || ""}
+              defaultValue=""
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Skin Type" />
+              </SelectTrigger>
+              <SelectContent>
+                {skinTypeOptions.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              placeholder="Size"
+              value={newProduct.size || ""}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, size: e.target.value })
               }
             />
             <Input
@@ -305,25 +473,50 @@ export function Inventory() {
               }
             />
             <Input
-              type="number"
+              placeholder="Brand"
+              value={newProduct.brand || ""}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, brand: e.target.value })
+              }
+            />
+            <Input
+              placeholder="Image URL"
+              value={newProduct.imageUrl || ""}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, imageUrl: e.target.value })
+              }
+            />
+            <Input
               placeholder="Price"
-              value={newProduct.price}
+              type="number"
+              min={0}
+              step={0.01}
+              value={newProduct.price === 0 ? "" : newProduct.price}
+              className="appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
               onChange={(e) =>
                 setNewProduct({
                   ...newProduct,
-                  price: e.target.value === "" ? 0 : parseFloat(e.target.value),
+                  price: Number(e.target.value),
                 })
               }
             />
             <Input
+              placeholder="Stock Quantity"
               type="number"
-              placeholder="Stock"
-              value={newProduct.stock}
+              min={0}
+              value={newProduct.stockQuantity === 0 ? "" : newProduct.stockQuantity}
               onChange={(e) =>
                 setNewProduct({
                   ...newProduct,
-                  stock: e.target.value === "" ? 0 : parseInt(e.target.value),
+                  stockQuantity: Number(e.target.value),
                 })
+              }
+            />
+            <Input
+              placeholder="Description"
+              value={newProduct.description}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, description: e.target.value })
               }
             />
           </div>
@@ -331,7 +524,7 @@ export function Inventory() {
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={createOrUpdateProduct}>
+            <Button onClick={currentProduct ? updateProduct : createProduct}>
               {currentProduct ? "Save Changes" : "Create Product"}
             </Button>
           </DialogFooter>
