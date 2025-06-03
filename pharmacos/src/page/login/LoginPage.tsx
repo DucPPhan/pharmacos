@@ -92,6 +92,7 @@ const LoginPage: React.FC = () => {
       });
       setLoginSuccess("Đăng nhập thành công!");
       localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
       setTimeout(() => {
         const role = res.data.user?.role;
         console.log("ROLE:", role);

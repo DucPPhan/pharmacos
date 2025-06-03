@@ -474,7 +474,8 @@ const getUserRole = () => {
 
 // Hàm fetch profile động theo role, truyền token vào header Authorization
 const fetchProfileByRole = async (): Promise<UserInfo> => {
-    const role = localStorage.getItem('role') || 'customer';
+    const user = JSON.parse(localStorage.getItem('user'));
+    const role = user.role;
     const token = localStorage.getItem('token');
     let url = '';
     if (role === 'staff') {
