@@ -24,7 +24,18 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 
-const API_URL = "http://localhost:10000/api/admin/accounts";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
+import { Input } from "@/components/ui/input";
+
+const   API_URL = "http://localhost:10000/api/admin/accounts";
 
 // Helper to get token
 const getAuthHeader = () => {
@@ -77,7 +88,6 @@ const UserManagement = () => {
           { headers: getAuthHeader() }
         );
 
-
         setUsers((prev) =>
           prev.map((user) =>
             user._id === id ? { ...user, status: value } : user
@@ -110,7 +120,7 @@ const UserManagement = () => {
 
   const saveEditDialog = () => {
     if (!editingUserId) return;
-    const originalUser = users.find((u) => u.id === editingUserId);
+    const originalUser = users.find((u) => u._id === editingUserId);
     if (!originalUser) return;
 
     if (
@@ -134,7 +144,7 @@ const UserManagement = () => {
       await axios.put(
         `${API_URL}/${confirmEditData.id}`,
         {
-          ...users.find((u) => u.id === confirmEditData.id),
+          ...users.find((u) => u._id === confirmEditData.id),
           username: confirmEditData.username,
           email: confirmEditData.email,
         },
@@ -145,14 +155,16 @@ const UserManagement = () => {
         prevUsers.map((user) =>
           user._id === confirmEditData.id
             ? {
-              ...user,
-              username: confirmEditData.username,
-              email: confirmEditData.email,
-            }
+                ...user,
+                username: confirmEditData.username,
+                email: confirmEditData.email,
+              }
             : user
         )
       );
+      toast.success("User updated successfully!");
     } catch (error) {
+      toast.error("Error confirming edit");
       console.error("Error confirming edit:", error);
     } finally {
       setEditingUserId(null);
@@ -160,12 +172,14 @@ const UserManagement = () => {
     }
   };
 
-  const deleteUser = async (id: string) => {
+  const deleteUser = async (id) => {
     if (window.confirm("Are you sure you want to delete this user?")) {
       try {
         await axios.delete(`${API_URL}/${id}`, { headers: getAuthHeader() });
-        setUsers((prevUsers) => prevUsers.filter((user) => user.id !== id));
+        setUsers((prevUsers) => prevUsers.filter((user) => user._id !== id));
+        toast.success("User deleted successfully!");
       } catch (error) {
+        toast.error("Error deleting user");
         console.error("Error deleting user:", error);
       }
     }
@@ -207,7 +221,9 @@ const UserManagement = () => {
         name: "",
         role: "staff",
       });
+      toast.success("Staff added successfully!");
     } catch (error) {
+      toast.error("Error adding staff");
       console.error("Error adding staff:", error);
     }
   };
@@ -233,7 +249,7 @@ const UserManagement = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
+                <TableHead>#</TableHead>
                 <TableHead>Username</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Email</TableHead>
@@ -295,23 +311,13 @@ const UserManagement = () => {
           </Table>
         </CardContent>
 
-        {/* All AlertDialogs remain unchanged */}
-        {/* Replace all other dialogs as you had them before */}
-
-        <AlertDialog
-          open={!!pendingChange}
-          onOpenChange={(open) => !open && setPendingChange(null)}
-        >
+        {/* Confirm Status Change Dialog */}
+        <AlertDialog open={!!pendingChange} onOpenChange={() => setPendingChange(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Change</AlertDialogTitle>
+              <AlertDialogTitle>Confirm Status Change</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to change{" "}
-                <strong>{pendingChange?.field}</strong> of{" "}
-                <strong>
-                  {users.find((u) => u._id === pendingChange?.id)?.username}
-                </strong>{" "}
-                to <strong>{pendingChange?.value}</strong>?
+                Are you sure you want to change this user's status?
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -324,9 +330,156 @@ const UserManagement = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Edit User Dialog */}
+        <Dialog open={!!editingUserId} onOpenChange={() => setEditingUserId(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit User</DialogTitle>
+              <DialogDescription>
+                Update the username and email for the user.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Username</label>
+                <Input
+                  type="text"
+                  value={editUsername}
+                  onChange={(e) => setEditUsername(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Email</label>
+                <Input
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => setEditingUserId(null)}
+              >
+                Cancel
+              </Button>
+              <Button onClick={saveEditDialog}>Save</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Confirm Edit Save Dialog */}
+        <AlertDialog
+          open={!!confirmEditData}
+          onOpenChange={() => setConfirmEditData(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Edit</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to update this user with the new
+                information?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setConfirmEditData(null)}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={confirmEditSave}>
+                Confirm
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Add New Staff Dialog */}
+        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Staff</DialogTitle>
+              <DialogDescription>
+                Fill in the details below to add a new staff member.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Username</label>
+                <Input
+                  type="text"
+                  value={newUser.username}
+                  onChange={(e) =>
+                    setNewUser((prev) => ({ ...prev, username: e.target.value }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Email</label>
+                <Input
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) =>
+                    setNewUser((prev) => ({ ...prev, email: e.target.value }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Name</label>
+                <Input
+                  type="text"
+                  value={newUser.name}
+                  onChange={(e) =>
+                    setNewUser((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Password</label>
+                <Input
+                  type="password"
+                  value={newUser.password}
+                  onChange={(e) =>
+                    setNewUser((prev) => ({ ...prev, password: e.target.value }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Confirm Password
+                </label>
+                <Input
+                  type="password"
+                  value={newUser.confirmPassword}
+                  onChange={(e) =>
+                    setNewUser((prev) => ({ ...prev, confirmPassword: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+            <DialogFooter className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowAddDialog(false);
+                  setNewUser({
+                    username: "",
+                    email: "",
+                    password: "",
+                    confirmPassword: "",
+                    name: "",
+                    role: "staff",
+                  });
+                }}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleAddUser}>Add Staff</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </Card>
 
-      {/* Toast notification container */}
       <ToastContainer position="top-right" autoClose={3000} />
     </>
   );
