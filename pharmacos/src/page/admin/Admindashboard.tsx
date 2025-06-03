@@ -48,14 +48,6 @@ const Dashboard = () => {
             <Users className="mr-2 h-4 w-4" />
             Users
           </Button>
-          <Button
-            variant={activeTab === "settings" ? "default" : "ghost"}
-            className="w-full justify-start"
-            onClick={() => setActiveTab("settings")}
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            Settings
-          </Button>
         </nav>
       </div>
 
