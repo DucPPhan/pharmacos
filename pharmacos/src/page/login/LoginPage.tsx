@@ -96,7 +96,9 @@ const LoginPage: React.FC = () => {
       setTimeout(() => {
         const role = res.data.user?.role;
         console.log("ROLE:", role);
-        if (role && role.toLowerCase() === "admin") {
+        if (role && role.toLowerCase() === "staff") {
+          navigate("/staff/dashboard");
+        } else if (role && role.toLowerCase() === "admin") {
           navigate("/admin/dashboard");
         } else {
           navigate("/");
