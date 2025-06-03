@@ -10,7 +10,8 @@ import {
     CameraOutlined,
     PlusOutlined,
     GiftOutlined,
-    MedicineBoxOutlined
+    MedicineBoxOutlined,
+    CaretLeftOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import Footer from '@/components/Footer';
@@ -69,6 +70,7 @@ const fetchPurchaseHistory = async () => {
     return await res.json();
 };
 
+
 const PersonalInfo: React.FC<{
     user: UserInfo,
     onEdit: () => void,
@@ -88,6 +90,7 @@ const PersonalInfo: React.FC<{
                     className="user-profile-avatar"
                 />
             </Tooltip>
+
             <div className="user-profile-name">{user.name}</div>
             <div className="user-profile-phone">{user.phone}</div>
         </div>
@@ -396,7 +399,7 @@ const ChangePasswordForm: React.FC<{
                         label="Mật khẩu cũ"
                         rules={[
                             { required: true, message: 'Vui lòng nhập mật khẩu cũ!' },
-                            { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự!' }
+                            { min: 1, message: 'Mật khẩu phải có ít nhất 6 ký tự!' }
                         ]}
                     >
                         <Input.Password size="large" placeholder="Nhập mật khẩu cũ" />
@@ -406,7 +409,7 @@ const ChangePasswordForm: React.FC<{
                         label="Mật khẩu mới"
                         rules={[
                             { required: true, message: 'Vui lòng nhập mật khẩu mới!' },
-                            { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự!' },
+                            { min: 1, message: 'Mật khẩu phải có ít nhất 6 ký tự!' },
                             {
                                 validator: (_, value) => {
                                     if (!value) return Promise.resolve();
@@ -511,7 +514,8 @@ const fetchProfileByRole = async (): Promise<UserInfo> => {
 
 // Hàm update profile động theo role
 const updateProfileByRole = async (data: UserInfo): Promise<UserInfo> => {
-    const role = localStorage.getItem('role') || 'customer';
+    const user = JSON.parse(localStorage.getItem('user'));
+    const role = user.role;
     const token = localStorage.getItem('token');
     let url = '';
     let body: any = {};
@@ -553,8 +557,9 @@ const updateProfileByRole = async (data: UserInfo): Promise<UserInfo> => {
 
 // API đổi mật khẩu động cho customer và staff (không giả lập, luôn gọi API nếu có endpoint)
 const changePassword = async (oldPassword: string, newPassword: string) => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    const role = user.role;
     const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role') || 'customer';
     let url = '';
     let body: any = {};
     let method = 'PUT';
@@ -645,10 +650,11 @@ const UserProfile: React.FC = () => {
                         borderRadius: 8
                     }
                 },
+                //logout 
                 onOk: () => {
-                    // TODO: Call logout API
-                    // await axios.post('/api/logout');
-                    console.log('Logging out...');
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    window.location.href = '/login';
                 },
             });
         } else {
@@ -818,6 +824,16 @@ const UserProfile: React.FC = () => {
     return (
         <>
             <CategoryNav />
+            <div style={{ maxWidth: 1200, margin: '24px auto 0', padding: '0 24px' }}>
+                <Button
+                    type="link"
+                    icon={<CaretLeftOutlined />}
+                    style={{ fontSize: 16, paddingLeft: 0 }}
+                    onClick={() => window.location.href = '/'}
+                >
+                    Quay về trang chủ
+                </Button>
+            </div>
             <Layout
                 className="user-profile-layout"
             >
