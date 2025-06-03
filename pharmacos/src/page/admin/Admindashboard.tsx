@@ -5,6 +5,7 @@ import {
   Settings,
   Upload,
   Users,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,6 +13,13 @@ import UserManagement from "./UserManagement";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
+
+  const handleLogout = () => {
+    // Clear token / session here
+    localStorage.removeItem("token"); // or whatever key you use
+    // Redirect to login page
+    window.location.href = "/login";
+  };
 
   return (
     <div className="flex h-screen bg-background">
@@ -58,6 +66,14 @@ const Dashboard = () => {
         <header className="border-b bg-card p-4 flex justify-between items-center">
           <h2 className="text-2xl font-bold capitalize">{activeTab}</h2>
           <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2 text-sm"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
           </div>
         </header>
 
@@ -69,7 +85,6 @@ const Dashboard = () => {
             </div>
           )}
           {activeTab === "users" && <UserManagement />}
-          {/* Bạn có thể thêm các component cho các tab khác ở đây */}
         </main>
       </div>
     </div>
