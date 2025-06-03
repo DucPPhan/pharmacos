@@ -280,8 +280,8 @@ const EditProfileInlineForm: React.FC<{
                         rules={[{ required: true, message: 'Vui lòng chọn giới tính!' }]}
                     >
                         <Select size="large" placeholder="Chọn giới tính">
-                            <Option value="Nam">Nam</Option>
-                            <Option value="Nữ">Nữ</Option>
+                            <Option value="male">Nam</Option>
+                            <Option value="female">Nữ</Option>
                             <Option value="Khác">Khác</Option>
                         </Select>
                     </Form.Item>
