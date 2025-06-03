@@ -35,6 +35,7 @@ export function Inventory() {
   const [categories, setCategories] = useState<string[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedBrand, setSelectedBrand] = useState<string>("all");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<any>(null);
   const [newProduct, setNewProduct] = useState({
@@ -64,6 +65,28 @@ export function Inventory() {
     "sensitive",
     "normal",
     "all",
+  ];
+
+  const categoryOptions = [
+    "Skincare",
+    "Pharmaceuticals",
+    "Haircare",
+    "Makeup",
+    "Fragrances",
+    "Personal Care"
+  ];
+
+  const brandOptions = [
+    "The Ordinary",
+    "CeraVe",
+    "Advil",
+    "La Roche-Posay",
+    "Head & Shoulders",
+    "TRESemmé",
+    "MAC",
+    "Maybelline",
+    "Jo Malone",
+    "Colgate"
   ];
 
   const fetchProducts = async () => {
@@ -107,7 +130,9 @@ export function Inventory() {
       .includes(searchQuery.toLowerCase());
     const matchesCategory =
       selectedCategory === "all" || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const matchesBrand =
+      selectedBrand === "all" || product.brand === selectedBrand;
+    return matchesSearch && matchesCategory && matchesBrand;
   });
 
   const handleDelete = async (id: string, name: string) => {
@@ -189,7 +214,7 @@ export function Inventory() {
       const token = localStorage.getItem('token');
       const res = await fetch(`http://localhost:10000/api/products`, {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           'Authorization': `Bearer ${token}`
         },
@@ -234,7 +259,7 @@ export function Inventory() {
         `http://localhost:10000/api/products/${currentProduct._id}`,
         {
           method: "PATCH",
-          headers: { 
+          headers: {
             "Content-Type": "application/json",
             'Authorization': `Bearer ${token}`
           },
@@ -294,21 +319,42 @@ export function Inventory() {
               />
             </div>
             <div className="flex flex-wrap gap-2 items-center">
-              <Button
-                variant={selectedCategory === "all" ? "default" : "outline"}
-                onClick={() => setSelectedCategory("all")}
+              <Select
+                value={selectedCategory}
+                onValueChange={setSelectedCategory}
               >
-                All Categories
-              </Button>
-              {categories.map((c) => (
-                <Button
-                  key={c}
-                  variant={selectedCategory === c ? "default" : "outline"}
-                  onClick={() => setSelectedCategory(c)}
-                >
-                  {c}
-                </Button>
-              ))}
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select Category">
+                    {selectedCategory === "all" ? "All Categories" : selectedCategory}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categoryOptions.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={selectedBrand}
+                onValueChange={setSelectedBrand}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select Brand">
+                    {selectedBrand === "all" ? "All Brands" : selectedBrand}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Brands</SelectItem>
+                  {brandOptions.map((brand) => (
+                    <SelectItem key={brand} value={brand}>
+                      {brand}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -365,37 +411,40 @@ export function Inventory() {
                         <TableCell>{p.benefits}</TableCell>
                         <TableCell>{p.stockQuantity}</TableCell>
                         <TableCell>${p.price}</TableCell>
-                        <TableCell className="text-right space-x-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setCurrentProduct(p);
-                              setNewProduct({
-                                name: p.name,
-                                description: p.description,
-                                benefits: p.benefits,
-                                skinType: p.skinType,
-                                size: p.size,
-                                category: p.category,
-                                brand: p.brand,
-                                imageUrl: p.imageUrl,
-                                price: p.price,
-                                stockQuantity: p.stockQuantity,
-                              });
-                              setShowAddDialog(true);
-                            }}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete(p._id, p.name)}
-                          >
-                            Delete
-                          </Button>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setCurrentProduct(p);
+                                setNewProduct({
+                                  name: p.name,
+                                  description: p.description,
+                                  benefits: p.benefits,
+                                  skinType: p.skinType,
+                                  size: p.size,
+                                  category: p.category,
+                                  brand: p.brand,
+                                  imageUrl: p.imageUrl,
+                                  price: p.price,
+                                  stockQuantity: p.stockQuantity,
+                                });
+                                setShowAddDialog(true);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDelete(p._id, p.name)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
                         </TableCell>
+
                       </TableRow>
                     ))
                   )}
@@ -430,7 +479,9 @@ export function Inventory() {
               defaultValue=""
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select Benefit" />
+                <SelectValue placeholder="Select Benefit">
+                  {newProduct.benefits || "Select Benefit"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {benefitsOptions.map((b) => (
@@ -448,7 +499,9 @@ export function Inventory() {
               defaultValue=""
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select Skin Type" />
+                <SelectValue placeholder="Select Skin Type">
+                  {newProduct.skinType || "Select Skin Type"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {skinTypeOptions.map((s) => (
@@ -465,20 +518,48 @@ export function Inventory() {
                 setNewProduct({ ...newProduct, size: e.target.value })
               }
             />
-            <Input
-              placeholder="Category"
-              value={newProduct.category}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, category: e.target.value })
+            <Select
+              onValueChange={(value) =>
+                setNewProduct({ ...newProduct, category: value })
               }
-            />
-            <Input
-              placeholder="Brand"
+              value={newProduct.category || ""}
+              defaultValue=""
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Category">
+                  {newProduct.category || "Select Category"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categoryOptions.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              onValueChange={(value) =>
+                setNewProduct({ ...newProduct, brand: value })
+              }
               value={newProduct.brand || ""}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, brand: e.target.value })
-              }
-            />
+              defaultValue=""
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Brand">
+                  {newProduct.brand || "Select Brand"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Brands</SelectItem>
+                {brandOptions.map((brand) => (
+                  <SelectItem key={brand} value={brand}>
+                    {brand}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Input
               placeholder="Image URL"
               value={newProduct.imageUrl || ""}
