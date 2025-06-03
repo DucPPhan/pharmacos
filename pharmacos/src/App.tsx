@@ -1,4 +1,4 @@
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import {
   useLocation,
@@ -21,14 +21,19 @@ import ProductsPage from "./page/Products/ProductsPage";
 import UserProfile from "./page/profile/UserProfile";
 
 function App() {
-  const [visible, setVisible] = useState(false);
-  const user = JSON.parse(localStorage.getItem('user'));
-  const role = user.role;
-  if (role === 'customer') {
-    setVisible(true);
-  }
-
+  const [visible, setVisible] = useState(true);
   const location = useLocation();
+  useEffect(() => {
+    // Check if the current path is admin dashboard or staff dashboard
+    if (
+      location.pathname === "/admin/dashboard" ||
+      location.pathname.startsWith("/staff/dashboard")
+    ) {
+      setVisible(false);
+    } else {
+      setVisible(true);
+    }
+  }, [location.pathname]);
   if (location.pathname === "/login") {
     return <LoginPage />;
   }
