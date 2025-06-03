@@ -464,142 +464,211 @@ export function Inventory() {
             <DialogDescription>Fill in product info</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <Input
-              placeholder="Product Name"
-              value={newProduct.name}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, name: e.target.value })
-              }
-            />
-            <Select
-              onValueChange={(value) =>
-                setNewProduct({ ...newProduct, benefits: value })
-              }
-              value={newProduct.benefits || ""}
-              defaultValue=""
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Benefit">
-                  {newProduct.benefits || "Select Benefit"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {benefitsOptions.map((b) => (
-                  <SelectItem key={b} value={b}>
-                    {b}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              onValueChange={(value) =>
-                setNewProduct({ ...newProduct, skinType: value })
-              }
-              value={newProduct.skinType || ""}
-              defaultValue=""
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Skin Type">
-                  {newProduct.skinType || "Select Skin Type"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {skinTypeOptions.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              placeholder="Size"
-              value={newProduct.size || ""}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, size: e.target.value })
-              }
-            />
-            <Select
-              onValueChange={(value) =>
-                setNewProduct({ ...newProduct, category: value })
-              }
-              value={newProduct.category || ""}
-              defaultValue=""
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Category">
-                  {newProduct.category || "Select Category"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categoryOptions.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              onValueChange={(value) =>
-                setNewProduct({ ...newProduct, brand: value })
-              }
-              value={newProduct.brand || ""}
-              defaultValue=""
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Brand">
-                  {newProduct.brand || "Select Brand"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Brands</SelectItem>
-                {brandOptions.map((brand) => (
-                  <SelectItem key={brand} value={brand}>
-                    {brand}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              placeholder="Image URL"
-              value={newProduct.imageUrl || ""}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, imageUrl: e.target.value })
-              }
-            />
-            <Input
-              placeholder="Price"
-              type="number"
-              min={0}
-              step={0.01}
-              value={newProduct.price === 0 ? "" : newProduct.price}
-              className="appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
-              onChange={(e) =>
-                setNewProduct({
-                  ...newProduct,
-                  price: Number(e.target.value),
-                })
-              }
-            />
-            <Input
-              placeholder="Stock Quantity"
-              type="number"
-              min={0}
-              value={newProduct.stockQuantity === 0 ? "" : newProduct.stockQuantity}
-              onChange={(e) =>
-                setNewProduct({
-                  ...newProduct,
-                  stockQuantity: Number(e.target.value),
-                })
-              }
-            />
-            <Input
-              placeholder="Description"
-              value={newProduct.description}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, description: e.target.value })
-              }
-            />
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="name" className="text-right font-medium">
+                Product Name
+              </label>
+              <Input
+                id="name"
+                placeholder="Product Name"
+                value={newProduct.name}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, name: e.target.value })
+                }
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="benefits" className="text-right font-medium">
+                Benefits
+              </label>
+              <div className="col-span-3">
+                <Select
+                  onValueChange={(value) =>
+                    setNewProduct({ ...newProduct, benefits: value })
+                  }
+                  value={newProduct.benefits || ""}
+                  defaultValue=""
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Benefit">
+                      {newProduct.benefits || "Select Benefit"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {benefitsOptions.map((b) => (
+                      <SelectItem key={b} value={b}>
+                        {b}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="skinType" className="text-right font-medium">
+                Skin Type
+              </label>
+              <div className="col-span-3">
+                <Select
+                  onValueChange={(value) =>
+                    setNewProduct({ ...newProduct, skinType: value })
+                  }
+                  value={newProduct.skinType || ""}
+                  defaultValue=""
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Skin Type">
+                      {newProduct.skinType || "Select Skin Type"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {skinTypeOptions.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="size" className="text-right font-medium">
+                Size
+              </label>
+              <Input
+                id="size"
+                placeholder="Size"
+                value={newProduct.size || ""}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, size: e.target.value })
+                }
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="category" className="text-right font-medium">
+                Category
+              </label>
+              <div className="col-span-3">
+                <Select
+                  onValueChange={(value) =>
+                    setNewProduct({ ...newProduct, category: value })
+                  }
+                  value={newProduct.category || ""}
+                  defaultValue=""
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Category">
+                      {newProduct.category || "Select Category"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categoryOptions.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="brand" className="text-right font-medium">
+                Brand
+              </label>
+              <div className="col-span-3">
+                <Select
+                  onValueChange={(value) =>
+                    setNewProduct({ ...newProduct, brand: value })
+                  }
+                  value={newProduct.brand || ""}
+                  defaultValue=""
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Brand">
+                      {newProduct.brand || "Select Brand"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Brands</SelectItem>
+                    {brandOptions.map((brand) => (
+                      <SelectItem key={brand} value={brand}>
+                        {brand}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="imageUrl" className="text-right font-medium">
+                Image URL
+              </label>
+              <Input
+                id="imageUrl"
+                placeholder="Image URL"
+                value={newProduct.imageUrl || ""}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, imageUrl: e.target.value })
+                }
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="price" className="text-right font-medium">
+                Price
+              </label>
+              <Input
+                id="price"
+                placeholder="Price"
+                type="number"
+                min={0}
+                step={0.01}
+                value={newProduct.price === 0 ? "" : newProduct.price}
+                className="col-span-3"
+                onChange={(e) =>
+                  setNewProduct({
+                    ...newProduct,
+                    price: Number(e.target.value),
+                  })
+                }
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="stockQuantity" className="text-right font-medium">
+                Stock Quantity
+              </label>
+              <Input
+                id="stockQuantity"
+                placeholder="Stock Quantity"
+                type="number"
+                min={0}
+                value={newProduct.stockQuantity === 0 ? "" : newProduct.stockQuantity}
+                className="col-span-3"
+                onChange={(e) =>
+                  setNewProduct({
+                    ...newProduct,
+                    stockQuantity: Number(e.target.value),
+                  })
+                }
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="description" className="text-right font-medium">
+                Description
+              </label>
+              <Input
+                id="description"
+                placeholder="Description"
+                value={newProduct.description}
+                className="col-span-3"
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, description: e.target.value })
+                }
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>
