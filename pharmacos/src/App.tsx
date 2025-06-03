@@ -16,6 +16,7 @@ import Dashboard from "./page/admin/Admindashboard";
 import VerifyEmailPage from "./page/login/VerifyEmailPage";
 import StaffDashboard from "./page/staff/Staffdashboard";
 import CategoryPage from "./page/Category/CategoryPage";
+import UserProfile from "./page/profile/UserProfile";
 
 function App() {
   const location = useLocation();

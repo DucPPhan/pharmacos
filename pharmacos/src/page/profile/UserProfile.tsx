@@ -13,10 +13,10 @@ import {
     MedicineBoxOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import CategoryNav from '@/components/CategoryNav';
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
 import './UserProfile.css';
+import CategoryNav from '../home/CategoryNav';
 
 const { Sider, Content } = Layout;
 const { Option } = Select;
@@ -30,48 +30,50 @@ interface UserInfo {
     avatarUrl?: string;
     email?: string;
     address?: string;
+    skinType?: string;
 }
-
-// API placeholders for future integration
-const fetchUserProfile = async () => {
-    // TODO: Call GET /api/user/profile
-    // return await axios.get('/api/user/profile');
-    return {
-        name: 'Nguyễn Thành Đạt',
-        phone: '0981657907',
-        gender: 'Nam',
-        email: 'dat.nguyen@gmail.com',
-        birthday: '15/05/1990',
-        address: '123 Đường Lê Lợi, Phường Bến Nghé, Quận 1, TP.HCM',
-        avatarUrl: ''
-    };
-};
-
-const updateUserProfile = async (data: UserInfo) => {
-    // TODO: Call PUT /api/user/profile with data
-    // return await axios.put('/api/user/profile', data);
-    return data;
-};
-
+// đơn hàng
 const fetchOrders = async () => {
-    // TODO: Call GET /api/user/orders
-    return [];
+    const token = localStorage.getItem('token');
+    const res = await fetch('http://localhost:10000/api/customers/orders', {
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+    });
+    if (!res.ok) {
+        const errText = await res.text();
+        console.error('API orders error:', errText);
+        return [];
+    }
+    return await res.json();
 };
 
-const fetchAddresses = async () => {
-    // TODO: Call GET /api/user/addresses
-    return [];
-};
 
-const fetchPrescriptions = async () => {
-    // TODO: Call GET /api/user/prescriptions
-    return [];
+// lịch sử mua hàng
+const fetchPurchaseHistory = async () => {
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role') || 'customer';
+    if (role !== 'customer') return [];
+    const res = await fetch('http://localhost:10000/api/customers/purchase-history', {
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+    });
+    if (!res.ok) {
+        const errText = await res.text();
+        console.error('API purchase history error:', errText);
+        return [];
+    }
+    return await res.json();
 };
 
 const PersonalInfo: React.FC<{
     user: UserInfo,
-    onEdit: () => void
-}> = ({ user, onEdit }) => (
+    onEdit: () => void,
+    onChangePassword: () => void
+}> = ({ user, onEdit, onChangePassword }) => (
     <Card
         title={null}
         className="user-profile-card"
@@ -96,7 +98,7 @@ const PersonalInfo: React.FC<{
             </div>
             <div className="user-profile-row">
                 <span className="user-profile-label">Số điện thoại</span>
-                <span className="user-profile-value">{user.phone}</span>
+                <span className="user-profile-value">{user.phone || 'Chưa cập nhật'}</span>
             </div>
             <div className="user-profile-row">
                 <span className="user-profile-label">Email</span>
@@ -114,7 +116,7 @@ const PersonalInfo: React.FC<{
                 <span className="user-profile-label">Địa chỉ</span>
                 <span className="user-profile-value user-profile-address">{user.address || 'Chưa cập nhật'}</span>
             </div>
-            <div className="user-profile-edit-btn-wrap">
+            <div className="user-profile-edit-btn-wrap" style={{ gap: 16 }}>
                 <Button
                     type="primary"
                     shape="round"
@@ -128,29 +130,41 @@ const PersonalInfo: React.FC<{
                 >
                     Chỉnh sửa thông tin
                 </Button>
+                <Button
+                    shape="round"
+                    size="large"
+                    className="user-profile-edit-btn"
+                    style={{ background: '#fff', color: '#7494ec', border: '1px solid #7494ec' }}
+                    onClick={e => {
+                        e.stopPropagation();
+                        onChangePassword();
+                    }}
+                >
+                    Đổi mật khẩu
+                </Button>
             </div>
         </div>
     </Card>
 );
 
-const EditProfileModal: React.FC<{
-    visible: boolean;
+const nameRegex = /^[a-zA-ZÀ-ỹ\s'.-]+$/u;
+const phoneRegex = /^(0[3|5|7|8|9])+([0-9]{8})$/;
+
+const EditProfileInlineForm: React.FC<{
+    user: UserInfo;
     onCancel: () => void;
     onSave: (values: UserInfo) => void;
-    user: UserInfo;
-}> = ({ visible, onCancel, onSave, user }) => {
+}> = ({ user, onCancel, onSave }) => {
     const [form] = Form.useForm();
     const [avatarUrl, setAvatarUrl] = useState<string>(user.avatarUrl || '');
 
     useEffect(() => {
-        if (visible) {
-            form.setFieldsValue({
-                ...user,
-                birthday: user.birthday ? dayjs(user.birthday, 'DD/MM/YYYY') : null
-            });
-            setAvatarUrl(user.avatarUrl || '');
-        }
-    }, [visible, user, form]);
+        form.setFieldsValue({
+            ...user,
+            birthday: user.birthday ? dayjs(user.birthday, 'DD/MM/YYYY') : null
+        });
+        setAvatarUrl(user.avatarUrl || '');
+    }, [user, form]);
 
     const handleSave = () => {
         form.validateFields()
@@ -167,9 +181,6 @@ const EditProfileModal: React.FC<{
 
     const handleAvatarChange = (info: any) => {
         if (info.file.status === 'done') {
-            // This is a placeholder for future API integration
-            // In a real app, you would get the URL from the server response
-            // For now, we'll use a placeholder URL
             message.success('Tải ảnh lên thành công!');
             setAvatarUrl('https://cdn-icons-png.flaticon.com/512/3135/3135715.png');
         } else if (info.file.status === 'error') {
@@ -178,142 +189,462 @@ const EditProfileModal: React.FC<{
     };
 
     return (
-        <Modal
-            title="Chỉnh sửa thông tin cá nhân"
-            open={visible}
-            onOk={handleSave}
-            onCancel={onCancel}
-            okText="Lưu thay đổi"
-            cancelText="Hủy"
-            width={420}
-            bodyStyle={{ padding: 24 }}
-            centered
-            destroyOnClose
-            maskClosable={false}
-            className="user-profile-modal"
+        <Card
+            title={null}
+            className="user-profile-card"
+            bodyStyle={{ padding: 0 }}
         >
-            <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                <Upload
-                    name="avatar"
-                    listType="picture-circle"
-                    className="avatar-uploader"
-                    showUploadList={false}
-                    action="https://run.mocky.io/v3/435e224c-44fb-4773-9faf-380c5e6a2188" // Placeholder URL
-                    onChange={handleAvatarChange}
-                >
-                    {avatarUrl ? (
+            <div className="user-profile-card-header">
+                <Tooltip title="Thông tin cá nhân" placement="bottom">
+                    <Upload
+                        name="avatar"
+                        listType="picture-circle"
+                        className="avatar-uploader"
+                        showUploadList={false}
+                        action="https://run.mocky.io/v3/435e224c-44fb-4773-9faf-380c5e6a2188"
+                        onChange={handleAvatarChange}
+                    >
                         <Avatar
-                            size={100}
-                            src={avatarUrl}
+                            size={120}
+                            src={avatarUrl || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}
+                            icon={<UserOutlined />}
+                            className="user-profile-avatar"
                             style={{
                                 border: '3px solid #1677ff',
                                 boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
                             }}
                         />
-                    ) : (
-                        <div>
-                            <PlusOutlined />
-                            <div style={{ marginTop: 8 }}>Tải ảnh</div>
-                        </div>
-                    )}
-                </Upload>
+                    </Upload>
+                </Tooltip>
+                <div className="user-profile-name">{user.name}</div>
+                <div className="user-profile-phone">{user.phone}</div>
             </div>
-            <Form
-                form={form}
-                layout="vertical"
-                initialValues={{
-                    ...user,
-                    birthday: user.birthday ? dayjs(user.birthday, 'DD/MM/YYYY') : null
-                }}
-                className="user-profile-form"
-            >
-                <Form.Item
-                    name="name"
-                    label="Họ và tên"
-                    rules={[{ required: true, message: 'Vui lòng nhập họ và tên!' }]}
+            <div className="user-profile-card-body">
+                <Form
+                    form={form}
+                    layout="vertical"
+                    initialValues={{
+                        ...user,
+                        birthday: user.birthday ? dayjs(user.birthday, 'DD/MM/YYYY') : null
+                    }}
+                    className="user-profile-form"
                 >
-                    <Input size="large" placeholder="Nhập họ và tên" />
-                </Form.Item>
-                <Form.Item
-                    name="phone"
-                    label="Số điện thoại"
-                    rules={[
-                        { required: true, message: 'Vui lòng nhập số điện thoại!' },
-                        { pattern: /^\d{10,11}$/, message: 'Số điện thoại không hợp lệ!' }
-                    ]}
-                >
-                    <Input size="large" placeholder="Nhập số điện thoại" />
-                </Form.Item>
-                <Form.Item
-                    name="email"
-                    label="Email"
-                    rules={[
-                        { type: 'email', message: 'Email không hợp lệ!' }
-                    ]}
-                >
-                    <Input size="large" placeholder="Nhập email" />
-                </Form.Item>
-                <Form.Item
-                    name="gender"
-                    label="Giới tính"
-                    rules={[{ required: true, message: 'Vui lòng chọn giới tính!' }]}
-                >
-                    <Select size="large" placeholder="Chọn giới tính">
-                        <Option value="Nam">Nam</Option>
-                        <Option value="Nữ">Nữ</Option>
-                        <Option value="Khác">Khác</Option>
-                    </Select>
-                </Form.Item>
-                <Form.Item
-                    name="birthday"
-                    label="Ngày sinh"
-                >
-                    <DatePicker
-                        size="large"
-                        style={{ width: '100%' }}
-                        format="DD/MM/YYYY"
-                        placeholder="Chọn ngày sinh"
-                        className="user-profile-datepicker"
-                    />
-                </Form.Item>
-                <Form.Item
-                    name="address"
-                    label="Địa chỉ"
-                >
-                    <TextArea
-                        rows={3}
-                        size="large"
-                        placeholder="Nhập địa chỉ"
-                        className="user-profile-textarea"
-                    />
-                </Form.Item>
-            </Form>
-        </Modal>
+                    <Form.Item
+                        name="name"
+                        label="Họ và tên"
+                        rules={[
+                            { required: true, message: 'Vui lòng nhập họ và tên!' },
+                            { min: 2, message: 'Họ và tên phải có ít nhất 2 ký tự!' },
+                            {
+                                pattern: nameRegex,
+                                message: 'Họ và tên không hợp lệ!'
+                            },
+                            {
+                                validator: (_, value) => {
+                                    if (value && /^\d+$/.test(value)) {
+                                        return Promise.reject('Họ và tên không hợp lệ!');
+                                    }
+                                    return Promise.resolve();
+                                }
+                            }
+                        ]}
+                    >
+                        <Input size="large" placeholder="Nhập họ và tên" />
+                    </Form.Item>
+                    <Form.Item
+                        name="phone"
+                        label="Số điện thoại"
+                        rules={[
+                            { required: true, message: 'Vui lòng nhập số điện thoại!' },
+                            {
+                                pattern: phoneRegex,
+                                message: 'Số điện thoại không hợp lệ!'
+                            }
+                        ]}
+                    >
+                        <Input size="large" placeholder="Nhập số điện thoại" maxLength={10} />
+                    </Form.Item>
+                    <Form.Item
+                        name="email"
+                        label="Email"
+                        rules={[
+                            { required: true, message: 'Vui lòng nhập email!' },
+                            { type: 'email', message: 'Email không hợp lệ!' }
+                        ]}
+                    >
+                        <Input size="large" placeholder="Nhập email" />
+                    </Form.Item>
+                    <Form.Item
+                        name="gender"
+                        label="Giới tính"
+                        rules={[{ required: true, message: 'Vui lòng chọn giới tính!' }]}
+                    >
+                        <Select size="large" placeholder="Chọn giới tính">
+                            <Option value="Nam">Nam</Option>
+                            <Option value="Nữ">Nữ</Option>
+                            <Option value="Khác">Khác</Option>
+                        </Select>
+                    </Form.Item>
+                    <Form.Item
+                        name="birthday"
+                        label="Ngày sinh"
+                        rules={[
+                            { required: true, message: 'Vui lòng chọn ngày sinh!' },
+                            {
+                                validator: (_, value) => {
+                                    if (value && value.isAfter(dayjs(), 'day')) {
+                                        return Promise.reject('Ngày sinh không hợp lệ!');
+                                    }
+                                    return Promise.resolve();
+                                }
+                            }
+                        ]}
+                    >
+                        <DatePicker
+                            size="large"
+                            style={{ width: '100%' }}
+                            format="DD/MM/YYYY"
+                            placeholder="Chọn ngày sinh"
+                            className="user-profile-datepicker"
+                            disabledDate={current => current && current > dayjs().endOf('day')}
+                        />
+                    </Form.Item>
+                    <Form.Item
+                        name="address"
+                        label="Địa chỉ"
+                        rules={[
+                            { required: true, message: 'Vui lòng nhập địa chỉ!' },
+                            { min: 5, message: 'Địa chỉ phải có ít nhất 5 ký tự!' }
+                        ]}
+                    >
+                        <TextArea
+                            rows={3}
+                            size="large"
+                            placeholder="Nhập địa chỉ"
+                            className="user-profile-textarea"
+                        />
+                    </Form.Item>
+                    <Form.Item style={{ marginTop: 32, textAlign: 'center' }}>
+                        <Button
+                            type="primary"
+                            shape="round"
+                            size="large"
+                            style={{ marginRight: 16, minWidth: 120, color: '#fff', backgroundColor: '#1677ff', borderColor: '#1677ff' }}
+                            onClick={handleSave}
+                        >
+                            Lưu thay đổi
+                        </Button>
+                        <Button
+                            shape="round"
+                            size="large"
+                            onClick={onCancel}
+                            style={{ minWidth: 100 }}
+                        >
+                            Hủy
+                        </Button>
+                    </Form.Item>
+                </Form>
+            </div>
+        </Card>
     );
 };
 
-const UserProfile: React.FC = () => {
-    const [activeMenu, setActiveMenu] = useState<string>('thongtincanhan');
-    const [user, setUser] = useState<UserInfo | null>(null);
-    const [editModalVisible, setEditModalVisible] = useState(false);
+const ChangePasswordForm: React.FC<{
+    onCancel: () => void;
+    onSuccess: () => void;
+}> = ({ onCancel, onSuccess }) => {
+    const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
 
-    // Fetch user profile
+    const handleSubmit = async () => {
+        try {
+            const { oldPassword, newPassword } = await form.validateFields();
+            setLoading(true);
+            await changePassword(oldPassword, newPassword);
+            setLoading(false);
+            message.success('Đổi mật khẩu thành công!');
+            onSuccess();
+        } catch (err: any) {
+            setLoading(false);
+            message.error(err.message || 'Đổi mật khẩu thất bại!');
+        }
+    };
+
+    return (
+        <Card
+            title={null}
+            className="user-profile-card"
+            bodyStyle={{ padding: 0 }}
+        >
+            <div className="user-profile-card-header">
+                <Avatar
+                    size={120}
+                    src={'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}
+                    icon={<UserOutlined />}
+                    className="user-profile-avatar"
+                />
+                <div className="user-profile-name">Đổi mật khẩu</div>
+            </div>
+            <div className="user-profile-card-body">
+                <Form
+                    form={form}
+                    layout="vertical"
+                    className="user-profile-form"
+                >
+                    <Form.Item
+                        name="oldPassword"
+                        label="Mật khẩu cũ"
+                        rules={[
+                            { required: true, message: 'Vui lòng nhập mật khẩu cũ!' },
+                            { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự!' }
+                        ]}
+                    >
+                        <Input.Password size="large" placeholder="Nhập mật khẩu cũ" />
+                    </Form.Item>
+                    <Form.Item
+                        name="newPassword"
+                        label="Mật khẩu mới"
+                        rules={[
+                            { required: true, message: 'Vui lòng nhập mật khẩu mới!' },
+                            { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự!' },
+                            {
+                                validator: (_, value) => {
+                                    if (!value) return Promise.resolve();
+                                    if (form.getFieldValue('oldPassword') && value === form.getFieldValue('oldPassword')) {
+                                        return Promise.reject('Mật khẩu mới phải khác mật khẩu cũ!');
+                                    }
+                                    return Promise.resolve();
+                                }
+                            }
+                        ]}
+                    >
+                        <Input.Password size="large" placeholder="Nhập mật khẩu mới" />
+                    </Form.Item>
+                    <Form.Item
+                        name="confirmPassword"
+                        label="Xác nhận mật khẩu mới"
+                        dependencies={['newPassword']}
+                        rules={[
+                            { required: true, message: 'Vui lòng xác nhận mật khẩu mới!' },
+                            {
+                                validator: (_, value) => {
+                                    if (!value || form.getFieldValue('newPassword') === value) {
+                                        return Promise.resolve();
+                                    }
+                                    return Promise.reject('Mật khẩu xác nhận không khớp!');
+                                }
+                            }
+                        ]}
+                    >
+                        <Input.Password size="large" placeholder="Nhập lại mật khẩu mới" />
+                    </Form.Item>
+                    <Form.Item style={{ marginTop: 32, textAlign: 'center' }}>
+                        <Button
+                            shape="round"
+                            size="large"
+                            onClick={onCancel}
+                            style={{ minWidth: 100, marginRight: 16, width: 120, height: 40 }}
+                            disabled={loading}
+                        >
+                            Hủy
+                        </Button>
+                        <Button
+                            type="primary"
+                            shape="round"
+                            size="large"
+                            className="user-profile-edit-btn"
+                            onClick={e => {
+                                e.stopPropagation();
+                                handleSubmit();
+                            }}
+                        >
+                            Đổi Mật Khẩu
+                        </Button>
+                    </Form.Item>
+                </Form>
+            </div>
+        </Card>
+    );
+};
+
+// Hàm lấy role từ localStorage 
+const getUserRole = () => {
+    return localStorage.getItem('role') || 'customer';
+};
+
+// Hàm fetch profile động theo role, truyền token vào header Authorization
+const fetchProfileByRole = async (): Promise<UserInfo> => {
+    const role = localStorage.getItem('role') || 'customer';
+    const token = localStorage.getItem('token');
+    let url = '';
+    if (role === 'staff') {
+        url = 'http://localhost:10000/api/staff/profile';
+    } else {
+        url = 'http://localhost:10000/api/customers/profile';
+    }
+    const res = await fetch(url, {
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+    });
+    if (!res.ok) {
+        const errText = await res.text();
+        console.error('API error:', errText);
+        throw new Error('Không lấy được thông tin người dùng');
+    }
+    const data = await res.json();
+
+    return {
+        name: data.name || data.fullName || '',
+        phone: data.phone || data.phoneNumber || '',
+        gender: data.gender === 'male' ? 'Nam' : data.gender === 'female' ? 'Nữ' : (data.gender || ''),
+        birthday: data.dateOfBirth
+            ? dayjs(data.dateOfBirth).format('DD/MM/YYYY')
+            : (data.birthday || ''),
+        avatarUrl: data.avatarUrl || '',
+        email: data.email || '',
+        address: data.address || '',
+    };
+};
+
+// Hàm update profile động theo role
+const updateProfileByRole = async (data: UserInfo): Promise<UserInfo> => {
+    const role = localStorage.getItem('role') || 'customer';
+    const token = localStorage.getItem('token');
+    let url = '';
+    let body: any = {};
+    let method = 'PATCH';
+
+    if (role === 'staff') {
+        url = 'http://localhost:10000/api/staff/profile';
+        body = {
+            name: data.name,
+            email: data.email,
+        };
+        method = 'PATCH';
+    } else {
+        url = 'http://localhost:10000/api/customers/profile';
+        body = {
+            name: data.name,
+            gender: data.gender === 'Nam' ? 'male' : data.gender === 'Nữ' ? 'female' : data.gender,
+            dateOfBirth: data.birthday ? dayjs(data.birthday, 'DD/MM/YYYY').format('YYYY-MM-DD') : undefined,
+        };
+        method = 'PATCH';
+    }
+
+    const res = await fetch(url, {
+        method,
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+        const errText = await res.text();
+        console.error('API update error:', errText);
+        throw new Error('Cập nhật thông tin thất bại!');
+    }
+    return await fetchProfileByRole();
+};
+
+// API đổi mật khẩu động cho customer và staff (không giả lập, luôn gọi API nếu có endpoint)
+const changePassword = async (oldPassword: string, newPassword: string) => {
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role') || 'customer';
+    let url = '';
+    let body: any = {};
+    let method = 'PUT';
+
+    if (role === 'customer') {
+        url = 'http://localhost:10000/api/customers/change-password';
+        body = {
+            currentPassword: oldPassword,
+            newPassword: newPassword
+        };
+        method = 'PUT';
+    } else if (role === 'staff') {
+        url = 'http://localhost:10000/api/staff/change-password';
+        body = {
+            currentPassword: oldPassword,
+            newPassword: newPassword
+        };
+        method = 'PUT';
+    } else {
+        throw new Error('Không hỗ trợ đổi mật khẩu cho loại tài khoản này!');
+    }
+
+    const res = await fetch(url, {
+        method,
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+        const errText = await res.text();
+        console.error('API change password error:', errText);
+        throw new Error('Đổi mật khẩu thất bại!');
+    }
+    return { success: true };
+};
+
+const UserProfile: React.FC = () => {
+    const [activeMenu, setActiveMenu] = useState<string>(() => localStorage.getItem('profileActiveMenu') || 'thongtincanhan');
+    const [user, setUser] = useState<UserInfo | null>(null);
+    const [editMode, setEditMode] = useState(false);
+    const [changePasswordMode, setChangePasswordMode] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [purchaseHistory, setPurchaseHistory] = useState<any[]>([]);
+    const [orders, setOrders] = useState<any[]>([]);
+
     useEffect(() => {
         setLoading(true);
-        fetchUserProfile().then((data) => {
-            setUser(data);
-            setLoading(false);
-        });
+        fetchProfileByRole()
+            .then((data) => {
+                setUser(data);
+                setLoading(false);
+            })
+            .catch((err) => {
+                setLoading(false);
+                message.error('Không lấy được thông tin người dùng!');
+            });
     }, []);
 
+    useEffect(() => {
+        if (activeMenu === 'donhang') {
+            fetchOrders().then(setOrders);
+        }
+        if (activeMenu === 'donthuoc') {
+            fetchPurchaseHistory().then(setPurchaseHistory);
+        }
+    }, [activeMenu]);
+
+    // Khi đổi tab, lưu vào localStorage để giữ trạng thái khi F5
     const handleMenuClick = (e: any) => {
         if (e.key === 'logout') {
             Modal.confirm({
                 title: 'Bạn có chắc chắn muốn đăng xuất?',
                 content: 'Bạn sẽ cần đăng nhập lại để tiếp tục sử dụng dịch vụ.',
-                okText: 'Đăng xuất',
+                okText: <span style={{ color: '#fff', fontWeight: 700 }}>Đăng xuất</span>,
                 cancelText: 'Hủy',
+                okButtonProps: {
+                    style: {
+                        background: 'linear-gradient(90deg, #1677ff 0%, #7494ec 100%)',
+                        border: 'none',
+                        fontWeight: 700,
+                        borderRadius: 8,
+                        boxShadow: '0 4px 12px rgba(22,119,255,0.18)',
+                    }
+                },
+                cancelButtonProps: {
+                    style: {
+                        borderRadius: 8
+                    }
+                },
                 onOk: () => {
                     // TODO: Call logout API
                     // await axios.post('/api/logout');
@@ -322,27 +653,84 @@ const UserProfile: React.FC = () => {
             });
         } else {
             setActiveMenu(e.key);
+            localStorage.setItem('profileActiveMenu', e.key);
         }
     };
 
     const handleSaveProfile = async (values: UserInfo) => {
         setLoading(true);
-        // Call update API
-        const updated = await updateUserProfile(values);
-        setUser(updated);
+        try {
+            const updated = await updateProfileByRole(values);
+            setUser(updated);
+            setEditMode(false);
+            message.success('Cập nhật thông tin thành công!');
+        } catch (err: any) {
+            message.error(err.message || 'Cập nhật thông tin thất bại!');
+        }
         setLoading(false);
-        setEditModalVisible(false);
-        message.success('Cập nhật thông tin thành công!');
     };
 
-    // Prepare for future API data for each section
-    // Example: orders, addresses, prescriptions
-    // const [orders, setOrders] = useState([]);
-    // useEffect(() => { fetchOrders().then(setOrders); }, []);
-    // const [addresses, setAddresses] = useState([]);
-    // useEffect(() => { fetchAddresses().then(setAddresses); }, []);
-    // const [prescriptions, setPrescriptions] = useState([]);
-    // useEffect(() => { fetchPrescriptions().then(setPrescriptions); }, []);
+    const renderOrders = () => {
+        if (!orders || orders.length === 0) {
+            return (
+                <div>
+                    <div className="user-profile-section-empty-title">Không có đơn hàng nào</div>
+                    <div className="user-profile-section-empty-desc">Bạn chưa có đơn hàng nào.</div>
+                </div>
+            );
+        }
+        return (
+            <div style={{ marginTop: 24 }}>
+                <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 12, color: '#7494ec' }}>Đơn hàng của tôi</div>
+                <div style={{ maxHeight: 260, overflowY: 'auto' }}>
+                    {orders.map((item, idx) => (
+                        <Card
+                            key={item.id || idx}
+                            style={{ marginBottom: 16, borderRadius: 12, border: '1px solid #f0f0f0' }}
+                            bodyStyle={{ padding: 16 }}
+                        >
+                            <div style={{ fontWeight: 500, fontSize: 16 }}>
+                                Đơn #{item.id || idx + 1}
+                            </div>
+                            <div>Ngày đặt: {item.date ? dayjs(item.date).format('DD/MM/YYYY') : '---'}</div>
+                            <div>Tổng tiền: {item.total ? item.total.toLocaleString() + '₫' : '---'}</div>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    const renderPurchaseHistory = () => {
+        if (!purchaseHistory || purchaseHistory.length === 0) {
+            return (
+                <div>
+                    <div className="user-profile-section-empty-title">Không có lịch sử mua hàng</div>
+                    <div className="user-profile-section-empty-desc">Bạn chưa có lịch sử mua hàng nào.</div>
+                </div>
+            );
+        }
+        return (
+            <div style={{ marginTop: 24 }}>
+                <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 12, color: '#7494ec' }}>Lịch sử mua hàng</div>
+                <div style={{ maxHeight: 260, overflowY: 'auto' }}>
+                    {purchaseHistory.map((item, idx) => (
+                        <Card
+                            key={item.id || idx}
+                            style={{ marginBottom: 16, borderRadius: 12, border: '1px solid #f0f0f0' }}
+                            bodyStyle={{ padding: 16 }}
+                        >
+                            <div style={{ fontWeight: 500, fontSize: 16 }}>
+                                Đơn #{item.id || idx + 1}
+                            </div>
+                            <div>Ngày mua: {item.date ? dayjs(item.date).format('DD/MM/YYYY') : '---'}</div>
+                            <div>Tổng tiền: {item.total ? item.total.toLocaleString() + '₫' : '---'}</div>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+        );
+    };
 
     const renderContent = () => {
         if (loading || !user) {
@@ -357,16 +745,24 @@ const UserProfile: React.FC = () => {
             case 'thongtincanhan':
                 return (
                     <div className="user-profile-main-content">
-                        <PersonalInfo
-                            user={user}
-                            onEdit={() => setEditModalVisible(true)}
-                        />
-                        <EditProfileModal
-                            visible={editModalVisible}
-                            onCancel={() => setEditModalVisible(false)}
-                            onSave={handleSaveProfile}
-                            user={user}
-                        />
+                        {!editMode && !changePasswordMode ? (
+                            <PersonalInfo
+                                user={user}
+                                onEdit={() => setEditMode(true)}
+                                onChangePassword={() => setChangePasswordMode(true)}
+                            />
+                        ) : editMode ? (
+                            <EditProfileInlineForm
+                                user={user}
+                                onCancel={() => setEditMode(false)}
+                                onSave={handleSaveProfile}
+                            />
+                        ) : (
+                            <ChangePasswordForm
+                                onCancel={() => setChangePasswordMode(false)}
+                                onSuccess={() => setChangePasswordMode(false)}
+                            />
+                        )}
                     </div>
                 );
             case 'donhang':
@@ -375,13 +771,13 @@ const UserProfile: React.FC = () => {
                         title={<span className="user-profile-section-title">Đơn Hàng Của Tôi</span>}
                         className="user-profile-section-card"
                         bodyStyle={{ padding: 0 }}
+                        style={{ maxWidth: 520, margin: '0 auto' }}
                     >
                         <div className="user-profile-section-content">
                             <div className="user-profile-section-icon">
                                 <GiftOutlined />
                             </div>
-                            <div className="user-profile-section-empty-title">Không có đơn hàng nào</div>
-                            <div className="user-profile-section-empty-desc">Bạn chưa có đơn hàng nào. Hãy mua sắm ngay để chăm sóc sức khỏe của bạn!</div>
+                            {renderOrders()}
                             <Button
                                 type="primary"
                                 shape="round"
@@ -391,36 +787,9 @@ const UserProfile: React.FC = () => {
                                     window.location.href = '/';
                                 }}
                                 icon={<ShoppingCartOutlined />}
+                                style={{ marginTop: 24 }}
                             >
                                 Mua sắm ngay
-                            </Button>
-                        </div>
-                    </Card>
-                );
-            case 'sodiachi':
-                return (
-                    <Card
-                        title={<span className="user-profile-section-title">Sổ địa chỉ</span>}
-                        className="user-profile-section-card"
-                        bodyStyle={{ padding: 0 }}
-                    >
-                        <div className="user-profile-section-content">
-                            <div className="user-profile-section-icon">
-                                <HomeOutlined />
-                            </div>
-                            <div className="user-profile-section-empty-title">Chưa có địa chỉ nào</div>
-                            <div className="user-profile-section-empty-desc">Vui lòng thêm địa chỉ để thuận tiện cho việc đặt hàng và giao thuốc tận nơi</div>
-                            <Button
-                                type="primary"
-                                shape="round"
-                                size="large"
-                                className="user-profile-section-btn"
-                                onClick={() => {
-                                    message.info('Chức năng thêm địa chỉ mới!');
-                                }}
-                                icon={<PlusOutlined />}
-                            >
-                                Thêm địa chỉ mới
                             </Button>
                         </div>
                     </Card>
@@ -428,28 +797,16 @@ const UserProfile: React.FC = () => {
             case 'donthuoc':
                 return (
                     <Card
-                        title={<span className="user-profile-section-title">Đơn Thuốc Của Tôi</span>}
+                        title={<span className="user-profile-section-title">Lịch Sử Mua Hàng</span>}
                         className="user-profile-section-card"
                         bodyStyle={{ padding: 0 }}
+                        style={{ maxWidth: 520, margin: '0 auto' }}
                     >
                         <div className="user-profile-section-content">
                             <div className="user-profile-section-icon">
-                                <MedicineBoxOutlined />
+                                <GiftOutlined />
                             </div>
-                            <div className="user-profile-section-empty-title">Bạn chưa có đơn thuốc nào</div>
-                            <div className="user-profile-section-empty-desc">Tải lên đơn thuốc của bạn để dễ dàng mua thuốc theo toa và theo dõi lịch sử điều trị</div>
-                            <Button
-                                type="primary"
-                                shape="round"
-                                size="large"
-                                className="user-profile-section-btn"
-                                onClick={() => {
-                                    message.info('Chức năng tải lên đơn thuốc!');
-                                }}
-                                icon={<FileTextOutlined />}
-                            >
-                                Tải lên đơn thuốc
-                            </Button>
+                            {renderPurchaseHistory()}
                         </div>
                     </Card>
                 );
@@ -470,8 +827,6 @@ const UserProfile: React.FC = () => {
                     <Sider
                         width={340}
                         className="user-profile-sider"
-                        breakpoint="lg"
-                        collapsedWidth="0"
                     >
                         <div className="user-profile-sider-header">
                             <Tooltip title="Thông tin người dùng" placement="right">
@@ -502,14 +857,9 @@ const UserProfile: React.FC = () => {
                                     label: 'Đơn hàng của tôi',
                                 },
                                 {
-                                    key: 'sodiachi',
-                                    icon: <HomeOutlined style={{ fontSize: 20 }} />,
-                                    label: 'Sổ địa chỉ',
-                                },
-                                {
                                     key: 'donthuoc',
                                     icon: <FileTextOutlined style={{ fontSize: 20 }} />,
-                                    label: 'Đơn thuốc của tôi',
+                                    label: 'Lịch Sử Mua Hàng',
                                 },
                                 {
                                     key: 'logout',
@@ -533,3 +883,4 @@ const UserProfile: React.FC = () => {
 };
 
 export default UserProfile;
+
