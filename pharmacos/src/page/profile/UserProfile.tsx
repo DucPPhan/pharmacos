@@ -280,8 +280,8 @@ const EditProfileInlineForm: React.FC<{
                         rules={[{ required: true, message: 'Vui lòng chọn giới tính!' }]}
                     >
                         <Select size="large" placeholder="Chọn giới tính">
-                            <Option value="Nam">Nam</Option>
-                            <Option value="Nữ">Nữ</Option>
+                            <Option value="male">Nam</Option>
+                            <Option value="female">Nữ</Option>
                             <Option value="Khác">Khác</Option>
                         </Select>
                     </Form.Item>
@@ -474,7 +474,8 @@ const getUserRole = () => {
 
 // Hàm fetch profile động theo role, truyền token vào header Authorization
 const fetchProfileByRole = async (): Promise<UserInfo> => {
-    const role = localStorage.getItem('role') || 'customer';
+    const user = JSON.parse(localStorage.getItem('user'));
+    const role = user.role;
     const token = localStorage.getItem('token');
     let url = '';
     if (role === 'staff') {

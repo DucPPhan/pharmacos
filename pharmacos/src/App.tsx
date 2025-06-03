@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import {
   useLocation,
@@ -21,7 +21,19 @@ import ProductsPage from "./page/Products/ProductsPage";
 import UserProfile from "./page/profile/UserProfile";
 
 function App() {
+  const [visible, setVisible] = useState(true);
   const location = useLocation();
+  useEffect(() => {
+    // Check if the current path is admin dashboard or staff dashboard
+    if (
+      location.pathname === "/admin/dashboard" ||
+      location.pathname.startsWith("/staff/dashboard")
+    ) {
+      setVisible(false);
+    } else {
+      setVisible(true);
+    }
+  }, [location.pathname]);
   if (location.pathname === "/login") {
     return <LoginPage />;
   }
@@ -31,9 +43,11 @@ function App() {
   return (
     <Suspense fallback={<p>Loading...</p>}>
       <div className="min-h-screen bg-background">
-        <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
-          <Header />
-        </div>
+        {visible && (
+          <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
+            <Header />
+          </div>
+        )}
         <>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -56,7 +70,9 @@ function App() {
           </Routes>
           {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
         </>
-        <Footer />
+        {visible && (
+          <Footer />
+        )}
       </div>
     </Suspense>
   );
