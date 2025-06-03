@@ -41,6 +41,7 @@ export function Inventory() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
+  const [brands, setBrands] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [showStockDialog, setShowStockDialog] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -59,10 +60,16 @@ export function Inventory() {
       setIsLoading(true);
       const res = await fetch("http://localhost:10000/api/products");
       const data = await res.json();
-      if (!Array.isArray(data)) throw new Error("Invalid API format");
-      setProducts(data);
-      const unique = Array.from(new Set(data.map((p) => p.category)));
-      setCategories(unique);
+      const productList = Array.isArray(data.products) ? data.products : data;
+      setProducts(productList);
+      const uniqueCategories = Array.from(
+        new Set(productList.map((p) => String(p.category)))
+      ).filter(Boolean) as string[];
+      setCategories(uniqueCategories);
+      const uniqueBrands = Array.from(
+        new Set(productList.map((p) => String(p.brand)))
+      ).filter(Boolean) as string[];
+      setBrands(uniqueBrands);
     } catch (err) {
       toast({
         title: "Error",
@@ -79,8 +86,11 @@ export function Inventory() {
   }, []);
 
   const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
+    const matchesSearch = product.name
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const matchesCategory =
+      selectedCategory === "all" || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -92,11 +102,22 @@ export function Inventory() {
         body: JSON.stringify({ stock: newStock }),
       });
 
-      setProducts(products.map((p) => (p.id === currentProduct.id ? { ...p, stock: newStock } : p)));
-      toast({ title: "Stock updated", description: `${currentProduct.name} updated.` });
+      setProducts(
+        products.map((p) =>
+          p.id === currentProduct.id ? { ...p, stock: newStock } : p
+        )
+      );
+      toast({
+        title: "Stock updated",
+        description: `${currentProduct.name} updated.`,
+      });
       setShowStockDialog(false);
     } catch {
-      toast({ title: "Error", description: "Failed to update", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to update",
+        variant: "destructive",
+      });
     }
   };
 
@@ -114,14 +135,20 @@ export function Inventory() {
       setNewProduct({ name: "", category: "", price: 0, stock: 0 });
       await fetchProducts();
     } catch {
-      toast({ title: "Error", description: "Failed to create", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to create",
+        variant: "destructive",
+      });
     }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Inventory Management</h2>
+        <h2 className="text-3xl font-bold tracking-tight">
+          Inventory Management
+        </h2>
         <Button onClick={() => setShowAddDialog(true)}>
           <Plus className="mr-2 h-4 w-4" /> Add Product
         </Button>
@@ -142,7 +169,10 @@ export function Inventory() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <Select
+              value={selectedCategory}
+              onValueChange={setSelectedCategory}
+            >
               <SelectTrigger className="md:w-[180px]">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
@@ -165,8 +195,9 @@ export function Inventory() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
+                    <TableHead>Image</TableHead>
                     <TableHead>Category</TableHead>
-                    <TableHead>Stock</TableHead>
+                    <TableHead>Brand</TableHead>
                     <TableHead>Price</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -174,24 +205,33 @@ export function Inventory() {
                 <TableBody>
                   {filteredProducts.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-6">
+                      <TableCell colSpan={6} className="text-center py-6">
                         No products found
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredProducts.map((p) => (
-                      <TableRow key={p.id}>
+                      <TableRow key={p._id}>
                         <TableCell>{p.name}</TableCell>
-                        <TableCell>{p.category}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span>{p.stock}</span>
-                            <Badge variant={p.stock <= 5 ? "destructive" : "outline"}>
-                              {p.stock <= 5 ? "Low" : "OK"}
-                            </Badge>
-                          </div>
+                          {p.imageUrl ? (
+                            <img
+                              src={p.imageUrl}
+                              alt={p.name}
+                              style={{
+                                width: 48,
+                                height: 48,
+                                objectFit: "cover",
+                                borderRadius: 6,
+                              }}
+                            />
+                          ) : (
+                            <span className="text-gray-400">No image</span>
+                          )}
                         </TableCell>
-                        <TableCell>${p.price.toFixed(2)}</TableCell>
+                        <TableCell>{p.category}</TableCell>
+                        <TableCell>{p.brand}</TableCell>
+                        <TableCell>${p.price}</TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -238,7 +278,9 @@ export function Inventory() {
               min={0}
               value={newStock}
               onChange={(e) =>
-                setNewStock(e.target.value === "" ? 0 : parseInt(e.target.value))
+                setNewStock(
+                  e.target.value === "" ? 0 : parseInt(e.target.value)
+                )
               }
             />
           </div>
@@ -262,12 +304,16 @@ export function Inventory() {
             <Input
               placeholder="Product Name"
               value={newProduct.name}
-              onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, name: e.target.value })
+              }
             />
             <Input
               placeholder="Category"
               value={newProduct.category}
-              onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, category: e.target.value })
+              }
             />
             <Input
               type="number"
