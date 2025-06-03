@@ -1,21 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Menu, Card, Avatar, Button, Spin, Modal, Form, Input, DatePicker, Select, Upload, message, Tooltip } from 'antd';
+import { Layout, Menu, Card, Avatar, Button, Spin, Modal, message, Tooltip, Form, Input, DatePicker, Select } from 'antd';
 import {
     UserOutlined,
-    ShoppingCartOutlined,
-    FileTextOutlined,
     LogoutOutlined,
     EditOutlined,
-    CaretLeftOutlined,
-    GiftOutlined
+    CaretLeftOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import './UserProfile.css';
 import CategoryNav from '../home/CategoryNav';
+import { Sidebar } from "@/components/ui/sidebar"; // Thêm dòng này
+import { useMediaQuery } from "@/hooks/use-media-query"; // Thêm nếu muốn sidebar responsive
+import { cn } from "@/lib/utils"; // Thêm nếu muốn dùng classnames như DashboardLayout
 
 const { Sider, Content } = Layout;
-const { Option } = Select;
-const { TextArea } = Input;
 
 interface UserInfo {
     name: string;
@@ -28,17 +26,14 @@ interface UserInfo {
     skinType?: string;
 }
 
-// Đơn hàng
-const fetchOrders = async () => {
+const fetchStaffProfile = async (): Promise<UserInfo> => {
     const token = localStorage.getItem('token');
-    const res = await fetch('http://localhost:10000/api/orders/my-orders', {
-        method: 'GET',
+    const res = await fetch('http://localhost:10000/api/staff/profile', {
         headers: {
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {})
         }
     });
-
     if (!res.ok) {
         if (res.status === 401) {
             localStorage.clear();
@@ -46,42 +41,73 @@ const fetchOrders = async () => {
             window.location.href = '/login';
             throw new Error('Unauthorized');
         }
-        if (res.status === 403) {
-            return [];
-        }
-        throw new Error('Lỗi lấy đơn hàng');
+        throw new Error('Không lấy được thông tin nhân viên');
     }
-
-    return await res.json();
+    const data = await res.json();
+    return {
+        name: data.name || data.fullName || '',
+        phone: data.phone || data.phoneNumber || '',
+        gender: data.gender === 'male' ? 'Nam' : data.gender === 'female' ? 'Nữ' : (data.gender || ''),
+        birthday: data.dateOfBirth
+            ? dayjs(data.dateOfBirth).format('DD/MM/YYYY')
+            : (data.birthday || ''),
+        avatarUrl: data.avatarUrl || '',
+        email: data.email || '',
+        address: data.address || '',
+    };
 };
 
-// Lịch sử mua hàng
-const fetchPurchaseHistory = async () => {
+const updateStaffProfile = async (data: UserInfo): Promise<UserInfo> => {
     const token = localStorage.getItem('token');
-    const res = await fetch('http://localhost:10000/api/customers/purchase-history', {
+    const url = 'http://localhost:10000/api/staff/profile';
+    const body = {
+        name: data.name,
+        email: data.email,
+        gender: data.gender === 'Nam' ? 'male' : data.gender === 'Nữ' ? 'female' : data.gender,
+        dateOfBirth: data.birthday ? dayjs(data.birthday, 'DD/MM/YYYY').format('YYYY-MM-DD') : undefined,
+        address: data.address,
+    };
+    const res = await fetch(url, {
+        method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {})
-        }
+        },
+        body: JSON.stringify(body)
     });
-
     if (!res.ok) {
-        if (res.status === 401) {
-            localStorage.clear();
-            sessionStorage.clear();
-            window.location.href = '/login';
-            throw new Error('Unauthorized');
-        }
-        if (res.status === 403) {
-            return [];
-        }
-        throw new Error('Lỗi lấy lịch sử mua hàng');
+        const errText = await res.text();
+        throw new Error(errText || 'Cập nhật thông tin thất bại!');
     }
-
-    return await res.json();
+    return await fetchStaffProfile();
 };
 
-const PersonalInfo: React.FC<{
+const changeStaffPassword = async (oldPassword: string, newPassword: string) => {
+    const token = localStorage.getItem('token');
+    const url = 'http://localhost:10000/api/staff/change-password';
+    const body = {
+        currentPassword: oldPassword,
+        newPassword: newPassword
+    };
+    const res = await fetch(url, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || 'Đổi mật khẩu thất bại!');
+    }
+    return { success: true };
+};
+
+const { Option } = Select;
+const { TextArea } = Input;
+
+const StaffPersonalInfo: React.FC<{
     user: UserInfo,
     onEdit: () => void,
     onChangePassword: () => void
@@ -100,7 +126,6 @@ const PersonalInfo: React.FC<{
                     className="user-profile-avatar"
                 />
             </Tooltip>
-
             <div className="user-profile-name">{user.name}</div>
             <div className="user-profile-phone">{user.phone}</div>
         </div>
@@ -160,23 +185,18 @@ const PersonalInfo: React.FC<{
     </Card>
 );
 
-const nameRegex = /^[a-zA-ZÀ-ỹ\s'.-]+$/u;
-const phoneRegex = /^(0[3|5|7|8|9])+([0-9]{8})$/;
-
-const EditProfileInlineForm: React.FC<{
+const StaffEditProfileForm: React.FC<{
     user: UserInfo;
     onCancel: () => void;
     onSave: (values: UserInfo) => void;
 }> = ({ user, onCancel, onSave }) => {
     const [form] = Form.useForm();
-    const [avatarUrl, setAvatarUrl] = useState<string>(user.avatarUrl || '');
 
     useEffect(() => {
         form.setFieldsValue({
             ...user,
             birthday: user.birthday ? dayjs(user.birthday, 'DD/MM/YYYY') : null
         });
-        setAvatarUrl(user.avatarUrl || '');
     }, [user, form]);
 
     const handleSave = () => {
@@ -185,20 +205,10 @@ const EditProfileInlineForm: React.FC<{
                 onSave({
                     ...user,
                     ...values,
-                    avatarUrl,
                     birthday: values.birthday ? values.birthday.format('DD/MM/YYYY') : undefined
                 });
             })
             .catch(() => { });
-    };
-
-    const handleAvatarChange = (info: any) => {
-        if (info.file.status === 'done') {
-            message.success('Tải ảnh lên thành công!');
-            setAvatarUrl('https://cdn-icons-png.flaticon.com/512/3135/3135715.png');
-        } else if (info.file.status === 'error') {
-            message.error('Tải ảnh lên thất bại.');
-        }
     };
 
     return (
@@ -209,25 +219,16 @@ const EditProfileInlineForm: React.FC<{
         >
             <div className="user-profile-card-header">
                 <Tooltip title="Thông tin cá nhân" placement="bottom">
-                    <Upload
-                        name="avatar"
-                        listType="picture-circle"
-                        className="avatar-uploader"
-                        showUploadList={false}
-                        action="https://run.mocky.io/v3/435e224c-44fb-4773-9faf-380c5e6a2188"
-                        onChange={handleAvatarChange}
-                    >
-                        <Avatar
-                            size={120}
-                            src={avatarUrl || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}
-                            icon={<UserOutlined />}
-                            className="user-profile-avatar"
-                            style={{
-                                border: '3px solid #1677ff',
-                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-                            }}
-                        />
-                    </Upload>
+                    <Avatar
+                        size={120}
+                        src={user.avatarUrl || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}
+                        icon={<UserOutlined />}
+                        className="user-profile-avatar"
+                        style={{
+                            border: '3px solid #1677ff',
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                        }}
+                    />
                 </Tooltip>
                 <div className="user-profile-name">{user.name}</div>
                 <div className="user-profile-phone">{user.phone}</div>
@@ -247,35 +248,10 @@ const EditProfileInlineForm: React.FC<{
                         label="Họ và tên"
                         rules={[
                             { required: true, message: 'Vui lòng nhập họ và tên!' },
-                            { min: 2, message: 'Họ và tên phải có ít nhất 2 ký tự!' },
-                            {
-                                pattern: nameRegex,
-                                message: 'Họ và tên không hợp lệ!'
-                            },
-                            {
-                                validator: (_, value) => {
-                                    if (value && /^\d+$/.test(value)) {
-                                        return Promise.reject('Họ và tên không hợp lệ!');
-                                    }
-                                    return Promise.resolve();
-                                }
-                            }
+                            { min: 2, message: 'Họ và tên phải có ít nhất 2 ký tự!' }
                         ]}
                     >
                         <Input size="large" placeholder="Nhập họ và tên" />
-                    </Form.Item>
-                    <Form.Item
-                        name="phone"
-                        label="Số điện thoại"
-                        rules={[
-                            { required: true, message: 'Vui lòng nhập số điện thoại!' },
-                            {
-                                pattern: phoneRegex,
-                                message: 'Số điện thoại không hợp lệ!'
-                            }
-                        ]}
-                    >
-                        <Input size="large" placeholder="Nhập số điện thoại" maxLength={10} />
                     </Form.Item>
                     <Form.Item
                         name="email"
@@ -362,7 +338,7 @@ const EditProfileInlineForm: React.FC<{
     );
 };
 
-const ChangePasswordForm: React.FC<{
+const StaffChangePasswordForm: React.FC<{
     onCancel: () => void;
     onSuccess: () => void;
 }> = ({ onCancel, onSuccess }) => {
@@ -373,7 +349,7 @@ const ChangePasswordForm: React.FC<{
         try {
             const { oldPassword, newPassword } = await form.validateFields();
             setLoading(true);
-            await changePassword(oldPassword, newPassword);
+            await changeStaffPassword(oldPassword, newPassword);
             setLoading(false);
             message.success('Đổi mật khẩu thành công!');
             onSuccess();
@@ -470,6 +446,7 @@ const ChangePasswordForm: React.FC<{
                                 e.stopPropagation();
                                 handleSubmit();
                             }}
+                            loading={loading}
                         >
                             Đổi Mật Khẩu
                         </Button>
@@ -480,110 +457,35 @@ const ChangePasswordForm: React.FC<{
     );
 };
 
-// Chỉ fetch/update profile cho customer
-const fetchProfileByRole = async (): Promise<UserInfo> => {
-    const token = localStorage.getItem('token');
-    const res = await fetch('http://localhost:10000/api/customers/profile', {
-        headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-        }
-    });
-
-    const data = await res.json();
-
-    return {
-        name: data.name || data.fullName || '',
-        phone: data.phone || data.phoneNumber || '',
-        gender: data.gender === 'male' ? 'Nam' : data.gender === 'female' ? 'Nữ' : (data.gender || ''),
-        birthday: data.dateOfBirth
-            ? dayjs(data.dateOfBirth).format('DD/MM/YYYY')
-            : (data.birthday || ''),
-        avatarUrl: data.avatarUrl || '',
-        email: data.email || '',
-        address: data.address || '',
-    };
-};
-
-const updateProfileByRole = async (data: UserInfo): Promise<UserInfo> => {
-    const token = localStorage.getItem('token');
-    const url = 'http://localhost:10000/api/customers/profile';
-    const body = {
-        name: data.name,
-        gender: data.gender === 'Nam' ? 'male' : data.gender === 'Nữ' ? 'female' : data.gender,
-        dateOfBirth: data.birthday ? dayjs(data.birthday, 'DD/MM/YYYY').format('YYYY-MM-DD') : undefined,
-    };
-
-    const res = await fetch(url, {
-        method: 'PATCH',
-        headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify(body)
-    });
-
-    if (!res.ok) {
-        const errText = await res.text();
-        console.error('API update error:', errText);
-        throw new Error('Cập nhật thông tin thất bại!');
-    }
-    return await fetchProfileByRole();
-};
-
-const changePassword = async (oldPassword: string, newPassword: string) => {
-    const token = localStorage.getItem('token');
-    const url = 'http://localhost:10000/api/customers/change-password';
-    const body = {
-        currentPassword: oldPassword,
-        newPassword: newPassword
-    };
-    const res = await fetch(url, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify(body)
-    });
-    if (!res.ok) {
-        const errText = await res.text();
-        console.error('API change password error:', errText);
-        throw new Error('Đổi mật khẩu thất bại!');
-    }
-    return { success: true };
-};
-
-const UserProfile: React.FC = () => {
-    const [activeMenu, setActiveMenu] = useState<string>(() => localStorage.getItem('profileActiveMenu') || 'thongtincanhan');
+const StaffProfile: React.FC = () => {
+    const [activeMenu, setActiveMenu] = useState<string>('thongtincanhan');
     const [user, setUser] = useState<UserInfo | null>(null);
     const [editMode, setEditMode] = useState(false);
     const [changePasswordMode, setChangePasswordMode] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [purchaseHistory, setPurchaseHistory] = useState<any[]>([]);
-    const [orders, setOrders] = useState<any[]>([]);
+    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const isDesktop = useMediaQuery ? useMediaQuery("(min-width: 1024px)") : true;
 
     useEffect(() => {
+        if (typeof isDesktop === "boolean") setSidebarOpen(isDesktop);
+    }, [isDesktop]);
+
+    // Thêm useEffect để reload lại profile khi quay lại trang này (fix trường hợp chuyển từ profile lên không hiển thị)
+    useEffect(() => {
         setLoading(true);
-        fetchProfileByRole()
+        fetchStaffProfile()
             .then((data) => {
                 setUser(data);
                 setLoading(false);
             })
             .catch((err) => {
                 setLoading(false);
-                message.error('Không lấy được thông tin người dùng!');
+                message.error('Không lấy được thông tin nhân viên!');
             });
-    }, []);
-
-    useEffect(() => {
-        if (activeMenu === 'donhang') {
-            fetchOrders().then(setOrders);
-        }
-        if (activeMenu === 'donthuoc') {
-            fetchPurchaseHistory().then(setPurchaseHistory);
-        }
-    }, [activeMenu]);
+        // Reset edit/changePassword mode khi chuyển tab
+        setEditMode(false);
+        setChangePasswordMode(false);
+    }, [window.location.pathname]);
 
     const handleMenuClick = (e: any) => {
         if (e.key === 'logout') {
@@ -606,7 +508,6 @@ const UserProfile: React.FC = () => {
                         borderRadius: 8
                     }
                 },
-                //logout 
                 onOk: () => {
                     localStorage.clear();
                     sessionStorage.clear();
@@ -615,14 +516,13 @@ const UserProfile: React.FC = () => {
             });
         } else {
             setActiveMenu(e.key);
-            localStorage.setItem('profileActiveMenu', e.key);
         }
     };
 
     const handleSaveProfile = async (values: UserInfo) => {
         setLoading(true);
         try {
-            const updated = await updateProfileByRole(values);
+            const updated = await updateStaffProfile(values);
             setUser(updated);
             setEditMode(false);
             message.success('Cập nhật thông tin thành công!');
@@ -630,68 +530,6 @@ const UserProfile: React.FC = () => {
             message.error(err.message || 'Cập nhật thông tin thất bại!');
         }
         setLoading(false);
-    };
-
-    const renderOrders = () => {
-        if (!orders || orders.length === 0) {
-            return (
-                <div>
-                    <div className="user-profile-section-empty-title">Không có đơn hàng nào</div>
-                    <div className="user-profile-section-empty-desc">Bạn chưa có đơn hàng nào.</div>
-                </div>
-            );
-        }
-        return (
-            <div style={{ marginTop: 24 }}>
-                <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 12, color: '#7494ec' }}>Đơn hàng của tôi</div>
-                <div style={{ maxHeight: 260, overflowY: 'auto' }}>
-                    {orders.map((item, idx) => (
-                        <Card
-                            key={item.id || idx}
-                            style={{ marginBottom: 16, borderRadius: 12, border: '1px solid #f0f0f0' }}
-                            bodyStyle={{ padding: 16 }}
-                        >
-                            <div style={{ fontWeight: 500, fontSize: 16 }}>
-                                Đơn #{item.id || idx + 1}
-                            </div>
-                            <div>Ngày đặt: {item.date ? dayjs(item.date).format('DD/MM/YYYY') : '---'}</div>
-                            <div>Tổng tiền: {item.total ? item.total.toLocaleString() + '₫' : '---'}</div>
-                        </Card>
-                    ))}
-                </div>
-            </div>
-        );
-    };
-
-    const renderPurchaseHistory = () => {
-        if (!purchaseHistory || purchaseHistory.length === 0) {
-            return (
-                <div>
-                    <div className="user-profile-section-empty-title">Không có lịch sử mua hàng</div>
-                    <div className="user-profile-section-empty-desc">Bạn chưa có lịch sử mua hàng nào.</div>
-                </div>
-            );
-        }
-        return (
-            <div style={{ marginTop: 24 }}>
-                <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 12, color: '#7494ec' }}>Lịch sử mua hàng</div>
-                <div style={{ maxHeight: 260, overflowY: 'auto' }}>
-                    {purchaseHistory.map((item, idx) => (
-                        <Card
-                            key={item.id || idx}
-                            style={{ marginBottom: 16, borderRadius: 12, border: '1px solid #f0f0f0' }}
-                            bodyStyle={{ padding: 16 }}
-                        >
-                            <div style={{ fontWeight: 500, fontSize: 16 }}>
-                                Đơn #{item.id || idx + 1}
-                            </div>
-                            <div>Ngày mua: {item.date ? dayjs(item.date).format('DD/MM/YYYY') : '---'}</div>
-                            <div>Tổng tiền: {item.total ? item.total.toLocaleString() + '₫' : '---'}</div>
-                        </Card>
-                    ))}
-                </div>
-            </div>
-        );
     };
 
     const renderContent = () => {
@@ -702,148 +540,59 @@ const UserProfile: React.FC = () => {
                 </div>
             );
         }
-
-        switch (activeMenu) {
-            case 'thongtincanhan':
-                return (
-                    <div className="user-profile-main-content">
-                        {!editMode && !changePasswordMode ? (
-                            <PersonalInfo
-                                user={user}
-                                onEdit={() => setEditMode(true)}
-                                onChangePassword={() => setChangePasswordMode(true)}
-                            />
-                        ) : editMode ? (
-                            <EditProfileInlineForm
-                                user={user}
-                                onCancel={() => setEditMode(false)}
-                                onSave={handleSaveProfile}
-                            />
-                        ) : (
-                            <ChangePasswordForm
-                                onCancel={() => setChangePasswordMode(false)}
-                                onSuccess={() => setChangePasswordMode(false)}
-                            />
-                        )}
-                    </div>
-                );
-            case 'donhang':
-                return (
-                    <Card
-                        title={<span className="user-profile-section-title">Đơn Hàng Của Tôi</span>}
-                        className="user-profile-section-card"
-                        bodyStyle={{ padding: 0 }}
-                        style={{ maxWidth: 520, margin: '0 auto' }}
-                    >
-                        <div className="user-profile-section-content">
-                            <div className="user-profile-section-icon">
-                                <GiftOutlined />
-                            </div>
-                            {renderOrders()}
-                            <Button
-                                type="primary"
-                                shape="round"
-                                size="large"
-                                className="user-profile-section-btn"
-                                onClick={() => {
-                                    window.location.href = '/';
-                                }}
-                                icon={<ShoppingCartOutlined />}
-                                style={{ marginTop: 24 }}
-                            >
-                                Mua sắm ngay
-                            </Button>
-                        </div>
-                    </Card>
-                );
-            case 'donthuoc':
-                return (
-                    <Card
-                        title={<span className="user-profile-section-title">Lịch Sử Mua Hàng</span>}
-                        className="user-profile-section-card"
-                        bodyStyle={{ padding: 0 }}
-                        style={{ maxWidth: 520, margin: '0 auto' }}
-                    >
-                        <div className="user-profile-section-content">
-                            <div className="user-profile-section-icon">
-                                <GiftOutlined />
-                            </div>
-                            {renderPurchaseHistory()}
-                        </div>
-                    </Card>
-                );
-            default:
-                return null;
-        }
+        return (
+            <div className="user-profile-main-content">
+                {!editMode && !changePasswordMode ? (
+                    <StaffPersonalInfo
+                        user={user}
+                        onEdit={() => setEditMode(true)}
+                        onChangePassword={() => setChangePasswordMode(true)}
+                    />
+                ) : editMode ? (
+                    <StaffEditProfileForm
+                        user={user}
+                        onCancel={() => setEditMode(false)}
+                        onSave={handleSaveProfile}
+                    />
+                ) : (
+                    <StaffChangePasswordForm
+                        onCancel={() => setChangePasswordMode(false)}
+                        onSuccess={() => setChangePasswordMode(false)}
+                    />
+                )}
+            </div>
+        );
     };
 
     return (
         <>
-            <CategoryNav />
-            <div style={{ maxWidth: 1200, margin: '24px auto 0', padding: '0 24px' }}>
+            {/* Xóa nút quay về trang chủ ở staff, chỉ giữ sidebar */}
+            {/* <div style={{ maxWidth: 1200, margin: '24px auto 0', padding: '0 24px' }}>
                 <Button
                     type="link"
                     icon={<CaretLeftOutlined />}
                     style={{ fontSize: 16, paddingLeft: 0 }}
-                    onClick={() => window.location.href = '/'}
+                    onClick={() => window.location.href = '/staff/dashboard/overview'}
                 >
                     Quay về trang chủ
                 </Button>
+            </div> */}
+            <div className="flex min-h-screen bg-background">
+                <Sidebar open={sidebarOpen} onOpenChange={setSidebarOpen} />
+                <div className="flex flex-col flex-1 w-full">
+                    <main className="flex-1 h-full" style={{ padding: 24 }}>
+                        <Layout className="user-profile-layout">
+                            <Layout className="user-profile-inner-layout">
+                                <Content className="user-profile-content">
+                                    {renderContent()}
+                                </Content>
+                            </Layout>
+                        </Layout>
+                    </main>
+                </div>
             </div>
-            <Layout className="user-profile-layout">
-                <Layout className="user-profile-inner-layout">
-                    <Sider width={340} className="user-profile-sider">
-                        <div className="user-profile-sider-header">
-                            <Tooltip title="Thông tin người dùng" placement="right">
-                                <Avatar
-                                    size={100}
-                                    src={user?.avatarUrl || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}
-                                    icon={<UserOutlined />}
-                                    className="user-profile-sider-avatar"
-                                />
-                            </Tooltip>
-                            <div className="user-profile-sider-name">{user?.name}</div>
-                            <div className="user-profile-sider-phone">{user?.phone}</div>
-                        </div>
-                        <Menu
-                            mode="inline"
-                            selectedKeys={[activeMenu]}
-                            onClick={handleMenuClick}
-                            className="user-profile-sider-menu"
-                            items={[
-                                {
-                                    key: 'thongtincanhan',
-                                    icon: <UserOutlined style={{ fontSize: 20 }} />,
-                                    label: 'Thông tin cá nhân',
-                                },
-                                {
-                                    key: 'donhang',
-                                    icon: <ShoppingCartOutlined style={{ fontSize: 20 }} />,
-                                    label: 'Đơn hàng của tôi',
-                                },
-                                {
-                                    key: 'donthuoc',
-                                    icon: <FileTextOutlined style={{ fontSize: 20 }} />,
-                                    label: 'Lịch Sử Mua Hàng',
-                                },
-                                {
-                                    key: 'logout',
-                                    icon: <LogoutOutlined style={{ fontSize: 20, color: '#ff4d4f' }} />,
-                                    label: <span className="user-profile-logout-label">Đăng xuất</span>,
-                                    danger: true,
-                                    style: { marginTop: 12 }
-                                },
-                            ]}
-                        />
-                    </Sider>
-                    <Content className="user-profile-content">
-                        {renderContent()}
-                    </Content>
-                </Layout>
-            </Layout>
         </>
     );
 };
 
-export default UserProfile;
-
+export default StaffProfile;

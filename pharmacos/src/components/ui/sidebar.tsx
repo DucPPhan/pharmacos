@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -25,18 +25,24 @@ interface SidebarProps {
 
 export function Sidebar({ open, onOpenChange }: SidebarProps) {
   const location = useLocation();
-  
-  const links = [
-  { href: "overview", label: "Overview", icon: BarChart3 },
-  { href: "inventory", label: "Inventory", icon: Package },
-  { href: "orders", label: "Orders", icon: ShoppingCart },
-  { href: "analytics", label: "Analytics", icon: Activity },
-  { href: "brands", label: "Brands", icon: Tag },
-  { href: "categories", label: "Categories", icon: Grid3x3 },
-  { href: "profile", label: "Profile", icon: User },
-  { href: "settings", label: "Settings", icon: Settings },
-];
+  const navigate = useNavigate();
 
+  const handleLogout = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    navigate("/login");
+  };
+
+  const links = [
+    { href: "/staff/dashboard/overview", label: "Overview", icon: BarChart3 },
+    { href: "/staff/dashboard/inventory", label: "Inventory", icon: Package },
+    { href: "/staff/dashboard/orders", label: "Orders", icon: ShoppingCart },
+    { href: "/staff/dashboard/analytics", label: "Analytics", icon: Activity },
+    { href: "/staff/dashboard/brands", label: "Brands", icon: Tag },
+    { href: "/staff/dashboard/categories", label: "Categories", icon: Grid3x3 },
+    { href: "/staff/dashboard/profile", label: "Profile", icon: User },
+    { href: "/staff/dashboard/settings", label: "Settings", icon: Settings },
+  ];
 
   return (
     <>
@@ -47,7 +53,7 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
           onClick={() => onOpenChange(false)}
         />
       )}
-      
+
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex flex-col w-72 border-r bg-card transition-transform duration-300 ease-in-out lg:relative lg:z-0",
@@ -70,7 +76,7 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
             <X className="w-5 h-5" />
           </Button>
         </div>
-        
+
         <ScrollArea className="flex-1 px-3 py-4">
           <nav className="flex flex-col gap-1">
             {links.map((link) => (
@@ -90,9 +96,19 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
                 {open && <span>{link.label}</span>}
               </NavLink>
             ))}
+            {/* Thêm nút Logout */}
+            <Button
+              variant="ghost"
+              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-red-500 mt-2"
+              onClick={handleLogout}
+              style={{ justifyContent: open ? "flex-start" : "center" }}
+            >
+              <X className={cn("w-5 h-5", !open && "mx-auto")} />
+              {open && <span>Logout</span>}
+            </Button>
           </nav>
         </ScrollArea>
-        
+
         <div className="p-4 border-t">
           <div className="flex items-center justify-between">
             {open && <span className="text-sm text-muted-foreground">Theme</span>}

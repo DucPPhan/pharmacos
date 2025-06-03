@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 export function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  
+
   useEffect(() => {
     setSidebarOpen(isDesktop);
   }, [isDesktop]);
@@ -16,7 +16,7 @@ export function DashboardLayout() {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar open={sidebarOpen} onOpenChange={setSidebarOpen} />
-      
+
       <div className={cn("flex flex-col flex-1 w-full")}>
         <ScrollArea className="flex-1 p-0 md:p-6">
           <main className="flex-1 h-full">
