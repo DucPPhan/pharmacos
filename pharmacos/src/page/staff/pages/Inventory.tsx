@@ -26,14 +26,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { staffApi } from "@/page/staff/services/api";
-import { Search, Filter, MoreHorizontal, Plus } from "lucide-react";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import { Search, MoreHorizontal, Plus } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 
@@ -44,92 +43,86 @@ export function Inventory() {
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [showStockDialog, setShowStockDialog] = useState(false);
+  const [showAddDialog, setShowAddDialog] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<any>(null);
   const [newStock, setNewStock] = useState<number>(0);
 
-  // Load products
-  useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        setIsLoading(true);
-        const response = await staffApi.getProducts();
-        setProducts(response.data);
-        
-        // Extract unique categories
-        const uniqueCategories = Array.from(
-          new Set(response.data.map((product: any) => product.category))
-        );
-        setCategories(uniqueCategories);
-        
-      } catch (error) {
-        console.error("Error loading products:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load products",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadProducts();
-  }, []);
-
-  // Filter products based on search query and category
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "all" 
-      ? true 
-      : product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+  const [newProduct, setNewProduct] = useState({
+    name: "",
+    category: "",
+    price: 0,
+    stock: 0,
   });
 
-  // Update product stock
-  const updateStock = async () => {
-    if (!currentProduct) return;
-    
+  const fetchProducts = async () => {
     try {
-      await staffApi.updateProductStock(currentProduct.id, { stock: newStock });
-      
-      // Update local state
-      setProducts(
-        products.map((product) =>
-          product.id === currentProduct.id
-            ? { ...product, stock: newStock }
-            : product
-        )
-      );
-      
-      toast({
-        title: "Stock updated",
-        description: `${currentProduct.name} stock updated to ${newStock}`,
-      });
-      
-      setShowStockDialog(false);
-    } catch (error) {
-      console.error("Error updating stock:", error);
+      setIsLoading(true);
+      const res = await fetch("http://localhost:10000/api/products");
+      const data = await res.json();
+      if (!Array.isArray(data)) throw new Error("Invalid API format");
+      setProducts(data);
+      const unique = Array.from(new Set(data.map((p) => p.category)));
+      setCategories(unique);
+    } catch (err) {
       toast({
         title: "Error",
-        description: "Failed to update stock",
+        description: "Failed to load products",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const openStockDialog = (product: any) => {
-    setCurrentProduct(product);
-    setNewStock(product.stock);
-    setShowStockDialog(true);
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const updateStock = async () => {
+    try {
+      await fetch(`http://localhost:10000/api/products/${currentProduct.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stock: newStock }),
+      });
+
+      setProducts(products.map((p) => (p.id === currentProduct.id ? { ...p, stock: newStock } : p)));
+      toast({ title: "Stock updated", description: `${currentProduct.name} updated.` });
+      setShowStockDialog(false);
+    } catch {
+      toast({ title: "Error", description: "Failed to update", variant: "destructive" });
+    }
+  };
+
+  const createProduct = async () => {
+    try {
+      const res = await fetch(`http://localhost:10000/api/products`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newProduct),
+      });
+
+      if (!res.ok) throw new Error("Create failed");
+      toast({ title: "Product Created", description: newProduct.name });
+      setShowAddDialog(false);
+      setNewProduct({ name: "", category: "", price: 0, stock: 0 });
+      await fetchProducts();
+    } catch {
+      toast({ title: "Error", description: "Failed to create", variant: "destructive" });
+    }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">Inventory Management</h2>
-        <Button>
+        <Button onClick={() => setShowAddDialog(true)}>
           <Plus className="mr-2 h-4 w-4" /> Add Product
         </Button>
       </div>
@@ -149,18 +142,15 @@ export function Inventory() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Select
-              value={selectedCategory}
-              onValueChange={setSelectedCategory}
-            >
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger className="md:w-[180px]">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
+                {categories.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -168,13 +158,13 @@ export function Inventory() {
           </div>
 
           {isLoading ? (
-            <div className="flex justify-center py-8">Loading...</div>
+            <div className="text-center py-6">Loading...</div>
           ) : (
-            <div className="rounded-md border">
+            <div className="border rounded-md">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Product Name</TableHead>
+                    <TableHead>Name</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Stock</TableHead>
                     <TableHead>Price</TableHead>
@@ -184,36 +174,24 @@ export function Inventory() {
                 <TableBody>
                   {filteredProducts.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
+                      <TableCell colSpan={5} className="text-center py-6">
                         No products found
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredProducts.map((product) => (
-                      <TableRow key={product.id}>
-                        <TableCell>{product.name}</TableCell>
-                        <TableCell>{product.category}</TableCell>
+                    filteredProducts.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell>{p.name}</TableCell>
+                        <TableCell>{p.category}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <span>{product.stock}</span>
-                            <Badge
-                              variant={
-                                product.stock <= 5
-                                  ? "destructive"
-                                  : product.stock <= 10
-                                  ? "warning"
-                                  : "outline"
-                              }
-                            >
-                              {product.stock <= 5
-                                ? "Low"
-                                : product.stock <= 10
-                                ? "Warning"
-                                : "Ok"}
+                            <span>{p.stock}</span>
+                            <Badge variant={p.stock <= 5 ? "destructive" : "outline"}>
+                              {p.stock <= 5 ? "Low" : "OK"}
                             </Badge>
                           </div>
                         </TableCell>
-                        <TableCell>${product.price.toFixed(2)}</TableCell>
+                        <TableCell>${p.price.toFixed(2)}</TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -222,12 +200,14 @@ export function Inventory() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openStockDialog(product)}>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setCurrentProduct(p);
+                                  setNewStock(p.stock);
+                                  setShowStockDialog(true);
+                                }}
+                              >
                                 Update Stock
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>Edit Product</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive">
-                                Delete Product
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -242,36 +222,86 @@ export function Inventory() {
         </CardContent>
       </Card>
 
+      {/* Update Stock Dialog */}
       <Dialog open={showStockDialog} onOpenChange={setShowStockDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Update Stock</DialogTitle>
             <DialogDescription>
-              Update the stock level for {currentProduct?.name}
+              {currentProduct ? `Product: ${currentProduct.name}` : ""}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <label htmlFor="stock" className="text-sm font-medium">
-                Stock Quantity
-              </label>
-              <Input
-                id="stock"
-                type="number"
-                min="0"
-                value={newStock}
-                onChange={(e) => setNewStock(parseInt(e.target.value) || 0)}
-              />
-            </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">New Stock</label>
+            <Input
+              type="number"
+              min={0}
+              value={newStock}
+              onChange={(e) =>
+                setNewStock(e.target.value === "" ? 0 : parseInt(e.target.value))
+              }
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowStockDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={updateStock}>Save Changes</Button>
+            <Button onClick={updateStock}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Product Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Product</DialogTitle>
+            <DialogDescription>Fill in product info</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Input
+              placeholder="Product Name"
+              value={newProduct.name}
+              onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+            />
+            <Input
+              placeholder="Category"
+              value={newProduct.category}
+              onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
+            />
+            <Input
+              type="number"
+              placeholder="Price"
+              value={newProduct.price}
+              onChange={(e) =>
+                setNewProduct({
+                  ...newProduct,
+                  price: e.target.value === "" ? 0 : parseFloat(e.target.value),
+                })
+              }
+            />
+            <Input
+              type="number"
+              placeholder="Stock"
+              value={newProduct.stock}
+              onChange={(e) =>
+                setNewProduct({
+                  ...newProduct,
+                  stock: e.target.value === "" ? 0 : parseInt(e.target.value),
+                })
+              }
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={createProduct}>Create Product</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
+
+export default Inventory;

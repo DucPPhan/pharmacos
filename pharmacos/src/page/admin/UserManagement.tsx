@@ -82,8 +82,8 @@ const UserManagement = () => {
 
     try {
       if (field === "status") {
-        await axios.put(
-          `http://localhost:10000/api/admin/customers/${id}/status`,
+        await axios.patch(
+          `http://localhost:10000/api/admin/users/${id}/status`,
           { status: value },
           { headers: getAuthHeader() }
         );
@@ -254,7 +254,6 @@ const UserManagement = () => {
                 <TableHead>Role</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -276,34 +275,10 @@ const UserManagement = () => {
                       }
                       className="bg-card border rounded px-2 py-1"
                     >
-                      <option value="active">active</option>
-                      <option value="inactive">inactive</option>
-                      <option value="banned">banned</option>
+                      <option value="active">Active</option>
+      
+                      <option value="locked">Lock</option>
                     </select>
-                  </TableCell>
-                  <TableCell className="space-x-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setEditingUserId(user._id);
-                        setEditUsername(user.username);
-                        setEditEmail(user.email);
-                      }}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setDetailsUserId(user._id)}
-                    >
-                      Details
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => deleteUser(user._id)}
-                    >
-                      Delete
-                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -331,68 +306,6 @@ const UserManagement = () => {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Edit User Dialog */}
-        <Dialog open={!!editingUserId} onOpenChange={() => setEditingUserId(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit User</DialogTitle>
-              <DialogDescription>
-                Update the username and email for the user.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Username</label>
-                <Input
-                  type="text"
-                  value={editUsername}
-                  onChange={(e) => setEditUsername(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Email</label>
-                <Input
-                  type="email"
-                  value={editEmail}
-                  onChange={(e) => setEditEmail(e.target.value)}
-                />
-              </div>
-            </div>
-            <DialogFooter className="flex justify-end space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => setEditingUserId(null)}
-              >
-                Cancel
-              </Button>
-              <Button onClick={saveEditDialog}>Save</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Confirm Edit Save Dialog */}
-        <AlertDialog
-          open={!!confirmEditData}
-          onOpenChange={() => setConfirmEditData(null)}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Edit</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to update this user with the new
-                information?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setConfirmEditData(null)}>
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction onClick={confirmEditSave}>
-                Confirm
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
 
         {/* Add New Staff Dialog */}
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
