@@ -59,7 +59,7 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
             <div className="flex items-center justify-center w-10 h-10 rounded-md bg-primary text-primary-foreground">
               <Package className="w-6 h-6" />
             </div>
-            {open && <h1 className="ml-3 text-xl font-bold">PharmaAdmin</h1>}
+            {open && <h1 className="ml-3 text-xl font-bold">PharmaStaff</h1>}
           </NavLink>
           <Button
             variant="ghost"
