@@ -198,6 +198,7 @@ export function Inventory() {
                     <TableHead>Image</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Brand</TableHead>
+                    <TableHead>Stock</TableHead>
                     <TableHead>Price</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -231,6 +232,7 @@ export function Inventory() {
                         </TableCell>
                         <TableCell>{p.category}</TableCell>
                         <TableCell>{p.brand}</TableCell>
+                        <TableCell>{p.stockQuantity}</TableCell>
                         <TableCell>${p.price}</TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
