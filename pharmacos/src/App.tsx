@@ -14,7 +14,7 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Dashboard from "./page/admin/Admindashboard";
 import VerifyEmailPage from "./page/login/VerifyEmailPage";
-import StaffDashboard from "./page/staff/Staffdashboard";
+import Staffdashboard from "./page/staff/Staffdashboard";
 import CategoryPage from "./page/Category/CategoryPage";
 import ProductDetailPage from "./page/ProductDetail/ProductDetailPage";
 import ProductsPage from "./page/Products/ProductsPage";
@@ -47,7 +47,9 @@ function App() {
             <Route path="/category/:categoryId" element={<CategoryPage />} />
             <Route path="/product/:productId" element={<ProductDetailPage />} />
             <Route path="/admin/dashboard" element={<Dashboard />} />
-            <Route path="/staff/dashboard" element={<StaffDashboard />} />
+            <Route path="/staff/dashboard/*" element={<Staffdashboard />} />
+
+
 
           </Routes>
           {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
