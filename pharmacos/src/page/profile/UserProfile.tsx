@@ -623,7 +623,6 @@ const UserProfile: React.FC = () => {
         }
     }, [activeMenu]);
 
-    // Khi đổi tab, lưu vào localStorage để giữ trạng thái khi F5
     const handleMenuClick = (e: any) => {
         if (e.key === 'logout') {
             Modal.confirm({
