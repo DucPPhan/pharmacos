@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   Search,
@@ -184,6 +184,8 @@ const Home = () => {
   const [currentBanner, setCurrentBanner] = useState(0);
   const navigate = useNavigate();
   const isLoggedIn = !!localStorage.getItem("user");
+  const [showNavButtons, setShowNavButtons] = useState(true);
+  const bannerRef = useRef(null);
 
   // Auto rotate banners
   useEffect(() => {
@@ -192,6 +194,25 @@ const Home = () => {
     }, 5000); // Change slide every 5 seconds
 
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!bannerRef.current) return;
+
+      const bannerBottom = bannerRef.current.getBoundingClientRect().bottom;
+      // Hide navigation buttons when the banner is scrolled up past a certain point
+      setShowNavButtons(bannerBottom > 50);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+
+    // Initial check
+    handleScroll();
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   const nextBanner = () => {
@@ -265,33 +286,37 @@ const Home = () => {
             </AnimatePresence>
 
             {/* Banner Navigation Arrows */}
-            <button
-              onClick={prevBanner}
-              className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 rounded-full p-2 backdrop-blur-sm text-white transition-all z-10"
-              aria-label="Previous banner"
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </button>
-            <button
-              onClick={nextBanner}
-              className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 rounded-full p-2 backdrop-blur-sm text-white transition-all z-10"
-              aria-label="Next banner"
-            >
-              <ChevronRight className="h-6 w-6" />
-            </button>
-
-            {/* Banner Indicators */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 z-10">
-              {banners.map((_, index) => (
+            {showNavButtons && (
+              <>
                 <button
-                  key={index}
-                  onClick={() => setCurrentBanner(index)}
-                  className={`h-2 w-10 rounded-full transition-all ${currentBanner === index ? "bg-white" : "bg-white/50"
-                    }`}
-                  aria-label={`Go to slide ${index + 1}`}
-                />
-              ))}
-            </div>
+                  onClick={prevBanner}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 rounded-full p-2 backdrop-blur-sm text-white transition-all z-auto"
+                  aria-label="Previous banner"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+                <button
+                  onClick={nextBanner}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 rounded-full p-2 backdrop-blur-sm text-white transition-all z-auto"
+                  aria-label="Next banner"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+
+                {/* Banner Indicators */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 z-auto">
+                  {banners.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentBanner(index)}
+                      className={`h-2 w-10 rounded-full transition-all ${currentBanner === index ? "bg-white" : "bg-white/50"
+                        }`}
+                      aria-label={`Go to slide ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </section>
 
