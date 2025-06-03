@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Search, ShoppingCart, User, Menu, X, Camera } from "lucide-react";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Card, CardContent } from "./ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
-import AIImageSearch from "./AIImageSearch";
-import ProductGrid from "./ProductGrid";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Card, CardContent } from "../../components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../components/ui/tabs";
+import AIImageSearch from "../../components/AIImageSearch";
+import ProductGrid from "../../components/ProductGrid";
 import { useNavigate } from "react-router-dom";
 import CategoryNav from "./CategoryNav";
 
@@ -116,7 +116,7 @@ const Home = () => {
                   Upload a photo of any product and our AI will identify it for
                   you.
                 </p>
-                <Button className="flex items-center">
+                <Button className="flex items-center" style={{backgroundColor: '#7494ec'}}>
                   <Camera className="mr-2 h-5 w-5" />
                   Try Image Search
                 </Button>
@@ -140,10 +140,10 @@ const Home = () => {
             </h2>
 
             <Tabs defaultValue="categories" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-8">
+              <TabsList className="grid w-full grid-cols-2 mb-8">
                 <TabsTrigger value="categories">Browse Categories</TabsTrigger>
                 <TabsTrigger value="featured">Featured Products</TabsTrigger>
-                <TabsTrigger value="ai-search">AI Image Search</TabsTrigger>
+                {/* <TabsTrigger value="ai-search">AI Image Search</TabsTrigger> */}
               </TabsList>
 
               <TabsContent value="categories" className="space-y-4">
@@ -178,9 +178,9 @@ const Home = () => {
                 <ProductGrid products={featuredProducts} />
               </TabsContent>
 
-              <TabsContent value="ai-search">
+              {/* <TabsContent value="ai-search">
                 <AIImageSearch />
-              </TabsContent>
+              </TabsContent> */}
             </Tabs>
           </div>
         </section>
@@ -190,7 +190,7 @@ const Home = () => {
           <div className="container mx-auto px-4">
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-3xl font-bold">Featured Products</h2>
-              <Link to="/products" className="text-primary hover:underline">
+              <Link to="/products" className="text-primary hover:underline hover:text-blue-400">
                 View All
               </Link>
             </div>
@@ -217,7 +217,7 @@ const Home = () => {
                     Get 20% off on all skincare products this week. Use code
                     SKIN20 at checkout.
                   </p>
-                  <Button>Shop Now</Button>
+                  <Button style={{backgroundColor: '#7494ec'}}>Shop Now</Button>
                 </div>
               </div>
             </div>
