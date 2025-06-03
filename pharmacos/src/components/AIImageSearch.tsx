@@ -13,7 +13,6 @@ import { Progress } from "@/components/ui/progress";
 
 interface AIImageSearchProps {
   onSearchComplete?: (results: ProductMatch[]) => void;
-  onClose?: () => void; // Add onClose prop for popup integration
   isPopup?: boolean; // Optional flag to adjust styling when used in popup
 }
 
@@ -27,7 +26,6 @@ interface ProductMatch {
 
 const AIImageSearch = ({
   onSearchComplete = () => { },
-  onClose,
   isPopup = false
 }: AIImageSearchProps) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -163,9 +161,9 @@ const AIImageSearch = ({
     console.log(`Viewing product ${productId}`);
 
     // If in popup mode and results are shown, optionally close the popup
-    if (isPopup && onClose) {
-      onClose();
-    }
+    // if (isPopup && onClose) {
+    //   onClose();
+    // }
   };
 
   return (
@@ -177,16 +175,6 @@ const AIImageSearch = ({
         <CardDescription>
           Upload a photo of a product to find it in our store
         </CardDescription>
-        {isPopup && onClose && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-2 top-2"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
       </CardHeader>
       <CardContent>
         {!preview ? (
@@ -302,11 +290,6 @@ const AIImageSearch = ({
         {(preview || results.length > 0) && (
           <Button variant="outline" onClick={resetSearch}>
             Try Another Image
-          </Button>
-        )}
-        {isPopup && onClose && (
-          <Button variant="outline" onClick={onClose}>
-            Close
           </Button>
         )}
       </CardFooter>

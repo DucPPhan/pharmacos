@@ -33,7 +33,7 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
   { href: "analytics", label: "Analytics", icon: Activity },
   { href: "brands", label: "Brands", icon: Tag },
   { href: "categories", label: "Categories", icon: Grid3x3 },
-  { href: "profile", label: "Profile", icon: User },
+  // { href: "profile", label: "Profile", icon: User },
   { href: "settings", label: "Settings", icon: Settings },
 ];
 
