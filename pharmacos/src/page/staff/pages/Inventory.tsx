@@ -17,7 +17,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -25,7 +24,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 import { Search, MoreHorizontal, Plus } from "lucide-react";
 import {
   Select,
@@ -41,12 +39,9 @@ export function Inventory() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
-  const [brands, setBrands] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [showStockDialog, setShowStockDialog] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<any>(null);
-  const [newStock, setNewStock] = useState<number>(0);
 
   const [newProduct, setNewProduct] = useState({
     name: "",
@@ -66,10 +61,6 @@ export function Inventory() {
         new Set(productList.map((p) => String(p.category)))
       ).filter(Boolean) as string[];
       setCategories(uniqueCategories);
-      const uniqueBrands = Array.from(
-        new Set(productList.map((p) => String(p.brand)))
-      ).filter(Boolean) as string[];
-      setBrands(uniqueBrands);
     } catch (err) {
       toast({
         title: "Error",
@@ -94,50 +85,49 @@ export function Inventory() {
     return matchesSearch && matchesCategory;
   });
 
-  const updateStock = async () => {
+  const createOrUpdateProduct = async () => {
     try {
-      await fetch(`http://localhost:10000/api/products/${currentProduct.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stock: newStock }),
-      });
+      const method = currentProduct ? "PUT" : "POST";
+      const url = currentProduct
+        ? `http://localhost:10000/api/products/${currentProduct.id}`
+        : `http://localhost:10000/api/products`;
 
-      setProducts(
-        products.map((p) =>
-          p.id === currentProduct.id ? { ...p, stock: newStock } : p
-        )
-      );
-      toast({
-        title: "Stock updated",
-        description: `${currentProduct.name} updated.`,
-      });
-      setShowStockDialog(false);
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to update",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const createProduct = async () => {
-    try {
-      const res = await fetch(`http://localhost:10000/api/products`, {
-        method: "POST",
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newProduct),
       });
 
-      if (!res.ok) throw new Error("Create failed");
-      toast({ title: "Product Created", description: newProduct.name });
+      if (!res.ok) throw new Error("Save failed");
+      toast({
+        title: currentProduct ? "Product Updated" : "Product Created",
+        description: newProduct.name,
+      });
+
       setShowAddDialog(false);
+      setCurrentProduct(null);
       setNewProduct({ name: "", category: "", price: 0, stock: 0 });
       await fetchProducts();
     } catch {
       toast({
         title: "Error",
-        description: "Failed to create",
+        description: "Failed to save product",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    try {
+      await fetch(`http://localhost:10000/api/products/${id}`, {
+        method: "DELETE",
+      });
+      toast({ title: "Deleted", description: name });
+      await fetchProducts();
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to delete",
         variant: "destructive",
       });
     }
@@ -149,7 +139,13 @@ export function Inventory() {
         <h2 className="text-3xl font-bold tracking-tight">
           Inventory Management
         </h2>
-        <Button onClick={() => setShowAddDialog(true)}>
+        <Button
+          onClick={() => {
+            setCurrentProduct(null);
+            setNewProduct({ name: "", category: "", price: 0, stock: 0 });
+            setShowAddDialog(true);
+          }}
+        >
           <Plus className="mr-2 h-4 w-4" /> Add Product
         </Button>
       </div>
@@ -206,7 +202,7 @@ export function Inventory() {
                 <TableBody>
                   {filteredProducts.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-6">
+                      <TableCell colSpan={7} className="text-center py-6">
                         No products found
                       </TableCell>
                     </TableRow>
@@ -245,11 +241,22 @@ export function Inventory() {
                               <DropdownMenuItem
                                 onClick={() => {
                                   setCurrentProduct(p);
-                                  setNewStock(p.stock);
-                                  setShowStockDialog(true);
+                                  setNewProduct({
+                                    name: p.name,
+                                    category: p.category,
+                                    price: p.price,
+                                    stock: p.stockQuantity,
+                                  });
+                                  setShowAddDialog(true);
                                 }}
                               >
-                                Update Stock
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(p._id, p.name)}
+                                className="text-red-600"
+                              >
+                                Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -264,43 +271,23 @@ export function Inventory() {
         </CardContent>
       </Card>
 
-      {/* Update Stock Dialog */}
-      <Dialog open={showStockDialog} onOpenChange={setShowStockDialog}>
+      {/* Add/Edit Product Dialog */}
+      <Dialog
+        open={showAddDialog}
+        onOpenChange={(open) => {
+          setShowAddDialog(open);
+          if (!open) {
+            setCurrentProduct(null);
+            setNewProduct({ name: "", category: "", price: 0, stock: 0 });
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Update Stock</DialogTitle>
+            <DialogTitle>{currentProduct ? "Edit Product" : "Add Product"}</DialogTitle>
             <DialogDescription>
-              {currentProduct ? `Product: ${currentProduct.name}` : ""}
+              {currentProduct ? `Editing ${currentProduct.name}` : "Fill in product info"}
             </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">New Stock</label>
-            <Input
-              type="number"
-              min={0}
-              value={newStock}
-              onChange={(e) =>
-                setNewStock(
-                  e.target.value === "" ? 0 : parseInt(e.target.value)
-                )
-              }
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowStockDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={updateStock}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Create Product Dialog */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Product</DialogTitle>
-            <DialogDescription>Fill in product info</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <Input
@@ -344,7 +331,9 @@ export function Inventory() {
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={createProduct}>Create Product</Button>
+            <Button onClick={createOrUpdateProduct}>
+              {currentProduct ? "Save Changes" : "Create Product"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
