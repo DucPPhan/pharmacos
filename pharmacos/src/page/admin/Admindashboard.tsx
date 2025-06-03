@@ -58,16 +58,6 @@ const Dashboard = () => {
         <header className="border-b bg-card p-4 flex justify-between items-center">
           <h2 className="text-2xl font-bold capitalize">{activeTab}</h2>
           <div className="flex items-center space-x-4">
-            <Button variant="outline" size="icon">
-              <Bell className="h-4 w-4" />
-            </Button>
-            <Avatar>
-              <AvatarImage
-                src="https://api.dicebear.com/7.x/avataaars/svg?seed=admin"
-                alt="Admin"
-              />
-              <AvatarFallback>AD</AvatarFallback>
-            </Avatar>
           </div>
         </header>
 
