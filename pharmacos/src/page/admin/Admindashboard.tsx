@@ -15,8 +15,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
 
   const handleLogout = () => {
-    // Clear token / session here
-    localStorage.removeItem("token"); // or whatever key you use
+    localStorage.clear();
     // Redirect to login page
     window.location.href = "/login";
   };

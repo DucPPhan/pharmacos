@@ -16,6 +16,7 @@ import {
   User,
   Settings,
   X,
+  LogOut,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -25,18 +26,23 @@ interface SidebarProps {
 
 export function Sidebar({ open, onOpenChange }: SidebarProps) {
   const location = useLocation();
-  
-  const links = [
-  { href: "overview", label: "Overview", icon: BarChart3 },
-  { href: "inventory", label: "Inventory", icon: Package },
-  { href: "orders", label: "Orders", icon: ShoppingCart },
-  { href: "analytics", label: "Analytics", icon: Activity },
-  { href: "brands", label: "Brands", icon: Tag },
-  { href: "categories", label: "Categories", icon: Grid3x3 },
-  // { href: "profile", label: "Profile", icon: User },
-  { href: "settings", label: "Settings", icon: Settings },
-];
 
+  const links = [
+    { href: "overview", label: "Overview", icon: BarChart3 },
+    { href: "inventory", label: "Inventory", icon: Package },
+    { href: "orders", label: "Orders", icon: ShoppingCart },
+    { href: "analytics", label: "Analytics", icon: Activity },
+    { href: "brands", label: "Brands", icon: Tag },
+    { href: "categories", label: "Categories", icon: Grid3x3 },
+    // { href: "profile", label: "Profile", icon: User },
+    { href: "settings", label: "Settings", icon: Settings },
+  ];
+
+  const handleLogout = () => {
+    localStorage.clear();
+    // Redirect to login page
+    window.location.href = "/login";
+  };
 
   return (
     <>
@@ -47,7 +53,7 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
           onClick={() => onOpenChange(false)}
         />
       )}
-      
+
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex flex-col w-72 border-r bg-card transition-transform duration-300 ease-in-out lg:relative lg:z-0",
@@ -70,33 +76,41 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
             <X className="w-5 h-5" />
           </Button>
         </div>
-        
+
         <ScrollArea className="flex-1 px-3 py-4">
           <nav className="flex flex-col gap-1">
-            {links.map((link) => (
-              <NavLink
-                key={link.href}
-                to={link.href}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  )
-                }
-              >
-                <link.icon className={cn("w-5 h-5", !open && "mx-auto")} />
-                {open && <span>{link.label}</span>}
-              </NavLink>
-            ))}
+            <div  style={{paddingBottom: 'calc(100% + 55px)'}}>
+              {links.map((link) => (
+                <NavLink
+                  key={link.href}
+                  to={link.href}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-muted"
+                    )
+                  }
+                >
+                  <link.icon className={cn("w-5 h-5", !open && "mx-auto")} />
+                  {open && <span>{link.label}</span>}
+                </NavLink>
+              ))}
+            </div>
           </nav>
         </ScrollArea>
-        
+
         <div className="p-4 border-t">
           <div className="flex items-center justify-between">
-            {open && <span className="text-sm text-muted-foreground">Theme</span>}
-            <ThemeToggle />
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2 text-sm"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4" />
+                Logout
+            </Button>
           </div>
         </div>
       </aside>
