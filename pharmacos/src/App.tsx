@@ -18,6 +18,7 @@ import Staffdashboard from "./page/staff/Staffdashboard";
 import CategoryPage from "./page/Category/CategoryPage";
 import ProductDetailPage from "./page/ProductDetail/ProductDetailPage";
 import ProductsPage from "./page/Products/ProductsPage";
+import UserProfile from "./page/profile/UserProfile";
 
 function App() {
   const location = useLocation();
@@ -36,10 +37,11 @@ function App() {
         <>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/profile" element={<UserProfile />} />
+
 
             {/* <Route path="/login" element={<Login />} />
             <Route path="/cart" element={<Cart />} />
-            <Route path="/profile" element={<Profile />} />
             <Route path="/profile/personal-info" element={<PersonalInfo />} />
             <Route path="/profile/change-password" element={<ChangePassword />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} /> */}

@@ -108,7 +108,109 @@ const UserManagement = () => {
     }
   };
 
-  // other unchanged methods (edit, delete, add user)...
+  const saveEditDialog = () => {
+    if (!editingUserId) return;
+    const originalUser = users.find((u) => u.id === editingUserId);
+    if (!originalUser) return;
+
+    if (
+      originalUser.username === editUsername &&
+      originalUser.email === editEmail
+    ) {
+      setEditingUserId(null);
+      return;
+    }
+
+    setConfirmEditData({
+      id: editingUserId,
+      username: editUsername,
+      email: editEmail,
+    });
+  };
+
+  const confirmEditSave = async () => {
+    if (!confirmEditData) return;
+    try {
+      await axios.put(
+        `${API_URL}/${confirmEditData.id}`,
+        {
+          ...users.find((u) => u.id === confirmEditData.id),
+          username: confirmEditData.username,
+          email: confirmEditData.email,
+        },
+        { headers: getAuthHeader() }
+      );
+
+      setUsers((prevUsers) =>
+        prevUsers.map((user) =>
+          user._id === confirmEditData.id
+            ? {
+              ...user,
+              username: confirmEditData.username,
+              email: confirmEditData.email,
+            }
+            : user
+        )
+      );
+    } catch (error) {
+      console.error("Error confirming edit:", error);
+    } finally {
+      setEditingUserId(null);
+      setConfirmEditData(null);
+    }
+  };
+
+  const deleteUser = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this user?")) {
+      try {
+        await axios.delete(`${API_URL}/${id}`, { headers: getAuthHeader() });
+        setUsers((prevUsers) => prevUsers.filter((user) => user.id !== id));
+      } catch (error) {
+        console.error("Error deleting user:", error);
+      }
+    }
+  };
+
+  const handleAddUser = async () => {
+    const { username, email, password, confirmPassword, name } = newUser;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!username || !email || !password || !confirmPassword || !name) {
+      alert("Please fill in all fields.");
+      return;
+    }
+    if (!emailRegex.test(email)) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      alert("Passwords do not match.");
+      return;
+    }
+    try {
+      const response = await axios.post(
+        "http://localhost:10000/api/admin/staff",
+        {
+          username,
+          email,
+          password,
+          name,
+        },
+        { headers: getAuthHeader() }
+      );
+      setUsers((prev) => [...prev, response.data.staff]);
+      setShowAddDialog(false);
+      setNewUser({
+        username: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        name: "",
+        role: "staff",
+      });
+    } catch (error) {
+      console.error("Error adding staff:", error);
+    }
+  };
 
   return (
     <>
