@@ -41,7 +41,7 @@ export function Inventory() {
   const [newProduct, setNewProduct] = useState({
     name: "",
     description: "",
-    benefits: "",
+    benefits: [""],
     skinType: "",
     size: "",
     category: "",
@@ -73,7 +73,7 @@ export function Inventory() {
     "Haircare",
     "Makeup",
     "Fragrances",
-    "Personal Care"
+    "Personal Care",
   ];
 
   const brandOptions = [
@@ -86,17 +86,17 @@ export function Inventory() {
     "MAC",
     "Maybelline",
     "Jo Malone",
-    "Colgate"
+    "Colgate",
   ];
 
   const fetchProducts = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const res = await fetch("http://localhost:10000/api/products", {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       const data = await res.json();
       const productList = Array.isArray(data.products) ? data.products : data;
@@ -138,12 +138,12 @@ export function Inventory() {
   const handleDelete = async (id: string, name: string) => {
     if (!window.confirm(`Delete ${name}?`)) return;
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const res = await fetch(`http://localhost:10000/api/products/${id}`, {
         method: "DELETE",
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       if (!res.ok) throw new Error("Failed to delete");
       toast({ title: "Product Deleted", description: name });
@@ -187,7 +187,7 @@ export function Inventory() {
     setNewProduct({
       name: "",
       description: "",
-      benefits: "",
+      benefits: [""],
       skinType: "",
       size: "",
       category: "",
@@ -211,12 +211,12 @@ export function Inventory() {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const res = await fetch(`http://localhost:10000/api/products`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(newProduct),
       });
@@ -254,14 +254,14 @@ export function Inventory() {
     if (!currentProduct) return;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const res = await fetch(
         `http://localhost:10000/api/products/${currentProduct._id}`,
         {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            'Authorization': `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(newProduct),
         }
@@ -325,7 +325,9 @@ export function Inventory() {
               >
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select Category">
-                    {selectedCategory === "all" ? "All Categories" : selectedCategory}
+                    {selectedCategory === "all"
+                      ? "All Categories"
+                      : selectedCategory}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -337,10 +339,7 @@ export function Inventory() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select
-                value={selectedBrand}
-                onValueChange={setSelectedBrand}
-              >
+              <Select value={selectedBrand} onValueChange={setSelectedBrand}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select Brand">
                     {selectedBrand === "all" ? "All Brands" : selectedBrand}
@@ -408,7 +407,7 @@ export function Inventory() {
                         <TableCell>{p.brand}</TableCell>
                         <TableCell>{p.size}</TableCell>
                         <TableCell>{p.skinType}</TableCell>
-                        <TableCell>{p.benefits}</TableCell>
+                        <TableCell>{p.benefits.join(", ")}</TableCell>
                         <TableCell>{p.stockQuantity}</TableCell>
                         <TableCell>${p.price}</TableCell>
                         <TableCell className="text-right">
@@ -421,7 +420,11 @@ export function Inventory() {
                                 setNewProduct({
                                   name: p.name,
                                   description: p.description,
-                                  benefits: p.benefits,
+                                  benefits: Array.isArray(p.benefits)
+                                    ? p.benefits
+                                    : p.benefits
+                                    ? [p.benefits]
+                                    : [""],
                                   skinType: p.skinType,
                                   size: p.size,
                                   category: p.category,
@@ -444,7 +447,6 @@ export function Inventory() {
                             </Button>
                           </div>
                         </TableCell>
-
                       </TableRow>
                     ))
                   )}
@@ -456,7 +458,7 @@ export function Inventory() {
       </Card>
 
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent>
+        <DialogContent style={{ maxHeight: "80vh", overflowY: "auto" }}>
           <DialogHeader>
             <DialogTitle>
               {currentProduct ? "Edit Product" : "Add Product"}
@@ -465,8 +467,11 @@ export function Inventory() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="name" className="text-right font-medium">
-                Product Name
+              <label
+                htmlFor="name"
+                className="text-left font-medium min-w-[120px] pr-2"
+              >
+                Product Name:
               </label>
               <Input
                 id="name"
@@ -475,39 +480,63 @@ export function Inventory() {
                 onChange={(e) =>
                   setNewProduct({ ...newProduct, name: e.target.value })
                 }
-                className="col-span-3"
+                className="col-span-3 ml-0"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="benefits" className="text-right font-medium">
-                Benefits
+              <label className="text-left font-medium min-w-[120px] pr-2">
+                Benefits:
               </label>
-              <div className="col-span-3">
-                <Select
-                  onValueChange={(value) =>
-                    setNewProduct({ ...newProduct, benefits: value })
+              <div className="col-span-3 space-y-2">
+                {newProduct.benefits.map((b, idx) => (
+                  <div key={idx} className="flex gap-2">
+                    <Input
+                      value={b}
+                      placeholder={`Benefit ${idx + 1}`}
+                      onChange={(e) => {
+                        const updated = [...newProduct.benefits];
+                        updated[idx] = e.target.value;
+                        setNewProduct({ ...newProduct, benefits: updated });
+                      }}
+                    />
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        const updated = newProduct.benefits.filter(
+                          (_, i) => i !== idx
+                        );
+                        setNewProduct({
+                          ...newProduct,
+                          benefits: updated.length ? updated : [""],
+                        });
+                      }}
+                      disabled={newProduct.benefits.length === 1}
+                    >
+                      X
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() =>
+                    setNewProduct({
+                      ...newProduct,
+                      benefits: [...newProduct.benefits, ""],
+                    })
                   }
-                  value={newProduct.benefits || ""}
-                  defaultValue=""
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Benefit">
-                      {newProduct.benefits || "Select Benefit"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {benefitsOptions.map((b) => (
-                      <SelectItem key={b} value={b}>
-                        {b}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  + Add Benefit
+                </Button>
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="skinType" className="text-right font-medium">
-                Skin Type
+              <label
+                htmlFor="skinType"
+                className="text-left font-medium min-w-[120px] pr-2"
+              >
+                Skin Type:
               </label>
               <div className="col-span-3">
                 <Select
@@ -533,8 +562,11 @@ export function Inventory() {
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="size" className="text-right font-medium">
-                Size
+              <label
+                htmlFor="size"
+                className="text-left font-medium min-w-[120px] pr-2"
+              >
+                Size:
               </label>
               <Input
                 id="size"
@@ -547,8 +579,11 @@ export function Inventory() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="category" className="text-right font-medium">
-                Category
+              <label
+                htmlFor="category"
+                className="text-left font-medium min-w-[120px] pr-2"
+              >
+                Category:
               </label>
               <div className="col-span-3">
                 <Select
@@ -575,8 +610,11 @@ export function Inventory() {
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="brand" className="text-right font-medium">
-                Brand
+              <label
+                htmlFor="brand"
+                className="text-left font-medium min-w-[120px] pr-2"
+              >
+                Brand:
               </label>
               <div className="col-span-3">
                 <Select
@@ -603,8 +641,11 @@ export function Inventory() {
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="imageUrl" className="text-right font-medium">
-                Image URL
+              <label
+                htmlFor="imageUrl"
+                className="text-left font-medium min-w-[120px] pr-2"
+              >
+                Image URL:
               </label>
               <Input
                 id="imageUrl"
@@ -617,8 +658,11 @@ export function Inventory() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="price" className="text-right font-medium">
-                Price
+              <label
+                htmlFor="price"
+                className="text-left font-medium min-w-[120px] pr-2"
+              >
+                Price:
               </label>
               <Input
                 id="price"
@@ -637,15 +681,20 @@ export function Inventory() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="stockQuantity" className="text-right font-medium">
-                Stock Quantity
+              <label
+                htmlFor="stockQuantity"
+                className="text-left font-medium min-w-[120px] pr-2"
+              >
+                Stock Quantity:
               </label>
               <Input
                 id="stockQuantity"
                 placeholder="Stock Quantity"
                 type="number"
                 min={0}
-                value={newProduct.stockQuantity === 0 ? "" : newProduct.stockQuantity}
+                value={
+                  newProduct.stockQuantity === 0 ? "" : newProduct.stockQuantity
+                }
                 className="col-span-3"
                 onChange={(e) =>
                   setNewProduct({
@@ -656,8 +705,11 @@ export function Inventory() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="description" className="text-right font-medium">
-                Description
+              <label
+                htmlFor="description"
+                className="text-left font-medium min-w-[120px] pr-2"
+              >
+                Description:
               </label>
               <Input
                 id="description"
