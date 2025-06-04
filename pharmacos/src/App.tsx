@@ -53,14 +53,18 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/profile" element={<UserProfile />} />
-            <Route path="/staff/dashboard/profile" element={<StaffProfile />} />
+
+            {/* <Route path="/login" element={<Login />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/profile/personal-info" element={<PersonalInfo />} />
+            <Route path="/profile/change-password" element={<ChangePassword />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} /> */}
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/category/:categoryId" element={<CategoryPage />} />
             <Route path="/product/:productId" element={<ProductDetailPage />} />
             <Route path="/admin/dashboard" element={<Dashboard />} />
             <Route path="/staff/dashboard/*" element={<Staffdashboard />} />
           </Routes>
-          {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
         </>
         {visible && <Footer />}
       </div>

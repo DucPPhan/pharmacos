@@ -114,7 +114,9 @@ export default function Header() {
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     style={{ backgroundColor: 'white' }}
                                 />
-                                <Search className="absolute right-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                                <div className='ml-2 bg-white hover:bg-gray-100'>
+                                    <Search className="absolute right-14 top-1.5 h-5 w-5 text-muted-foreground" />
+                                </div>
 
                                 {/* Camera icon for mobile */}
                                 <Button
@@ -155,7 +157,6 @@ export default function Header() {
                     </DialogHeader>
                     <AIImageSearch
                         onSearchComplete={handleAISearchComplete}
-                        onClose={() => setIsAISearchOpen(false)}
                         isPopup={true}
                     />
                 </DialogContent>
