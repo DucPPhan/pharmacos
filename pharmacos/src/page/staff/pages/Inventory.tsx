@@ -50,6 +50,8 @@ export function Inventory() {
     price: 0,
     stockQuantity: 0,
   });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<any>(null);
 
   const benefitsOptions = [
     "Brightens skin tone and reduces hyperpigmentation",
@@ -136,7 +138,6 @@ export function Inventory() {
   });
 
   const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Delete ${name}?`)) return;
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(`http://localhost:10000/api/products/${id}`, {
@@ -441,7 +442,10 @@ export function Inventory() {
                             <Button
                               size="sm"
                               variant="destructive"
-                              onClick={() => handleDelete(p._id, p.name)}
+                              onClick={() => {
+                                setProductToDelete(p);
+                                setDeleteDialogOpen(true);
+                              }}
                             >
                               Delete
                             </Button>
@@ -728,6 +732,37 @@ export function Inventory() {
             </Button>
             <Button onClick={currentProduct ? updateProduct : createProduct}>
               {currentProduct ? "Save Changes" : "Create Product"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Xác nhận xóa sản phẩm</DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn xóa sản phẩm <b>{productToDelete?.name}</b>{" "}
+              không?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+            >
+              Hủy
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (!productToDelete) return;
+                await handleDelete(productToDelete._id, productToDelete.name);
+                setDeleteDialogOpen(false);
+                setProductToDelete(null);
+              }}
+            >
+              Xóa
             </Button>
           </DialogFooter>
         </DialogContent>
