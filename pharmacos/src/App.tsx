@@ -19,7 +19,6 @@ import CategoryPage from "./page/Category/CategoryPage";
 import ProductDetailPage from "./page/ProductDetail/ProductDetailPage";
 import ProductsPage from "./page/Products/ProductsPage";
 import UserProfile from "./page/profile/UserProfile";
-import StaffProfile from "./page/profile/StaffProfile";
 
 function App() {
   const [visible, setVisible] = useState(true);

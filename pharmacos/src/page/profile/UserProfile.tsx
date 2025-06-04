@@ -49,16 +49,19 @@ interface UserInfo {
 }
 // đơn hàng
 const fetchOrders = async () => {
-    const token = localStorage.getItem("token");
-    const res = await fetch("http://localhost:10000/api/customers/orders", {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const token = localStorage.getItem('token');
+    // Luôn gọi API, không kiểm tra role ở đây nữa
+    const res = await fetch('http://localhost:10000/api/orders/my-orders', {
+        method: 'GET',
         headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
     });
     if (!res.ok) {
         const errText = await res.text();
-        console.error("API orders error:", errText);
+        console.error("API purchase history error:", errText);
         return [];
     }
     return await res.json();
@@ -220,16 +223,10 @@ const EditProfileInlineForm: React.FC<{
     };
 
     return (
-        <Card title={null} className="user-profile-card" bodyStyle={{ padding: 0 }}>
+        <Card title={null} className="user-profile-card" bodyStyle={{ padding: 0, height: '100%' }}>
             <div className="user-profile-card-header">
                 <Tooltip title="Thông tin cá nhân" placement="bottom">
                     <Upload
-                        name="avatar"
-                        listType="picture-circle"
-                        className="avatar-uploader"
-                        showUploadList={false}
-                        action="https://run.mocky.io/v3/435e224c-44fb-4773-9faf-380c5e6a2188"
-                        onChange={handleAvatarChange}
                     >
                         <Avatar
                             size={120}
@@ -249,7 +246,7 @@ const EditProfileInlineForm: React.FC<{
                 <div className="user-profile-name">{user.name}</div>
                 <div className="user-profile-phone">{user.phone}</div>
             </div>
-            <div className="user-profile-card-body">
+            <div className="user-profile-card-body" style={{ maxHeight: 540, overflowY: "auto" }}>
                 <Form
                     form={form}
                     layout="vertical"
@@ -421,7 +418,7 @@ const ChangePasswordForm: React.FC<{
                     icon={<UserOutlined />}
                     className="user-profile-avatar"
                 />
-                <div className="user-profile-name">Đổi mật khẩu</div>
+                <div className="user-profile-name">Change password</div>
             </div>
             <div className="user-profile-card-body">
                 <Form form={form} layout="vertical" className="user-profile-form">
@@ -430,7 +427,7 @@ const ChangePasswordForm: React.FC<{
                         label="Mật khẩu cũ"
                         rules={[
                             { required: true, message: "Vui lòng nhập mật khẩu cũ!" },
-                            { min: 6, message: "Mật khẩu phải có ít nhất 6 ký tự!" },
+                            { min: 1, message: "Mật khẩu phải có ít nhất 6 ký tự!" },
                         ]}
                     >
                         <Input.Password size="large" placeholder="Nhập mật khẩu cũ" />
@@ -440,7 +437,7 @@ const ChangePasswordForm: React.FC<{
                         label="Mật khẩu mới"
                         rules={[
                             { required: true, message: "Vui lòng nhập mật khẩu mới!" },
-                            { min: 6, message: "Mật khẩu phải có ít nhất 6 ký tự!" },
+                            { min: 1, message: "Mật khẩu phải có ít nhất 6 ký tự!" },
                             {
                                 validator: (_, value) => {
                                     if (!value) return Promise.resolve();
@@ -571,6 +568,8 @@ const updateProfileByRole = async (data: UserInfo): Promise<UserInfo> => {
     } else {
         url = "http://localhost:10000/api/customers/profile";
         body = {
+            phone: data.phone,
+            address: data.address,
             name: data.name,
             gender:
                 data.gender === "Nam"
@@ -677,7 +676,6 @@ const UserProfile: React.FC = () => {
         }
     }, [activeMenu]);
 
-    // Khi đổi tab, lưu vào localStorage để giữ trạng thái khi F5
     const handleMenuClick = (e: any) => {
         if (e.key === "logout") {
             Modal.confirm({
