@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -26,13 +26,13 @@ interface SidebarProps {
 
 export function Sidebar({ open, onOpenChange }: SidebarProps) {
   const location = useLocation();
-  
+
   const links = [
-  { href: "overview", label: "Overview", icon: BarChart3 },
-  { href: "inventory", label: "Inventory", icon: Package },
-  { href: "orders", label: "Orders", icon: ShoppingCart },
-  { href: "analytics", label: "Analytics", icon: Activity },
-];
+    { href: "overview", label: "Overview", icon: BarChart3 },
+    { href: "inventory", label: "Inventory", icon: Package },
+    { href: "orders", label: "Orders", icon: ShoppingCart },
+    { href: "analytics", label: "Analytics", icon: Activity },
+  ];
 
   const handleLogout = () => {
     localStorage.clear();
@@ -75,7 +75,7 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
 
         <ScrollArea className="flex-1 px-3 py-4">
           <nav className="flex flex-col gap-1">
-            <div  style={{paddingBottom: 'calc(100% + 55px)'}}>
+            <div style={{ paddingBottom: 'calc(100% + 55px)' }}>
               {links.map((link) => (
                 <NavLink
                   key={link.href}
@@ -105,7 +105,7 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
               onClick={handleLogout}
             >
               <LogOut className="h-4 w-4" />
-                Logout
+              Logout
             </Button>
           </div>
         </div>

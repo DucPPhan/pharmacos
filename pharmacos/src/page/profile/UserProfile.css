@@ -1,5 +1,5 @@
 .user-profile-card {
-  width: 820px;
+  width: 900px;
   margin: 0 auto;
   border-radius: 20px;
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
@@ -7,6 +7,9 @@
   border: none;
   background: #fff;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  min-height: 600px; /* Thêm dòng này để form update và form thông tin luôn bằng nhau */
+  display: flex;
+  flex-direction: column;
 }
 
 .user-profile-card:hover {
@@ -21,7 +24,7 @@
   background: linear-gradient(135deg, #7494ec 0%, #7494ec 50%, #7494ec 100%);
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
-  padding: 42px 36px;
+  padding: 92px 50px;
   position: relative;
   overflow: hidden;
 }
@@ -33,9 +36,12 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at top right,
-      rgba(255, 255, 255, 0.2) 0%,
-      transparent 70%);
+  padding: 42px 50px;
+  background: radial-gradient(
+    circle at top right,
+    rgba(255, 255, 255, 0.2) 0%,
+    transparent 70%
+  );
   pointer-events: none;
 }
 
@@ -72,7 +78,10 @@
 }
 
 .user-profile-card-body {
-  padding: 40px 36px 32px 36px;
+  padding: 48px 48px 40px 48px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .user-profile-row {
@@ -225,7 +234,7 @@
   margin: 0 auto;
 }
 
-.user-profile-form .ant-form-item-label>label {
+.user-profile-form .ant-form-item-label > label {
   font-weight: 600;
   color: #333;
 }
@@ -302,6 +311,11 @@
   margin: 24px;
   position: relative;
   overflow: hidden;
+  min-height: 260px; /* Thêm dòng này để luôn giữ chiều cao tối thiểu cho form trống */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .user-profile-section-content::before {
