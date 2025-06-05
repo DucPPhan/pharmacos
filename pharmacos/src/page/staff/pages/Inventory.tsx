@@ -95,7 +95,7 @@ export function Inventory() {
     try {
       setIsLoading(true);
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:10000/api/products", {
+      const res = await fetch("http://localhost:10000/api/staff/products", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
