@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface AIImageSearchProps {
   onSearchComplete?: (results: ProductMatch[]) => void;
@@ -167,133 +168,145 @@ const AIImageSearch = ({
   };
 
   return (
-    <Card className={`w-full ${isPopup ? 'border-0 shadow-none' : 'max-w-3xl mx-auto'} bg-white`}>
-      <CardHeader className="relative">
-        <CardTitle className="text-2xl font-bold">
-          AI Product Recognition
-        </CardTitle>
-        <CardDescription>
-          Upload a photo of a product to find it in our store
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {!preview ? (
-          <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center ${isDragging ? "border-primary bg-primary/5" : "border-gray-300"
-              }`}
-            onDragEnter={handleDragEnter}
-            onDragLeave={handleDragLeave}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-          >
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <Upload className="h-12 w-12 text-gray-400" />
-              <div className="space-y-2">
-                <p className="text-lg font-medium">
-                  Drag and drop your image here
-                </p>
-                <p className="text-sm text-gray-500">
-                  or use one of the options below
-                </p>
-              </div>
-              <div className="flex flex-wrap justify-center gap-4 mt-4">
-                <Button
-                  onClick={() =>
-                    document.getElementById("file-upload")?.click()
-                  }
-                >
-                  Browse Files
-                </Button>
-                <Button variant="outline" onClick={handleCameraCapture}>
-                  <Camera className="mr-2 h-4 w-4" /> Take Photo
-                </Button>
-                <input
-                  id="file-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleFileInput}
-                />
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="relative aspect-video rounded-lg overflow-hidden border border-gray-200">
-              <img
-                src={preview}
-                alt="Product preview"
-                className="w-full h-full object-contain"
-              />
-            </div>
+    <div className="flex items-center justify-center">
+      <Card
+        className={`w-full ${isPopup ? 'border-0 shadow-none' : 'max-w-3xl mx-auto'} bg-white`}
+        style={{
+          maxHeight: "90vh",
+          display: "flex",
+          flexDirection: "column"
+        }}
+      >
+        <CardHeader className="relative flex-shrink-0">
+          <CardTitle className="text-2xl font-bold">
+            AI Product Recognition
+          </CardTitle>
+          <CardDescription>
+            Upload a photo of a product to find it in our store
+          </CardDescription>
+        </CardHeader>
 
-            {isProcessing ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">
-                    Analyzing image...
-                  </span>
-                  <span className="text-sm font-medium">{progress}%</span>
-                </div>
-                <Progress value={progress} className="h-2" />
-                <p className="text-sm text-gray-500 text-center mt-2">
-                  Our AI is analyzing your image to find matching products
-                </p>
-              </div>
-            ) : results.length > 0 ? (
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Matching Products</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {results.map((product) => (
-                    <div
-                      key={product.id}
-                      className="border rounded-lg overflow-hidden"
+        <ScrollArea className="flex-grow overflow-auto">
+          <CardContent>
+            {!preview ? (
+              <div
+                className={`border-2 border-dashed rounded-lg p-8 text-center ${isDragging ? "border-primary bg-primary/5" : "border-gray-300"}`}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+              >
+                <div className="flex flex-col items-center justify-center space-y-4">
+                  <Upload className="h-12 w-12 text-gray-400" />
+                  <div className="space-y-2">
+                    <p className="text-lg font-medium">
+                      Drag and drop your image here
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      or use one of the options below
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-4 mt-4">
+                    <Button
+                      onClick={() =>
+                        document.getElementById("file-upload")?.click()
+                      }
                     >
-                      <div className="aspect-square relative">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute top-2 right-2 bg-primary text-white text-xs font-bold px-2 py-1 rounded-full">
-                          {product.confidence}% match
-                        </div>
-                      </div>
-                      <div className="p-3">
-                        <h4 className="font-medium truncate">{product.name}</h4>
-                        <div className="flex justify-between items-center mt-1">
-                          <span className="font-bold">
-                            ${product.price.toFixed(2)}
-                          </span>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleViewProduct(product.id)}
-                          >
-                            View
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                      Browse Files
+                    </Button>
+                    <Button variant="outline" onClick={handleCameraCapture}>
+                      <Camera className="mr-2 h-4 w-4" /> Take Photo
+                    </Button>
+                    <input
+                      id="file-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileInput}
+                    />
+                  </div>
                 </div>
               </div>
             ) : (
-              <Button onClick={processImage} className="w-full">
-                Start Recognition
-              </Button>
+              <div className="space-y-4">
+                <div className="relative aspect-video rounded-lg overflow-hidden border border-gray-200">
+                  <img
+                    src={preview}
+                    alt="Product preview"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+
+                {isProcessing ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">
+                        Analyzing image...
+                      </span>
+                      <span className="text-sm font-medium">{progress}%</span>
+                    </div>
+                    <Progress value={progress} className="h-2" />
+                    <p className="text-sm text-gray-500 text-center mt-2">
+                      Our AI is analyzing your image to find matching products
+                    </p>
+                  </div>
+                ) : results.length > 0 ? (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Matching Products</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {results.map((product) => (
+                        <div
+                          key={product.id}
+                          className="border rounded-lg overflow-hidden"
+                        >
+                          <div className="aspect-square relative">
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute top-2 right-2 bg-primary text-white text-xs font-bold px-2 py-1 rounded-full">
+                              {product.confidence}% match
+                            </div>
+                          </div>
+                          <div className="p-3">
+                            <h4 className="font-medium truncate">{product.name}</h4>
+                            <div className="flex justify-between items-center mt-1">
+                              <span className="font-bold">
+                                ${product.price.toFixed(2)}
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleViewProduct(product.id)}
+                              >
+                                View
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <Button onClick={processImage} className="w-full">
+                    Start Recognition
+                  </Button>
+                )}
+              </div>
             )}
-          </div>
-        )}
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        {(preview || results.length > 0) && (
-          <Button variant="outline" onClick={resetSearch}>
-            Try Another Image
-          </Button>
-        )}
-      </CardFooter>
-    </Card>
+          </CardContent>
+        </ScrollArea>
+
+        <CardFooter className="flex justify-between flex-shrink-0 border-t pt-4">
+          {(preview || results.length > 0) && (
+            <Button variant="outline" onClick={resetSearch}>
+              Try Another Image
+            </Button>
+          )}
+        </CardFooter>
+      </Card>
+    </div>
   );
 };
 
