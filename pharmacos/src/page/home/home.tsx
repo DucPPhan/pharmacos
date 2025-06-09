@@ -238,7 +238,9 @@ const Home = () => {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         const data = await res.json();
-        setApiProducts(Array.isArray(data.products) ? data.products : []);
+        setApiProducts(
+          Array.isArray(data?.data?.products) ? data.data.products : []
+        );
       } catch {
         setApiProducts([]);
       } finally {
@@ -426,17 +428,24 @@ const Home = () => {
                   <div className="text-center py-8">Loading...</div>
                 ) : (
                   <ProductGrid
-                    products={apiProducts.map((p) => ({
-                      id: p._id || p.id,
-                      name: p.name,
-                      price: p.price,
-                      image: p.imageUrl,
-                      category: p.category,
-                      inStock: p.stockQuantity > 0,
-                      rating: p.aiFeatures?.recommendationScore
-                        ? parseFloat(p.aiFeatures.recommendationScore)
-                        : undefined,
-                    }))}
+                    products={apiProducts.map((p) => {
+                      let image = "";
+                      if (Array.isArray(p.images) && p.images.length > 0) {
+                        const primary = p.images.find((img) => img.isPrimary);
+                        image = primary ? primary.url : p.images[0].url;
+                      }
+                      return {
+                        id: p._id || p.id,
+                        name: p.name,
+                        price: p.price,
+                        image,
+                        category: p.category,
+                        inStock: p.stockQuantity > 0,
+                        rating: p.aiFeatures?.recommendationScore
+                          ? parseFloat(p.aiFeatures.recommendationScore)
+                          : undefined,
+                      };
+                    })}
                   />
                 )}
               </TabsContent>
@@ -460,17 +469,24 @@ const Home = () => {
               <div className="text-center py-8">Loading...</div>
             ) : (
               <ProductGrid
-                products={apiProducts.map((p) => ({
-                  id: p._id || p.id,
-                  name: p.name,
-                  price: p.price,
-                  image: p.imageUrl,
-                  category: p.category,
-                  inStock: p.stockQuantity > 0,
-                  rating: p.aiFeatures?.recommendationScore
-                    ? parseFloat(p.aiFeatures.recommendationScore)
-                    : undefined,
-                }))}
+                products={apiProducts.map((p) => {
+                  let image = "";
+                  if (Array.isArray(p.images) && p.images.length > 0) {
+                    const primary = p.images.find((img) => img.isPrimary);
+                    image = primary ? primary.url : p.images[0].url;
+                  }
+                  return {
+                    id: p._id || p.id,
+                    name: p.name,
+                    price: p.price,
+                    image,
+                    category: p.category,
+                    inStock: p.stockQuantity > 0,
+                    rating: p.aiFeatures?.recommendationScore
+                      ? parseFloat(p.aiFeatures.recommendationScore)
+                      : undefined,
+                  };
+                })}
               />
             )}
           </div>
