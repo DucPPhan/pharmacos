@@ -13,12 +13,17 @@ import {
   ShieldCheck,
   Clock,
   CreditCard,
-  Award
+  Award,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../components/ui/tabs";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "../../components/ui/tabs";
 import AIImageSearch from "../../components/AIImageSearch";
 import ProductGrid from "../../components/ProductGrid";
 import { useNavigate } from "react-router-dom";
@@ -114,39 +119,46 @@ const banners = [
   {
     id: 1,
     title: "Premium Skincare Products",
-    description: "Discover dermatologist-recommended solutions for radiant skin",
+    description:
+      "Discover dermatologist-recommended solutions for radiant skin",
     cta: "Shop Skincare",
-    image: "https://images.unsplash.com/photo-1612817288484-6f916006741a?w=1600&q=80",
+    image:
+      "https://images.unsplash.com/photo-1612817288484-6f916006741a?w=1600&q=80",
     link: "/products",
-    color: "from-blue-400/70 to-purple-400/70"
+    color: "from-blue-400/70 to-purple-400/70",
   },
   {
     id: 2,
     title: "Find Products With AI",
-    description: "Upload a photo of any product and our AI will identify it instantly",
+    description:
+      "Upload a photo of any product and our AI will identify it instantly",
     cta: "Try AI Search",
-    image: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=1600&q=80",
+    image:
+      "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=1600&q=80",
     link: "/ai-search",
-    color: "from-emerald-400/70 to-cyan-400/70"
+    color: "from-emerald-400/70 to-cyan-400/70",
   },
   {
     id: 3,
     title: "Summer Sale - Up to 40% Off",
-    description: "Limited time offers on sunscreens, after-sun care, and summer essentials",
+    description:
+      "Limited time offers on sunscreens, after-sun care, and summer essentials",
     cta: "Shop Now",
-    image: "https://images.unsplash.com/photo-1532086853747-99450c17fa2e?w=1600&q=80",
+    image:
+      "https://images.unsplash.com/photo-1532086853747-99450c17fa2e?w=1600&q=80",
     link: "/sale",
-    color: "from-amber-400/70 to-orange-400/70"
+    color: "from-amber-400/70 to-orange-400/70",
   },
   {
     id: 4,
     title: "New Arrivals: Natural Collection",
     description: "Eco-friendly formulas with clean, sustainable ingredients",
     cta: "Explore Collection",
-    image: "https://images.unsplash.com/photo-1626785525676-260c06ee3e32?w=1600&q=80",
+    image:
+      "https://images.unsplash.com/photo-1626785525676-260c06ee3e32?w=1600&q=80",
     link: "/natural-products",
-    color: "from-green-400/70 to-lime-400/70"
-  }
+    color: "from-green-400/70 to-lime-400/70",
+  },
 ];
 
 // Trust badges data
@@ -154,27 +166,27 @@ const trustBadges = [
   {
     icon: <Truck className="h-6 w-6" />,
     title: "Free Delivery",
-    description: "On orders over $50"
+    description: "On orders over $50",
   },
   {
     icon: <ShieldCheck className="h-6 w-6" />,
     title: "Secure Payment",
-    description: "100% secure checkout"
+    description: "100% secure checkout",
   },
   {
     icon: <Clock className="h-6 w-6" />,
     title: "Fast Shipping",
-    description: "Delivered in 1-3 days"
+    description: "Delivered in 1-3 days",
   },
   {
     icon: <CreditCard className="h-6 w-6" />,
     title: "Easy Returns",
-    description: "30-day money back"
+    description: "30-day money back",
   },
   {
     icon: <Award className="h-6 w-6" />,
     title: "Quality Products",
-    description: "Verified authenticity"
+    description: "Verified authenticity",
   },
 ];
 
@@ -186,6 +198,8 @@ const Home = () => {
   const isLoggedIn = !!localStorage.getItem("user");
   const [showNavButtons, setShowNavButtons] = useState(true);
   const bannerRef = useRef(null);
+  const [apiProducts, setApiProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
 
   // Auto rotate banners
   useEffect(() => {
@@ -205,14 +219,33 @@ const Home = () => {
       setShowNavButtons(bannerBottom > 50);
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
 
     // Initial check
     handleScroll();
 
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener("scroll", handleScroll);
     };
+  }, []);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoadingProducts(true);
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("http://localhost:10000/api/products", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const data = await res.json();
+        setApiProducts(Array.isArray(data.products) ? data.products : []);
+      } catch {
+        setApiProducts([]);
+      } finally {
+        setLoadingProducts(false);
+      }
+    };
+    fetchProducts();
   }, []);
 
   const nextBanner = () => {
@@ -239,7 +272,9 @@ const Home = () => {
                 transition={{ duration: 0.7 }}
                 className="absolute inset-0"
               >
-                <div className={`h-full bg-gradient-to-r ${banners[currentBanner].color} relative`}>
+                <div
+                  className={`h-full bg-gradient-to-r ${banners[currentBanner].color} relative`}
+                >
                   <div className="absolute inset-0">
                     <img
                       src={banners[currentBanner].image}
@@ -273,7 +308,7 @@ const Home = () => {
                       >
                         <Button
                           size="lg"
-                          style={{ backgroundColor: '#7494ec' }}
+                          style={{ backgroundColor: "#7494ec" }}
                           onClick={() => navigate(banners[currentBanner].link)}
                         >
                           {banners[currentBanner].cta}
@@ -309,8 +344,9 @@ const Home = () => {
                     <button
                       key={index}
                       onClick={() => setCurrentBanner(index)}
-                      className={`h-2 w-10 rounded-full transition-all ${currentBanner === index ? "bg-white" : "bg-white/50"
-                        }`}
+                      className={`h-2 w-10 rounded-full transition-all ${
+                        currentBanner === index ? "bg-white" : "bg-white/50"
+                      }`}
                       aria-label={`Go to slide ${index + 1}`}
                     />
                   ))}
@@ -325,12 +361,19 @@ const Home = () => {
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6">
               {trustBadges.map((badge, index) => (
-                <div key={index} className="flex flex-col items-center text-center p-4 transition-transform hover:scale-105">
+                <div
+                  key={index}
+                  className="flex flex-col items-center text-center p-4 transition-transform hover:scale-105"
+                >
                   <div className="text-primary mb-3 bg-primary/10 p-3 rounded-full">
                     {badge.icon}
                   </div>
-                  <h3 className="font-medium text-sm md:text-base">{badge.title}</h3>
-                  <p className="text-gray-500 text-xs md:text-sm">{badge.description}</p>
+                  <h3 className="font-medium text-sm md:text-base">
+                    {badge.title}
+                  </h3>
+                  <p className="text-gray-500 text-xs md:text-sm">
+                    {badge.description}
+                  </p>
                 </div>
               ))}
             </div>
@@ -379,7 +422,23 @@ const Home = () => {
               </TabsContent>
 
               <TabsContent value="featured">
-                <ProductGrid products={featuredProducts} />
+                {loadingProducts ? (
+                  <div className="text-center py-8">Loading...</div>
+                ) : (
+                  <ProductGrid
+                    products={apiProducts.map((p) => ({
+                      id: p._id || p.id,
+                      name: p.name,
+                      price: p.price,
+                      image: p.imageUrl,
+                      category: p.category,
+                      inStock: p.stockQuantity > 0,
+                      rating: p.aiFeatures?.recommendationScore
+                        ? parseFloat(p.aiFeatures.recommendationScore)
+                        : undefined,
+                    }))}
+                  />
+                )}
               </TabsContent>
             </Tabs>
           </div>
@@ -390,12 +449,30 @@ const Home = () => {
           <div className="container mx-auto px-4">
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-3xl font-bold">Featured Products</h2>
-              <Link to="/products" className="text-primary hover:underline hover:text-blue-400">
+              <Link
+                to="/products"
+                className="text-primary hover:underline hover:text-blue-400"
+              >
                 View All
               </Link>
             </div>
-
-            <ProductGrid products={featuredProducts} />
+            {loadingProducts ? (
+              <div className="text-center py-8">Loading...</div>
+            ) : (
+              <ProductGrid
+                products={apiProducts.map((p) => ({
+                  id: p._id || p.id,
+                  name: p.name,
+                  price: p.price,
+                  image: p.imageUrl,
+                  category: p.category,
+                  inStock: p.stockQuantity > 0,
+                  rating: p.aiFeatures?.recommendationScore
+                    ? parseFloat(p.aiFeatures.recommendationScore)
+                    : undefined,
+                }))}
+              />
+            )}
           </div>
         </section>
 
@@ -417,7 +494,9 @@ const Home = () => {
                     Get 20% off on all skincare products this week. Use code
                     SKIN20 at checkout.
                   </p>
-                  <Button style={{ backgroundColor: '#7494ec' }}>Shop Now</Button>
+                  <Button style={{ backgroundColor: "#7494ec" }}>
+                    Shop Now
+                  </Button>
                 </div>
               </div>
             </div>
@@ -427,7 +506,9 @@ const Home = () => {
         {/* Customer Testimonials */}
         <section className="py-12 bg-white">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold mb-10 text-center">What Our Customers Say</h2>
+            <h2 className="text-3xl font-bold mb-10 text-center">
+              What Our Customers Say
+            </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {[
@@ -435,25 +516,31 @@ const Home = () => {
                   name: "Emily Johnson",
                   role: "Skincare Enthusiast",
                   image: "https://randomuser.me/api/portraits/women/44.jpg",
-                  quote: "The products are amazing! My skin has never looked better. The customer service team was also very helpful.",
-                  rating: 5
+                  quote:
+                    "The products are amazing! My skin has never looked better. The customer service team was also very helpful.",
+                  rating: 5,
                 },
                 {
                   name: "Michael Chen",
                   role: "Loyal Customer",
                   image: "https://randomuser.me/api/portraits/men/32.jpg",
-                  quote: "I've been using PharmaCoS for all my healthcare needs. Their fast delivery and quality products keep me coming back.",
-                  rating: 5
+                  quote:
+                    "I've been using PharmaCoS for all my healthcare needs. Their fast delivery and quality products keep me coming back.",
+                  rating: 5,
                 },
                 {
                   name: "Sarah Williams",
                   role: "Beauty Blogger",
                   image: "https://randomuser.me/api/portraits/women/68.jpg",
-                  quote: "As a beauty blogger, I've tried countless products, but the range at PharmaCoS stands out for its effectiveness and value.",
-                  rating: 4
-                }
+                  quote:
+                    "As a beauty blogger, I've tried countless products, but the range at PharmaCoS stands out for its effectiveness and value.",
+                  rating: 4,
+                },
               ].map((testimonial, index) => (
-                <div key={index} className="bg-gray-50 p-6 rounded-lg shadow-sm">
+                <div
+                  key={index}
+                  className="bg-gray-50 p-6 rounded-lg shadow-sm"
+                >
                   <div className="flex items-center mb-4">
                     <img
                       src={testimonial.image}
@@ -462,16 +549,24 @@ const Home = () => {
                     />
                     <div>
                       <h4 className="font-medium">{testimonial.name}</h4>
-                      <p className="text-sm text-gray-500">{testimonial.role}</p>
+                      <p className="text-sm text-gray-500">
+                        {testimonial.role}
+                      </p>
                     </div>
                   </div>
                   <div className="flex mb-3">
-                    {Array(5).fill(0).map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`w-4 h-4 ${i < testimonial.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
-                      />
-                    ))}
+                    {Array(5)
+                      .fill(0)
+                      .map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-4 h-4 ${
+                            i < testimonial.rating
+                              ? "text-yellow-400 fill-yellow-400"
+                              : "text-gray-300"
+                          }`}
+                        />
+                      ))}
                   </div>
                   <p className="text-gray-600 italic">"{testimonial.quote}"</p>
                 </div>
