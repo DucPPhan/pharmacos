@@ -19,6 +19,7 @@ import CategoryPage from "./page/Category/CategoryPage";
 import ProductDetailPage from "./page/ProductDetail/ProductDetailPage";
 import ProductsPage from "./page/Products/ProductsPage";
 import UserProfile from "./page/profile/UserProfile";
+import Cart from "./page/cart";
 
 function App() {
   const [visible, setVisible] = useState(true);
@@ -52,13 +53,12 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/profile" element={<UserProfile />} />
-
-            {/* <Route path="/login" element={<Login />} />
-            <Route path="/cart" element={<Cart />} />
+            {/* 
             <Route path="/profile/personal-info" element={<PersonalInfo />} />
             <Route path="/profile/change-password" element={<ChangePassword />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} /> */}
             <Route path="/products" element={<ProductsPage />} />
+            <Route path="/cart" element={<Cart />} />
             <Route path="/category/:categoryId" element={<CategoryPage />} />
             <Route path="/product/:productId" element={<ProductDetailPage />} />
             <Route path="/admin/dashboard" element={<Dashboard />} />

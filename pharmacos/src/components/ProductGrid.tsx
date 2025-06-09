@@ -124,9 +124,9 @@ const ProductGrid = ({
     selectedCategory === "all"
       ? products
       : products.filter(
-        (product) =>
-          product.category.toLowerCase() === selectedCategory.toLowerCase()
-      );
+          (product) =>
+            product.category.toLowerCase() === selectedCategory.toLowerCase()
+        );
 
   // Sort products
   const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -187,6 +187,7 @@ const ProductGrid = ({
 
     if (onAddToCart) {
       onAddToCart(product, quantity);
+      navigate("/cart");
     } else {
       // Default implementation if no onAddToCart is provided
       toast({
@@ -194,6 +195,7 @@ const ProductGrid = ({
         description: `${quantity} × ${product.name} added to your cart`,
         duration: 3000,
       });
+      navigate("/cart");
     }
 
     // Reset quantity after adding to cart
@@ -236,10 +238,11 @@ const ProductGrid = ({
           <Star
             key={star}
             size={14}
-            className={`${star <= Math.round(rating)
+            className={`${
+              star <= Math.round(rating)
                 ? "text-yellow-400 fill-yellow-400"
                 : "text-gray-300"
-              }`}
+            }`}
           />
         ))}
         <span className="ml-1 text-xs text-gray-500">{rating.toFixed(1)}</span>
@@ -305,7 +308,8 @@ const ProductGrid = ({
               ? (product.price * (1 - product.discount / 100)).toFixed(2)
               : null;
 
-            const isHovered = hoverStates[product.id] || getQuantity(product.id) > 1;
+            const isHovered =
+              hoverStates[product.id] || getQuantity(product.id) > 1;
 
             return (
               <Card
@@ -332,7 +336,9 @@ const ProductGrid = ({
                   {/* Discount badge */}
                   {product.discount && (
                     <div className="absolute top-2 right-2">
-                      <Badge className="bg-red-500">{product.discount}% OFF</Badge>
+                      <Badge className="bg-red-500">
+                        {product.discount}% OFF
+                      </Badge>
                     </div>
                   )}
 
@@ -370,12 +376,18 @@ const ProductGrid = ({
                         </span>
                       </div>
                     ) : (
-                      <span className="font-bold">${product.price.toFixed(2)}</span>
+                      <span className="font-bold">
+                        ${product.price.toFixed(2)}
+                      </span>
                     )}
                   </div>
 
                   {/* Add to cart controls */}
-                  <div className={`flex items-center justify-between mt-2 transition-opacity duration-200 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+                  <div
+                    className={`flex items-center justify-between mt-2 transition-opacity duration-200 ${
+                      isHovered ? "opacity-100" : "opacity-0"
+                    }`}
+                  >
                     <div className="flex items-center border rounded">
                       <button
                         className="px-2 py-1 text-gray-500 hover:text-gray-700"
@@ -387,7 +399,9 @@ const ProductGrid = ({
                       >
                         <Minus size={14} />
                       </button>
-                      <span className="px-2 py-1 text-sm">{getQuantity(product.id)}</span>
+                      <span className="px-2 py-1 text-sm">
+                        {getQuantity(product.id)}
+                      </span>
                       <button
                         className="px-2 py-1 text-gray-500 hover:text-gray-700"
                         onClick={(e) => {
@@ -404,7 +418,7 @@ const ProductGrid = ({
                       size="sm"
                       disabled={!product.inStock}
                       onClick={(e) => handleAddToCart(e, product)}
-                      style={{ backgroundColor: '#7494ec' }}
+                      style={{ backgroundColor: "#7494ec" }}
                     >
                       <ShoppingCart className="h-4 w-4 mr-2" />
                       Add
