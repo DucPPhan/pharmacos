@@ -63,12 +63,12 @@ const categories = [
     id: 5,
     name: "Fragrances",
     image:
-      "https://images.unsplash.com/photo-1615412704911-55d589229864?w=800&q=80",
+      "https://images.pexels.com/photos/965990/pexels-photo-965990.jpeg?cs=srgb&dl=pexels-valeriya-965990.jpg&fm=jpg",
     count: 43,
   },
   {
     id: 6,
-    name: "Personal Care",
+    name: "Natural Products",
     image:
       "https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=800&q=80",
     count: 76,
