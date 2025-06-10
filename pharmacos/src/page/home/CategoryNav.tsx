@@ -21,8 +21,46 @@ type CategoryItem = {
 
 const categories: CategoryItem[] = [
   {
-    id: "facial-skincare",
-    name: "Facial Skincare",
+    id: "pharmaceuticals",
+    name: "Pharmaceuticals",
+    subcategories: [
+      {
+        title: "By Type",
+        items: [
+          "Supplements",
+          "Pain Relief",
+          "Cold & Flu",
+          "Allergy",
+          "Digestive Health",
+        ],
+      },
+      {
+        title: "By Use",
+        items: [
+          "Immunity",
+          "Heart Health",
+          "Joint Support",
+          "Sleep Aid",
+          "Energy",
+        ],
+      },
+    ],
+    popularProducts: [
+      {
+        id: "p1",
+        name: "Vitamin D Supplement",
+        image: "/images/products/vitamin-d.jpg",
+      },
+      {
+        id: "p2",
+        name: "Pain Relief Tablets",
+        image: "/images/products/pain-relief.jpg",
+      },
+    ],
+  },
+  {
+    id: "skincare",
+    name: "Skincare",
     subcategories: [
       {
         title: "By Product Type",
@@ -35,72 +73,20 @@ const categories: CategoryItem[] = [
     ],
     popularProducts: [
       {
-        id: "1",
+        id: "s1",
         name: "Vitamin C Serum",
         image: "/images/products/serum-c.jpg",
       },
       {
-        id: "2",
+        id: "s2",
         name: "Cerave Facial Cleanser",
         image: "/images/products/cerave-cleanser.jpg",
       },
     ],
   },
   {
-    id: "body-care",
-    name: "Body Care",
-    subcategories: [
-      {
-        title: "Products",
-        items: ["Body Wash", "Body Lotion", "Body Scrub", "Body Mist"],
-      },
-      {
-        title: "Special Concerns",
-        items: ["Cracked Heels", "Stretch Marks", "Folliculitis", "Dry Skin"],
-      },
-    ],
-    popularProducts: [
-      {
-        id: "b1",
-        name: "Cerave Body Lotion",
-        image: "/images/products/body-lotion.jpg",
-      },
-      {
-        id: "b2",
-        name: "Body Exfoliating Scrub",
-        image: "/images/products/body-scrub.jpg",
-      },
-    ],
-  },
-  {
-    id: "skin-solutions",
-    name: "Skin Solutions",
-    subcategories: [
-      {
-        title: "By Skin Type",
-        items: ["Oily Skin", "Dry Skin", "Combination Skin", "Sensitive Skin"],
-      },
-      {
-        title: "By Age",
-        items: ["Teens", "20s-30s", "30s-40s", "40+"],
-      },
-    ],
-    popularProducts: [
-      {
-        id: "s1",
-        name: "Oily Skin Product Set",
-        image: "/images/products/oily-skin-set.jpg",
-      },
-      {
-        id: "s2",
-        name: "Sensitive Skin Sunscreen",
-        image: "/images/products/sensitive-sunscreen.jpg",
-      },
-    ],
-  },
-  {
-    id: "hair-care",
-    name: "Hair & Scalp Care",
+    id: "haircare",
+    name: "Haircare",
     subcategories: [
       {
         title: "Product Types",
@@ -155,28 +141,28 @@ const categories: CategoryItem[] = [
     ],
   },
   {
-    id: "eye-care",
-    name: "Eye Care",
+    id: "fragrances",
+    name: "Fragrances",
     subcategories: [
       {
-        title: "Products",
-        items: ["Eye Cream", "Eye Mask", "Eye Serum", "Eye Gel"],
+        title: "Types",
+        items: ["Perfume", "Body Mist", "Eau de Toilette", "Roll-On"],
       },
       {
-        title: "Eye Area Concerns",
-        items: ["Dark Circles", "Eye Bags", "Wrinkles", "Puffiness"],
+        title: "For",
+        items: ["Men", "Women", "Unisex"],
       },
     ],
     popularProducts: [
       {
-        id: "e1",
-        name: "Anti-Aging Eye Cream",
-        image: "/images/products/eye-cream.jpg",
+        id: "f1",
+        name: "Floral Eau de Parfum",
+        image: "/images/products/perfume.jpg",
       },
       {
-        id: "e2",
-        name: "Hydrating Eye Mask",
-        image: "/images/products/eye-mask.jpg",
+        id: "f2",
+        name: "Citrus Body Mist",
+        image: "/images/products/body-mist.jpg",
       },
     ],
   },
