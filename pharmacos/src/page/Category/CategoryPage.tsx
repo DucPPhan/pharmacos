@@ -238,13 +238,11 @@ const CategoryPage = () => {
     setSortBy("featured");
   };
 
-  // Define allBrands and allTags from apiProducts
+  // Define allBrands and allTags from products
   const allBrands = Array.from(
-    new Set(apiProducts.map((p: any) => p.brand).filter(Boolean))
+    new Set(products.map((p) => p.brand).filter(Boolean))
   );
-  const allTags = Array.from(
-    new Set(apiProducts.flatMap((p: any) => p.features || []))
-  );
+  const allTags = Array.from(new Set(products.flatMap((p) => p.tags || [])));
 
   if (!category) {
     return <div className="container mx-auto px-4 py-8">Loading...</div>;
@@ -361,52 +359,56 @@ const CategoryPage = () => {
           </div>
 
           {/* Brand Filter */}
-          <div className="space-y-2">
-            <h3 className="font-medium">Brands</h3>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {allBrands.map((brand) => (
-                <div className="flex items-center space-x-2" key={brand}>
-                  <Checkbox
-                    id={`brand-${brand}`}
-                    checked={selectedBrands.includes(brand)}
-                    onCheckedChange={(checked) =>
-                      handleBrandChange(brand, checked as boolean)
-                    }
-                  />
-                  <Label
-                    htmlFor={`brand-${brand}`}
-                    className="text-sm cursor-pointer"
-                  >
-                    {brand}
-                  </Label>
-                </div>
-              ))}
+          {allBrands.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="font-medium">Brands</h3>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {allBrands.map((brand) => (
+                  <div className="flex items-center space-x-2" key={brand}>
+                    <Checkbox
+                      id={`brand-${brand}`}
+                      checked={selectedBrands.includes(brand)}
+                      onCheckedChange={(checked) =>
+                        handleBrandChange(brand, checked as boolean)
+                      }
+                    />
+                    <Label
+                      htmlFor={`brand-${brand}`}
+                      className="text-sm cursor-pointer"
+                    >
+                      {brand}
+                    </Label>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Tags Filter */}
-          <div className="space-y-2">
-            <h3 className="font-medium">Product Features</h3>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {allTags.map((tag) => (
-                <div className="flex items-center space-x-2" key={tag}>
-                  <Checkbox
-                    id={`tag-${tag}`}
-                    checked={selectedTags.includes(tag)}
-                    onCheckedChange={(checked) =>
-                      handleTagChange(tag, checked as boolean)
-                    }
-                  />
-                  <Label
-                    htmlFor={`tag-${tag}`}
-                    className="text-sm cursor-pointer"
-                  >
-                    {tag.replace("-", " ")}
-                  </Label>
-                </div>
-              ))}
+          {allTags.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="font-medium">Product Features</h3>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {allTags.map((tag) => (
+                  <div className="flex items-center space-x-2" key={tag}>
+                    <Checkbox
+                      id={`tag-${tag}`}
+                      checked={selectedTags.includes(tag)}
+                      onCheckedChange={(checked) =>
+                        handleTagChange(tag, checked as boolean)
+                      }
+                    />
+                    <Label
+                      htmlFor={`tag-${tag}`}
+                      className="text-sm cursor-pointer"
+                    >
+                      {tag.replace("-", " ")}
+                    </Label>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* In Stock Filter */}
           <div className="flex items-center space-x-2">
