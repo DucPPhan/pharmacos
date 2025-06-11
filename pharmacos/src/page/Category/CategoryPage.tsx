@@ -93,7 +93,6 @@ const CategoryPage = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [inStockOnly, setInStockOnly] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<string>("featured");
   const [filtersVisible, setFiltersVisible] = useState<boolean>(true);
   const [showSortingSelect, setShowSortingSelect] = useState(false);
@@ -189,11 +188,6 @@ const CategoryPage = () => {
       );
     }
 
-    // Apply in-stock filter
-    if (inStockOnly) {
-      filtered = filtered.filter((p) => p.inStock);
-    }
-
     // Apply sorting
     switch (sortBy) {
       case "price-low-high":
@@ -209,7 +203,7 @@ const CategoryPage = () => {
     }
 
     setFilteredProducts(filtered);
-  }, [products, priceRange, selectedBrands, selectedTags, inStockOnly, sortBy]);
+  }, [products, priceRange, selectedBrands, selectedTags, sortBy]);
 
   // Handle brand selection
   const handleBrandChange = (brand: string, checked: boolean) => {
@@ -234,7 +228,6 @@ const CategoryPage = () => {
     setPriceRange([minProductPrice, maxProductPrice]);
     setSelectedBrands([]);
     setSelectedTags([]);
-    setInStockOnly(false);
     setSortBy("featured");
   };
 
@@ -409,18 +402,6 @@ const CategoryPage = () => {
               </div>
             </div>
           )}
-
-          {/* In Stock Filter */}
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="in-stock"
-              checked={inStockOnly}
-              onCheckedChange={(checked) => setInStockOnly(checked as boolean)}
-            />
-            <Label htmlFor="in-stock" className="text-sm cursor-pointer">
-              In Stock Only
-            </Label>
-          </div>
         </div>
 
         {/* Product Grid */}
