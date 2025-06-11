@@ -49,12 +49,13 @@ const ProductsPage: React.FC = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [inStockOnly, setInStockOnly] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<string>("featured");
   const [filtersVisible, setFiltersVisible] = useState<boolean>(true);
 
   const [apiProducts, setApiProducts] = useState<any[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
+  const [allBrands, setAllBrands] = useState<string[]>([]);
+  const [allTags, setAllTags] = useState<string[]>([]);
 
   // Load filter state from session storage on component mount
   useEffect(() => {
@@ -82,14 +83,6 @@ const ProductsPage: React.FC = () => {
       if (savedFilterState.tags && savedFilterState.tags.length > 0) {
         setSelectedTags(savedFilterState.tags);
       }
-      if (savedFilterState.inStockOnly !== undefined) {
-        setInStockOnly(savedFilterState.inStockOnly);
-      }
-      // if (savedFilterState.subcategory && savedFilterState.subcategory.trim() !== '') {
-      //     setSelectedSubcategory(savedFilterState.subcategory);
-      // } else {
-      //     setSelectedSubcategory(null);
-      // }
     }
   }, []);
 
@@ -106,7 +99,6 @@ const ProductsPage: React.FC = () => {
       priceRange: priceRange,
       brands: selectedBrands.length > 0 ? selectedBrands : undefined,
       tags: selectedTags.length > 0 ? selectedTags : undefined,
-      inStockOnly: inStockOnly || undefined,
     };
 
     saveFilterState(filterState);
@@ -118,7 +110,6 @@ const ProductsPage: React.FC = () => {
     priceRange,
     selectedBrands,
     selectedTags,
-    inStockOnly,
   ]);
 
   // Apply filters when any filter changes
@@ -155,20 +146,19 @@ const ProductsPage: React.FC = () => {
     // Apply brand filter
     if (selectedBrands.length > 0) {
       filtered = filtered.filter(
-        (p) => p.brand && selectedBrands.includes(p.brand)
+        (p) =>
+          Array.isArray(p.brand) &&
+          p.brand.some((b) => selectedBrands.includes(b))
       );
     }
 
-    // Apply tag filter
+    // Apply tag filter (Product Features)
     if (selectedTags.length > 0) {
       filtered = filtered.filter(
-        (p) => p.tags && p.tags.some((tag) => selectedTags.includes(tag))
+        (p) =>
+          Array.isArray(p.features) &&
+          p.features.some((f) => selectedTags.includes(f))
       );
-    }
-
-    // Apply in-stock filter
-    if (inStockOnly) {
-      filtered = filtered.filter((p) => p.inStock);
     }
 
     // Apply sorting
@@ -198,7 +188,6 @@ const ProductsPage: React.FC = () => {
     priceRange,
     selectedBrands,
     selectedTags,
-    inStockOnly,
     sortBy,
     apiProducts,
   ]);
@@ -257,7 +246,6 @@ const ProductsPage: React.FC = () => {
     setPriceRange([priceRange[0], priceRange[1]]);
     setSelectedBrands([]);
     setSelectedTags([]);
-    setInStockOnly(false);
     setSortBy("featured");
   };
 
@@ -294,13 +282,39 @@ const ProductsPage: React.FC = () => {
     fetchProducts();
   }, []);
 
-  // After fetching products, set priceRange and filteredProducts
+  // After fetching products, set priceRange, filteredProducts, allBrands, and allTags
   useEffect(() => {
     if (apiProducts.length > 0) {
       const min = Math.min(...apiProducts.map((p) => p.price));
       const max = Math.max(...apiProducts.map((p) => p.price));
       setPriceRange([min, max]);
       setFilteredProducts(apiProducts);
+      // Lấy tất cả brand duy nhất từ mảng brand
+      const brands = Array.from(
+        new Set(
+          apiProducts.flatMap((p) =>
+            Array.isArray(p.brand)
+              ? p.brand
+                  .map((b) => (typeof b === "string" ? b.trim() : ""))
+                  .filter(Boolean)
+              : []
+          )
+        )
+      );
+      setAllBrands(brands);
+      // Lấy tất cả feature duy nhất từ mảng features
+      const features = Array.from(
+        new Set(
+          apiProducts.flatMap((p) =>
+            Array.isArray(p.features)
+              ? p.features
+                  .map((f) => (typeof f === "string" ? f.trim() : ""))
+                  .filter(Boolean)
+              : []
+          )
+        )
+      );
+      setAllTags(features);
     }
   }, [apiProducts]);
 
@@ -436,7 +450,7 @@ const ProductsPage: React.FC = () => {
           <div className="space-y-2">
             <h3 className="font-medium">Brands</h3>
             <div className="space-y-2 max-h-48 overflow-y-auto">
-              {selectedBrands.map((brand) => (
+              {allBrands.map((brand) => (
                 <div className="flex items-center space-x-2" key={brand}>
                   <Checkbox
                     id={`brand-${brand}`}
@@ -460,7 +474,7 @@ const ProductsPage: React.FC = () => {
           <div className="space-y-2">
             <h3 className="font-medium">Product Features</h3>
             <div className="space-y-2 max-h-48 overflow-y-auto">
-              {selectedTags.map((tag) => (
+              {allTags.map((tag) => (
                 <div className="flex items-center space-x-2" key={tag}>
                   <Checkbox
                     id={`tag-${tag}`}
@@ -478,18 +492,6 @@ const ProductsPage: React.FC = () => {
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* In Stock Filter */}
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="in-stock"
-              checked={inStockOnly}
-              onCheckedChange={(checked) => setInStockOnly(checked as boolean)}
-            />
-            <Label htmlFor="in-stock" className="text-sm cursor-pointer">
-              In Stock Only
-            </Label>
           </div>
         </div>
 
