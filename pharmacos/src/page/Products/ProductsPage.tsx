@@ -22,18 +22,7 @@ import {
   FilterState,
 } from "../../utils/homeSessionStorage";
 import { useToast } from "@/components/ui/use-toast";
-
-// Categories matching CategoryNav
-const categoryOptions = [
-  { id: "all", name: "All Products" },
-  { id: "facial-skincare", name: "Facial Skincare" },
-  { id: "body-care", name: "Body Care" },
-  { id: "skin-solutions", name: "Skin Solutions" },
-  { id: "hair-care", name: "Hair & Scalp Care" },
-  { id: "makeup", name: "Makeup" },
-  { id: "eye-care", name: "Eye Care" },
-  { id: "natural-products", name: "Natural Products" },
-];
+import { staffApi } from "../staff/services/api";
 
 const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -56,6 +45,10 @@ const ProductsPage: React.FC = () => {
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
   const [allBrands, setAllBrands] = useState<string[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
+
+  const [allCategories, setAllCategories] = useState<
+    { id: string; name: string }[]
+  >([{ id: "all", name: "All Products" }]);
 
   // Load filter state from session storage on component mount
   useEffect(() => {
@@ -86,11 +79,8 @@ const ProductsPage: React.FC = () => {
     }
   }, []);
 
-  // console.log(getFilterState());
-
   // Save filter state when any filter changes
   useEffect(() => {
-    console.log(selectedSubcategory);
     const filterState: FilterState = {
       category: selectedCategory !== "all" ? selectedCategory : undefined,
       subcategory: selectedSubcategory || undefined,
@@ -260,7 +250,7 @@ const ProductsPage: React.FC = () => {
 
   // Get category name for display
   const getCategoryName = (id: string): string => {
-    const category = categoryOptions.find((c) => c.id === id);
+    const category = allCategories.find((c) => c.id === id);
     return category ? category.name : "All Products";
   };
 
@@ -316,6 +306,16 @@ const ProductsPage: React.FC = () => {
       );
       setAllTags(features);
     }
+  }, [apiProducts]);
+
+  useEffect(() => {
+    const categories = Array.from(
+      new Set(apiProducts.map((p) => p.category).filter(Boolean))
+    ).map((cat) => ({
+      id: cat,
+      name: cat,
+    }));
+    setAllCategories([{ id: "all", name: "All Products" }, ...categories]);
   }, [apiProducts]);
 
   return (
@@ -377,11 +377,13 @@ const ProductsPage: React.FC = () => {
                 <SelectValue placeholder="Select Category" />
               </SelectTrigger>
               <SelectContent>
-                {categoryOptions.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
+                {allCategories.map((category) =>
+                  category && category.id && category.name ? (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ) : null
+                )}
               </SelectContent>
             </Select>
           </div>
