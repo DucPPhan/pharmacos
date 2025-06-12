@@ -1,4 +1,3 @@
-// src/page/product/ProductDetailPage.tsx
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
@@ -20,6 +19,10 @@ import {
 } from "../../components/ui/tabs";
 import { Badge } from "../../components/ui/badge";
 import ProductGrid from "../../components/ProductGrid";
+import { useToast } from "@/components/ui/use-toast";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 // Product interface
 interface Product {
@@ -45,6 +48,7 @@ interface Product {
 
 // Reviews interface
 interface Review {
+  userId: string;
   id: string;
   userName: string;
   rating: number;
@@ -62,17 +66,125 @@ const StarRating: React.FC<{ rating: number; size?: number }> = ({
   return (
     <div className="flex">
       {[1, 2, 3, 4, 5].map((star) => (
-        <Star
-          key={star}
-          size={size}
-          className={`${
-            star <= Math.round(rating)
-              ? "text-yellow-400 fill-yellow-400"
-              : "text-gray-300"
-          }`}
-        />
+        <div key={star} className="relative">
+          {/* Empty star (background) */}
+          <Star
+            size={size}
+            className="text-gray-300"
+          />
+
+          {/* Filled star with clip based on rating */}
+          <div
+            className="absolute top-0 left-0 overflow-hidden"
+            style={{
+              width: `${Math.max(0, Math.min(100, (rating - (star - 1)) * 100))}%`
+            }}
+          >
+            <Star
+              size={size}
+              className="text-yellow-400 fill-yellow-400"
+            />
+          </div>
+        </div>
       ))}
     </div>
+  );
+};
+
+// Move ReviewFormDialog outside of ProductDetailPage component
+const ReviewFormDialog = ({
+  open,
+  onOpenChange,
+  reviewRating,
+  setReviewRating,
+  reviewComment,
+  setReviewComment,
+  isSubmitting,
+  onSubmit,
+  userReview
+}) => {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>{userReview ? "Edit Your Review" : "Write a Review"}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="rating">Rating</Label>
+            <div className="flex gap-2 items-center">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setReviewRating(star)}
+                  className="p-1"
+                >
+                  <Star
+                    size={24}
+                    className={`${star <= reviewRating
+                      ? "text-yellow-400 fill-yellow-400"
+                      : "text-gray-300"
+                      }`}
+                  />
+                </button>
+              ))}
+              <span className="ml-2 text-sm text-gray-600">
+                {reviewRating} {reviewRating === 1 ? "star" : "stars"}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="comment">Your Review</Label>
+            <Textarea
+              id="comment"
+              value={reviewComment}
+              onChange={(e) => setReviewComment(e.target.value)}
+              rows={4}
+              placeholder="Tell others about your experience with this product"
+              required
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={onSubmit}
+            disabled={isSubmitting}
+            style={{ backgroundColor: "#7494ec" }}
+          >
+            {isSubmitting ? (
+              <>
+                <span className="mr-2">Submitting</span>
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+              </>
+            ) : userReview ? "Update Review" : "Submit Review"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 
@@ -84,6 +196,14 @@ const ProductDetailPage: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [userReview, setUserReview] = useState<Review | null>(null);
+  const [showReviewForm, setShowReviewForm] = useState<boolean>(false);
+  const [reviewRating, setReviewRating] = useState<number>(5);
+  const [reviewTitle, setReviewTitle] = useState<string>("");
+  const [reviewComment, setReviewComment] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -117,7 +237,7 @@ const ProductDetailPage: React.FC = () => {
             rating:
               p.reviews && p.reviews.length > 0
                 ? p.reviews.reduce((acc, r) => acc + (r.rating || 0), 0) /
-                  p.reviews.length
+                p.reviews.length
                 : undefined,
             reviewCount: p.reviews ? p.reviews.length : 0,
             brand: p.brand,
@@ -125,8 +245,8 @@ const ProductDetailPage: React.FC = () => {
             benefits: p.benefits,
             ingredients: p.ingredients
               ? p.ingredients.map(
-                  (i) => `${i.name} (${i.percentage}%) - ${i.purpose}`
-                )
+                (i) => `${i.name} (${i.percentage}%) - ${i.purpose}`
+              )
               : undefined,
             usage: p.instructions,
             specifications: {
@@ -152,7 +272,7 @@ const ProductDetailPage: React.FC = () => {
             rating:
               p.reviews && p.reviews.length > 0
                 ? p.reviews.reduce((acc, r) => acc + (r.rating || 0), 0) /
-                  p.reviews.length
+                p.reviews.length
                 : undefined,
             brand: p.brand,
           }))
@@ -167,6 +287,19 @@ const ProductDetailPage: React.FC = () => {
     };
     if (productId) fetchProduct();
   }, [productId]);
+
+  // Check if user is logged in and if they have already reviewed
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user"));
+    setIsLoggedIn(!!token && !!user.id);
+
+    if (reviews.length > 0 && user.id) {
+      // Find the user's review if it exists
+      const foundReview = reviews.find(review => review.userId === user.id);
+      setUserReview(foundReview || null);
+    }
+  }, [reviews]);
 
   if (loading) {
     return (
@@ -194,6 +327,190 @@ const ProductDetailPage: React.FC = () => {
       </div>
     );
   }
+
+  const handleOpenReviewForm = () => {
+    if (!isLoggedIn) {
+      toast({
+        title: "Login Required",
+        description: "Please login to write a review",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // If editing an existing review, populate the form
+    if (userReview) {
+      setReviewRating(userReview.rating);
+      setReviewComment(userReview.comment);
+    } else {
+      // Reset form for a new review
+      setReviewRating(5);
+      setReviewComment("");
+    }
+    setShowReviewForm(true);
+  };
+
+  const handleSubmitReview = async () => {
+    if (!reviewComment.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Please provide a comment for your review",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      const userId = JSON.parse(localStorage.getItem("user"))?.id;
+      const userName = JSON.parse(localStorage.getItem("user"))?.name || "User";
+
+      const reviewData = {
+        rating: reviewRating,
+        comment: reviewComment
+      };
+
+      // If updating an existing review
+      if (userReview) {
+        const response = await fetch(`http://localhost:10000/api/products/${productId}/reviews/${userReview.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(reviewData)
+        });
+
+        if (response.ok) {
+          // Update the review in the local state
+          const updatedReviews = reviews.map(review =>
+            review.id === userReview.id
+              ? {
+                ...review,
+                rating: reviewRating,
+                comment: reviewComment,
+                date: new Date().toISOString()
+              }
+              : review
+          );
+
+          setReviews(updatedReviews);
+          setUserReview({
+            ...userReview,
+            rating: reviewRating,
+            comment: reviewComment,
+            date: new Date().toISOString()
+          });
+
+          // Update the product rating
+          const newRating = updatedReviews.reduce((sum, r) => sum + r.rating, 0) / updatedReviews.length;
+          setProduct(prev => prev ? { ...prev, rating: newRating, reviewCount: updatedReviews.length } : null);
+
+          toast({
+            title: "Review Updated",
+            description: "Your review has been updated successfully",
+          });
+        }
+      } else {
+        // Creating a new review
+        const response = await fetch(`http://localhost:10000/api/products/${productId}/reviews`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(reviewData)
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+
+          const newReview = {
+            id: result.id || `temp-${Date.now()}`,
+            userId: userId || "",
+            userName: userName,
+            rating: reviewRating,
+            title: "", // Empty title as it's not in the API
+            comment: reviewComment,
+            date: new Date().toISOString(),
+            helpful: 0
+          };
+
+          // Add the new review to local state
+          const updatedReviews = [...reviews, newReview];
+          setReviews(updatedReviews);
+          setUserReview(newReview);
+
+          // Update the product rating
+          const newRating = updatedReviews.reduce((sum, r) => sum + r.rating, 0) / updatedReviews.length;
+          setProduct(prev => prev ? { ...prev, rating: newRating, reviewCount: updatedReviews.length } : null);
+
+          toast({
+            title: "Review Submitted",
+            description: "Your review has been submitted successfully",
+          });
+        }
+      }
+
+      setShowReviewForm(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "There was a problem submitting your review",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteReview = async () => {
+    if (!userReview || !isLoggedIn) return;
+
+    if (!confirm("Are you sure you want to delete your review?")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(`http://localhost:10000/api/products/${productId}/reviews/${userReview.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        // Remove the review from local state
+        const updatedReviews = reviews.filter(review => review.id !== userReview.id);
+        setReviews(updatedReviews);
+        setUserReview(null);
+
+        // Update the product rating
+        const newRating = updatedReviews.length > 0
+          ? updatedReviews.reduce((sum, r) => sum + r.rating, 0) / updatedReviews.length
+          : 0;
+
+        setProduct(prev => prev ? {
+          ...prev,
+          rating: newRating,
+          reviewCount: updatedReviews.length
+        } : null);
+
+        toast({
+          title: "Review Deleted",
+          description: "Your review has been deleted successfully",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "There was a problem deleting your review",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Calculate discounted price if applicable
   const discountedPrice = product.discount
@@ -238,11 +555,10 @@ const ProductDetailPage: React.FC = () => {
               {product.images.map((img, index) => (
                 <button
                   key={index}
-                  className={`border rounded overflow-hidden w-20 h-20 flex-shrink-0 ${
-                    selectedImage === index
-                      ? "border-primary border-2"
-                      : "border-gray-200"
-                  }`}
+                  className={`border rounded overflow-hidden w-20 h-20 flex-shrink-0 ${selectedImage === index
+                    ? "border-primary border-2"
+                    : "border-gray-200"
+                    }`}
                   onClick={() => setSelectedImage(index)}
                 >
                   <img
@@ -468,11 +784,11 @@ const ProductDetailPage: React.FC = () => {
               <div className="flex flex-col md:flex-row gap-6 md:items-center p-6 bg-gray-50 rounded-lg">
                 <div className="text-center md:border-r md:pr-6">
                   <div className="text-4xl font-bold text-primary">
-                    {product.rating?.toFixed(1)}
+                    {product.rating?.toFixed(1) || "0.0"}
                   </div>
                   <StarRating rating={product.rating || 0} size={20} />
                   <div className="text-sm text-gray-500 mt-1">
-                    {product.reviewCount} reviews
+                    {product.reviewCount} {product.reviewCount === 1 ? "review" : "reviews"}
                   </div>
                 </div>
 
@@ -482,7 +798,7 @@ const ProductDetailPage: React.FC = () => {
                       const count = reviews.filter(
                         (r) => Math.round(r.rating) === star
                       ).length;
-                      const percentage = (count / reviews.length) * 100;
+                      const percentage = reviews.length ? (count / reviews.length) * 100 : 0;
 
                       return (
                         <div key={star} className="flex items-center">
@@ -505,39 +821,91 @@ const ProductDetailPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <Button style={{ backgroundColor: "#7494ec" }}>
-                    Write a Review
-                  </Button>
+                  {!userReview ? (
+                    <Button
+                      style={{ backgroundColor: "#7494ec" }}
+                      onClick={handleOpenReviewForm}
+                    >
+                      Write a Review
+                    </Button>
+                  ) : (
+                    <div className="space-y-2">
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={handleOpenReviewForm}
+                      >
+                        Edit Your Review
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full text-red-500 border-red-200 hover:bg-red-50"
+                        onClick={handleDeleteReview}
+                      >
+                        Delete Review
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Individual reviews */}
               <div className="space-y-6">
-                {reviews.map((review) => (
-                  <div key={review.id} className="border-b pb-6">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-medium">{review.userName}</div>
-                        <div className="flex items-center mt-1">
-                          <StarRating rating={review.rating} />
-                          <span className="ml-2 text-sm text-gray-500">
-                            {new Date(review.date).toLocaleDateString()}
-                          </span>
+                {reviews.length > 0 ? (
+                  reviews.map((review) => (
+                    <div key={review.id} className={`border-b pb-6 ${review.id === userReview?.id ? 'bg-blue-50 p-4 rounded-lg' : ''}`}>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-medium">
+                            {review.userName}
+                            {review.id === userReview?.id && <span className="ml-2 text-blue-600 text-sm">(Your review)</span>}
+                          </div>
+                          <div className="flex items-center mt-1">
+                            <StarRating rating={review.rating} />
+                            <span className="ml-2 text-sm text-gray-500">
+                              {new Date(review.date).toLocaleDateString()}
+                            </span>
+                          </div>
                         </div>
+                        <Badge
+                          variant="outline"
+                          className="flex items-center gap-1"
+                        >
+                          <button
+                            className="text-xs"
+                            onClick={() => {
+                              // Handle marking review as helpful
+                              if (review.id !== userReview?.id) {
+                                const updatedReviews = reviews.map(r =>
+                                  r.id === review.id ? { ...r, helpful: r.helpful + 1 } : r
+                                );
+                                setReviews(updatedReviews);
+                              }
+                            }}
+                            disabled={review.id === userReview?.id}
+                          >
+                            Helpful ({review.helpful})
+                          </button>
+                        </Badge>
                       </div>
-                      <Badge
-                        variant="outline"
-                        className="flex items-center gap-1"
-                      >
-                        <button className="text-xs">
-                          Helpful ({review.helpful})
-                        </button>
-                      </Badge>
+                      <h4 className="font-medium mt-3">{review.title}</h4>
+                      <p className="mt-2 text-gray-600">{review.comment}</p>
                     </div>
-                    <h4 className="font-medium mt-3">{review.title}</h4>
-                    <p className="mt-2 text-gray-600">{review.comment}</p>
+                  ))
+                ) : (
+                  <div className="text-center py-8 border rounded-lg">
+                    <h3 className="text-lg font-medium mb-2">No Reviews Yet</h3>
+                    <p className="text-gray-500 mb-4">Be the first to review this product</p>
+                    {!userReview && (
+                      <Button
+                        style={{ backgroundColor: "#7494ec" }}
+                        onClick={handleOpenReviewForm}
+                      >
+                        Write a Review
+                      </Button>
+                    )}
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </TabsContent>
@@ -557,8 +925,21 @@ const ProductDetailPage: React.FC = () => {
         </div>
         <ProductGrid products={similarProducts} />
       </div>
+      {/* Add the ReviewFormDialog component here, outside of any conditional rendering */}
+      <ReviewFormDialog
+        open={showReviewForm}
+        onOpenChange={setShowReviewForm}
+        reviewRating={reviewRating}
+        setReviewRating={setReviewRating}
+        reviewComment={reviewComment}
+        setReviewComment={setReviewComment}
+        isSubmitting={isSubmitting}
+        onSubmit={handleSubmitReview}
+        userReview={userReview}
+      />
     </div>
   );
 };
+
 
 export default ProductDetailPage;
