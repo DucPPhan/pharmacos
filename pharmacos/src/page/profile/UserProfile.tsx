@@ -552,8 +552,9 @@ const fetchProfileByRole = async (): Promise<UserInfo> => {
 
 // Hàm update profile động theo role
 const updateProfileByRole = async (data: UserInfo): Promise<UserInfo> => {
-    const role = localStorage.getItem("role") || "customer";
-    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem('user'));
+    const role = user.role;
+    const token = localStorage.getItem('token');
     let url = "";
     let body: any = {};
     let method = "PATCH";
@@ -561,8 +562,18 @@ const updateProfileByRole = async (data: UserInfo): Promise<UserInfo> => {
     if (role === "staff") {
         url = "http://localhost:10000/api/staff/profile";
         body = {
+            phone: data.phone,
+            address: data.address,
             name: data.name,
-            email: data.email,
+            gender:
+                data.gender === "Nam"
+                    ? "male"
+                    : data.gender === "Nữ"
+                        ? "female"
+                        : data.gender,
+            dateOfBirth: data.birthday
+                ? dayjs(data.birthday, "DD/MM/YYYY").format("YYYY-MM-DD")
+                : undefined,
         };
         method = "PATCH";
     } else {
