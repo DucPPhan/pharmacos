@@ -54,6 +54,7 @@ export function Inventory() {
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<any>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
 
   const benefitsOptions = [
     "Brightens skin tone and reduces hyperpigmentation",
@@ -104,13 +105,21 @@ export function Inventory() {
       });
       const data = await res.json();
       const productList = Array.isArray(data.products) ? data.products : data;
-      setProducts(productList);
+      const transformedProducts = productList.map(product => ({
+        ...product,
+        imageUrl: product.imageUrl 
+          ? (product.imageUrl.startsWith('http') 
+            ? product.imageUrl 
+            : `http://localhost:10000/${product.imageUrl}`)
+          : ''
+      }));
+      setProducts(transformedProducts);
       const uniqueCategories = Array.from(
-        new Set(productList.map((p) => String(p.category)))
+        new Set(transformedProducts.map((p) => String(p.category)))
       ).filter(Boolean) as string[];
       setCategories(uniqueCategories);
       const uniqueBrands = Array.from(
-        new Set(productList.map((p) => String(p.brand)))
+        new Set(transformedProducts.map((p) => String(p.brand)))
       ).filter(Boolean) as string[];
       setBrands(uniqueBrands);
     } catch (err) {
@@ -190,6 +199,17 @@ export function Inventory() {
     return true;
   };
 
+  const handleImageUrlChange = (url: string) => {
+    setNewProduct({ ...newProduct, imageUrl: url });
+    // Update preview if URL is not empty
+    if (url) {
+      const fullUrl = url.startsWith('http') ? url : `http://localhost:10000/${url}`;
+      setImagePreview(fullUrl);
+    } else {
+      setImagePreview("");
+    }
+  };
+
   const resetForm = () => {
     setNewProduct({
       name: "",
@@ -206,6 +226,7 @@ export function Inventory() {
       instructions: "",
     });
     setCurrentProduct(null);
+    setImagePreview("");
   };
 
   const createProduct = async () => {
@@ -401,23 +422,24 @@ export function Inventory() {
                       <TableRow key={p._id} className="hover:bg-[#1F3368]/5">
                         <TableCell className="text-[#1F3368]">{p.name}</TableCell>
                         <TableCell>
-                          {p.imageUrl ? (
-                            <div className="relative w-12 h-12">
+                          <div className="relative w-16 h-16">
+                            {p.imageUrl ? (
                               <img
-                                src={p.imageUrl.startsWith('http') ? p.imageUrl : `http://localhost:10000/${p.imageUrl}`}
+                                src={p.imageUrl}
                                 alt={p.name}
-                                className="object-cover w-full h-full rounded-md"
+                                className="w-full h-full object-cover rounded-md"
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
-                                  target.src = 'https://via.placeholder.com/48?text=No+Image';
+                                  target.onerror = null; // Prevent infinite loop
+                                  target.src = 'https://via.placeholder.com/64?text=Error';
                                 }}
                               />
-                            </div>
-                          ) : (
-                            <div className="w-12 h-12 bg-gray-200 rounded-md flex items-center justify-center text-gray-500 text-xs">
-                              No image
-                            </div>
-                          )}
+                            ) : (
+                              <div className="w-full h-full bg-gray-100 rounded-md flex items-center justify-center text-gray-400 text-xs">
+                                No image
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-[#1F3368]">{p.category}</TableCell>
                         <TableCell className="text-[#1F3368]">{p.brand}</TableCell>
@@ -433,6 +455,13 @@ export function Inventory() {
                             className="border-[#1F3368] text-[#1F3368] hover:bg-[#1F3368] hover:text-white"
                             onClick={() => {
                               setCurrentProduct(p);
+                              const productImageUrl = p.imageUrl;
+                              const fullImageUrl = productImageUrl?.startsWith('http') 
+                                ? productImageUrl 
+                                : productImageUrl 
+                                ? `http://localhost:10000/${productImageUrl}`
+                                : '';
+                              setImagePreview(fullImageUrl);
                               setNewProduct({
                                 name: p.name,
                                 description: p.description,
@@ -445,7 +474,7 @@ export function Inventory() {
                                 size: p.size,
                                 category: p.category,
                                 brand: p.brand,
-                                imageUrl: p.imageUrl,
+                                imageUrl: p.imageUrl || "",
                                 price: p.price,
                                 stockQuantity: p.stockQuantity,
                                 subcategory: p.subcategory || "",
@@ -663,22 +692,43 @@ export function Inventory() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
+            <div className="grid grid-cols-4 items-start gap-4">
               <label
                 htmlFor="imageUrl"
-                className="text-left font-medium min-w-[120px] pr-2 text-[#1F3368]"
+                className="text-left font-medium min-w-[120px] pr-2 text-[#1F3368] pt-2"
               >
                 Image URL:
               </label>
-              <Input
-                id="imageUrl"
-                placeholder="Image URL"
-                value={newProduct.imageUrl || ""}
-                onChange={(e) =>
-                  setNewProduct({ ...newProduct, imageUrl: e.target.value })
-                }
-                className="col-span-3"
-              />
+              <div className="col-span-3 space-y-4">
+                <Input
+                  id="imageUrl"
+                  placeholder="Image URL"
+                  value={newProduct.imageUrl || ""}
+                  onChange={(e) => handleImageUrlChange(e.target.value)}
+                  className="w-full"
+                />
+                {imagePreview ? (
+                  <div className="relative w-full h-48 border rounded-md overflow-hidden">
+                    <img
+                      src={imagePreview}
+                      alt="Product preview"
+                      className="w-full h-full object-contain"
+                      onError={() => {
+                        setImagePreview("");
+                        toast({
+                          title: "Error",
+                          description: "Failed to load image. Please check the URL.",
+                          variant: "destructive",
+                        });
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full h-48 border rounded-md flex items-center justify-center bg-gray-50 text-gray-400">
+                    No image preview available
+                  </div>
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <label
