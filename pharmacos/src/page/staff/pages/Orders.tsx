@@ -44,8 +44,32 @@ export function Orders() {
     const loadOrders = async () => {
       try {
         setIsLoading(true);
-        const response = await staffApi.getOrders();
-        setOrders(response.data);
+        const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:10000/api/staff/orders", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await response.json();
+        
+        // Transform the orders data to match our component's structure
+        const transformedOrders = data.map((order: any) => ({
+          id: order._id,
+          customer: `${order.user?.firstName || ''} ${order.user?.lastName || ''}`,
+          email: order.user?.email || '',
+          phone: order.user?.phone || '',
+          date: new Date(order.createdAt).toLocaleDateString(),
+          status: order.status,
+          total: order.totalAmount,
+          items: order.items.map((item: any) => ({
+            id: item._id,
+            name: item.product?.name || 'Unknown Product',
+            quantity: item.quantity,
+            price: item.price
+          }))
+        }));
+
+        setOrders(transformedOrders);
       } catch (error) {
         console.error("Error loading orders:", error);
         toast({
@@ -82,7 +106,19 @@ export function Orders() {
     if (!currentOrder) return;
     
     try {
-      await staffApi.updateOrderStatus(currentOrder.id, { status: newStatus });
+      const token = localStorage.getItem("token");
+      const response = await fetch(`http://localhost:10000/api/staff/orders/${currentOrder.id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update order status');
+      }
       
       // Update local state
       setOrders(
@@ -253,7 +289,21 @@ export function Orders() {
                   <div className="space-y-1 text-[#1F3368]">
                     <p>Order ID: {currentOrder.id}</p>
                     <p>Date: {currentOrder.date}</p>
-                    <p>Status: {currentOrder.status}</p>
+                    <div className="flex items-center gap-2">
+                      <p>Status:</p>
+                      <Select value={newStatus} onValueChange={setNewStatus}>
+                        <SelectTrigger className="w-[180px] border-[#1F3368] text-[#1F3368]">
+                          <SelectValue>{newStatus}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Pending" className="text-[#1F3368]">Pending</SelectItem>
+                          <SelectItem value="Processing" className="text-[#1F3368]">Processing</SelectItem>
+                          <SelectItem value="Shipped" className="text-[#1F3368]">Shipped</SelectItem>
+                          <SelectItem value="Delivered" className="text-[#1F3368]">Delivered</SelectItem>
+                          <SelectItem value="Cancelled" className="text-[#1F3368]">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <p>Total: ${currentOrder.total.toFixed(2)}</p>
                   </div>
                 </div>
@@ -298,8 +348,16 @@ export function Orders() {
               onClick={() => setShowOrderDetails(false)}
               className="border-[#1F3368] text-[#1F3368] hover:bg-[#1F3368] hover:text-white"
             >
-              Close
+              Cancel
             </Button>
+            {newStatus !== currentOrder?.status && (
+              <Button
+                onClick={updateOrderStatus}
+                className="bg-[#1F3368] hover:bg-[#152347] text-white"
+              >
+                Update Status
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
