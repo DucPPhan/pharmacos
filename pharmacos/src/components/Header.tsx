@@ -10,6 +10,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from './ui/dialog';
+import CartDropdown from './CartDropdown/CartDropdown';
 
 export default function Header() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -59,7 +60,7 @@ export default function Header() {
                                     variant="ghost"
                                     size="icon"
                                     className="ml-2 bg-white hover:bg-gray-100 text-gray-700"
-                                    style={{position: 'relative', left: '30px'}}
+                                    style={{ position: 'relative', left: '30px' }}
                                     onClick={() => setIsAISearchOpen(true)}
                                     title="Search by image"
                                 >
@@ -68,9 +69,18 @@ export default function Header() {
                             </div>
                         </div>
 
-                        <div className="hidden md:flex items-center space-x-4">
+                        {/* Navigation */}
+                        <nav className="hidden md:flex space-x-6">
+                            <Link to="/" className="hover:text-primary">Home</Link>
+                            <Link to="/products" className="hover:text-primary">Products</Link>
+                            <Link to="/categories" className="hover:text-primary">Categories</Link>
+                            <Link to="/about" className="hover:text-primary">About</Link>
+                        </nav>
+
+                        <div className="hidden md:flex items-center space-x-4 ml-4">
                             <Button variant="ghost" size="icon">
-                                <ShoppingCart className="h-5 w-5 text-white" />
+                                {/* <ShoppingCart className="h-5 w-5 text-white" /> */}
+                                <CartDropdown />
                             </Button>
                             <Button
                                 variant="ghost"

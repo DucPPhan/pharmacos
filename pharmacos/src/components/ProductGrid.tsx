@@ -124,9 +124,9 @@ const ProductGrid = ({
     selectedCategory === "all"
       ? products
       : products.filter(
-          (product) =>
-            product.category.toLowerCase() === selectedCategory.toLowerCase()
-        );
+        (product) =>
+          product.category.toLowerCase() === selectedCategory.toLowerCase()
+      );
 
   // Sort products
   const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -187,7 +187,16 @@ const ProductGrid = ({
 
     if (onAddToCart) {
       onAddToCart(product, quantity);
-      navigate("/cart");
+
+      // Show toast notification instead of navigating
+      toast({
+        title: "Added to cart",
+        description: `${quantity} × ${product.name} added to your cart`,
+        duration: 3000,
+      });
+
+      // Remove this line to prevent automatic navigation
+      // navigate("/cart");
     } else {
       // Default implementation if no onAddToCart is provided
       toast({
@@ -195,7 +204,9 @@ const ProductGrid = ({
         description: `${quantity} × ${product.name} added to your cart`,
         duration: 3000,
       });
-      navigate("/cart");
+
+      // Remove this line to prevent automatic navigation
+      // navigate("/cart");
     }
 
     // Reset quantity after adding to cart
@@ -238,11 +249,10 @@ const ProductGrid = ({
           <Star
             key={star}
             size={14}
-            className={`${
-              star <= Math.round(rating)
+            className={`${star <= Math.round(rating)
                 ? "text-yellow-400 fill-yellow-400"
                 : "text-gray-300"
-            }`}
+              }`}
           />
         ))}
         <span className="ml-1 text-xs text-gray-500">{rating.toFixed(1)}</span>
@@ -384,9 +394,8 @@ const ProductGrid = ({
 
                   {/* Add to cart controls */}
                   <div
-                    className={`flex items-center justify-between mt-2 transition-opacity duration-200 ${
-                      isHovered ? "opacity-100" : "opacity-0"
-                    }`}
+                    className={`flex items-center justify-between mt-2 transition-opacity duration-200 ${isHovered ? "opacity-100" : "opacity-0"
+                      }`}
                   >
                     <div className="flex items-center border rounded">
                       <button

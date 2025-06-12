@@ -1,162 +1,120 @@
 // src/components/ProductCard.tsx
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Star, ShoppingCart, Plus, Minus } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { ShoppingCart, Star } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useCart } from '@/contexts/CartContext';
+import { useToast } from '@/components/ui/use-toast';
+import { Badge } from '@/components/ui/badge';
 
-interface Product {
+interface ProductCardProps {
     id: string;
     name: string;
     price: number;
     image: string;
-    category?: string;
-    categoryId?: number;
-    inStock?: boolean;
     rating?: number;
-    brand?: string;
+    category?: string;
+    isNew?: boolean;
+    isOnSale?: boolean;
     discount?: number;
 }
 
-interface ProductCardProps {
-    product: Product;
-    onAddToCart?: (product: Product, quantity: number) => void;
-}
-
-const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
-    const [quantity, setQuantity] = useState(1);
-    const [showControls, setShowControls] = useState(false);
-    const navigate = useNavigate();
-
-    const { id, name, price, image, rating, inStock = true, discount } = product;
-
-    // Calculate discounted price if applicable
-    const discountedPrice = discount
-        ? (price * (1 - discount / 100)).toFixed(2)
-        : null;
-
-    const handleProductClick = () => {
-        navigate(`/product/${id}`);
-    };
-
-    const handleQuantityChange = (amount: number) => {
-        setQuantity(prev => Math.max(1, prev + amount));
-    };
+const ProductCard: React.FC<ProductCardProps> = ({
+    id,
+    name,
+    price,
+    image,
+    rating,
+    category,
+    isNew = false,
+    isOnSale = false,
+    discount = 0
+}) => {
+    const { addToCart } = useCart();
+    const { toast } = useToast();
 
     const handleAddToCart = (e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent navigating to product page
-        if (onAddToCart) {
-            onAddToCart(product, quantity);
-        }
-        // Reset quantity after adding to cart
-        setQuantity(1);
-        setShowControls(false);
+        e.preventDefault(); // Prevent navigation to detail page
+
+        addToCart({
+            id,
+            name,
+            price,
+            image
+        });
+
+        toast({
+            title: "Added to cart",
+            description: `${name} has been added to your cart`,
+        });
     };
 
+    const discountedPrice = isOnSale && discount > 0
+        ? price * (1 - discount / 100)
+        : null;
+
     return (
-        <div
-            className="bg-white rounded-lg border overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-            onMouseEnter={() => setShowControls(true)}
-            onMouseLeave={() => setShowControls(false)}
-        >
-            <div className="relative" onClick={handleProductClick}>
-                <div className="aspect-square overflow-hidden cursor-pointer">
+        <Link to={`/products/${id}`} className="group">
+            <div className="border rounded-lg overflow-hidden bg-white hover:shadow-md transition-shadow">
+                <div className="relative pt-[100%]">
+                    {/* Product image */}
                     <img
                         src={image}
                         alt={name}
-                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                        className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
                     />
-                </div>
 
-                {/* Out of stock overlay */}
-                {!inStock && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                        <Badge variant="outline" className="bg-white text-black font-medium">
-                            Out of Stock
-                        </Badge>
-                    </div>
-                )}
-
-                {/* Discount badge */}
-                {discount && (
-                    <Badge className="absolute top-2 left-2 bg-red-500">
-                        {discount}% OFF
-                    </Badge>
-                )}
-            </div>
-
-            <div className="p-4">
-                <div className="cursor-pointer" onClick={handleProductClick}>
-                    <h3 className="font-medium text-gray-900 truncate hover:text-primary transition-colors">
-                        {name}
-                    </h3>
-
-                    {/* Price */}
-                    <div className="mt-1 flex items-baseline gap-2">
-                        {discountedPrice ? (
-                            <>
-                                <span className="text-lg font-bold">${discountedPrice}</span>
-                                <span className="text-sm text-gray-500 line-through">${price.toFixed(2)}</span>
-                            </>
-                        ) : (
-                            <span className="text-lg font-bold">${price.toFixed(2)}</span>
+                    {/* Badges */}
+                    <div className="absolute top-2 left-2 flex flex-col gap-1">
+                        {isNew && (
+                            <Badge className="bg-blue-500">New</Badge>
+                        )}
+                        {isOnSale && discount > 0 && (
+                            <Badge className="bg-red-500">{discount}% OFF</Badge>
                         )}
                     </div>
 
-                    {/* Rating */}
-                    {rating && (
-                        <div className="flex items-center mt-1">
-                            <div className="flex">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                    <Star
-                                        key={star}
-                                        size={14}
-                                        className={`${star <= Math.round(rating)
-                                                ? "text-yellow-400 fill-yellow-400"
-                                                : "text-gray-300"
-                                            }`}
-                                    />
-                                ))}
-                            </div>
-                            <span className="ml-1 text-xs text-gray-500">{rating.toFixed(1)}</span>
-                        </div>
-                    )}
-                </div>
-
-                {/* Add to cart section */}
-                <div className={`mt-3 transition-opacity duration-200 ${showControls || quantity > 1 ? 'opacity-100' : 'opacity-0'}`}>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center border rounded">
-                            <button
-                                className="px-2 py-1 text-gray-500 hover:text-gray-700"
-                                onClick={() => handleQuantityChange(-1)}
-                                disabled={!inStock}
-                            >
-                                <Minus size={16} />
-                            </button>
-                            <span className="px-2 py-1 text-sm">{quantity}</span>
-                            <button
-                                className="px-2 py-1 text-gray-500 hover:text-gray-700"
-                                onClick={() => handleQuantityChange(1)}
-                                disabled={!inStock}
-                            >
-                                <Plus size={16} />
-                            </button>
-                        </div>
-
+                    {/* Quick add button */}
+                    <div className="absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button
-                            size="sm"
-                            className="ml-2"
-                            disabled={!inStock}
                             onClick={handleAddToCart}
-                            style={{ backgroundColor: '#7494ec' }}
+                            className="w-full"
+                            style={{ backgroundColor: "#7494ec" }}
                         >
-                            <ShoppingCart className="h-4 w-4" />
+                            <ShoppingCart className="h-4 w-4 mr-2" />
+                            Add to Cart
                         </Button>
                     </div>
                 </div>
+
+                <div className="p-3">
+                    {category && (
+                        <p className="text-xs text-gray-500 mb-1">{category}</p>
+                    )}
+                    <h3 className="font-medium text-gray-900 line-clamp-1 mb-1">{name}</h3>
+
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center">
+                            {discountedPrice ? (
+                                <div className="flex items-baseline gap-1">
+                                    <span className="font-medium">${discountedPrice.toFixed(2)}</span>
+                                    <span className="text-sm text-gray-500 line-through">${price.toFixed(2)}</span>
+                                </div>
+                            ) : (
+                                <span className="font-medium">${price.toFixed(2)}</span>
+                            )}
+                        </div>
+
+                        {rating && (
+                            <div className="flex items-center text-sm">
+                                <Star className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400 mr-1" />
+                                <span>{rating.toFixed(1)}</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
-        </div>
+        </Link>
     );
 };
 

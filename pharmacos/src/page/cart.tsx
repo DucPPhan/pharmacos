@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import {
   Card,
@@ -10,80 +10,59 @@ import {
 } from "../components/ui/card";
 import { Separator } from "../components/ui/separator";
 import { Trash2, Plus, Minus, ArrowLeft, ShoppingBag } from "lucide-react";
-
-interface CartItem {
-  id: number;
-  name: string;
-  price: number;
-  image: string;
-  quantity: number;
-}
+import { useCart } from "../contexts/CartContext";
+import { useToast } from "../components/ui/use-toast";
 
 const Cart = () => {
-  // Sample cart items - in a real app, this would come from a state management solution
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    {
-      id: 1,
-      name: "Vitamin C Serum",
-      price: 24.99,
-      image:
-        "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=800&q=80",
-      quantity: 1,
-    },
-    {
-      id: 2,
-      name: "Hydrating Face Cream",
-      price: 32.5,
-      image:
-        "https://images.unsplash.com/photo-1611930022073-84f3e05cd886?w=800&q=80",
-      quantity: 2,
-    },
-    {
-      id: 3,
-      name: "Pain Relief Tablets",
-      price: 12.99,
-      image:
-        "https://images.unsplash.com/photo-1550572017-edd951b55104?w=800&q=80",
-      quantity: 1,
-    },
-  ]);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const {
+    cartItems,
+    updateQuantity,
+    removeItem,
+    subtotal,
+    submitOrder,
+    isSubmitting
+  } = useCart();
 
-  const updateQuantity = (id: number, change: number) => {
-    setCartItems(
-      cartItems.map((item) => {
-        if (item.id === id) {
-          const newQuantity = Math.max(1, item.quantity + change);
-          return { ...item, quantity: newQuantity };
-        }
-        return item;
-      }),
-    );
-  };
-
-  const removeItem = (id: number) => {
-    setCartItems(cartItems.filter((item) => item.id !== id));
-  };
-
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0,
-  );
   const shipping = 5.99;
   const tax = subtotal * 0.08; // 8% tax
   const total = subtotal + shipping + tax;
 
+  const handleCheckout = async () => {
+    try {
+      // Check if user is logged in
+      const user = localStorage.getItem('user');
+      if (!user) {
+        toast({
+          title: "Login required",
+          description: "Please log in to proceed with checkout",
+          variant: "destructive",
+        });
+        navigate('/login', { state: { from: '/cart' } });
+        return;
+      }
+
+      await submitOrder();
+
+      toast({
+        title: "Order placed successfully",
+        description: "Your order has been placed and is being processed",
+      });
+
+      navigate('/order-confirmation');
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast({
+        title: "Checkout failed",
+        description: error instanceof Error ? error.message : "Failed to place order. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-white border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="text-2xl font-bold text-primary">
-              PharmaCos
-            </Link>
-          </div>
-        </div>
-      </header>
 
       <main className="container mx-auto px-4 py-8">
         <div className="flex items-center mb-6">
@@ -184,8 +163,13 @@ const Cart = () => {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button className="w-full" size="lg">
-                    Proceed to Checkout
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={handleCheckout}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Processing..." : "Proceed to Checkout"}
                   </Button>
                 </CardFooter>
               </Card>

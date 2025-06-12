@@ -20,6 +20,8 @@ import ProductDetailPage from "./page/ProductDetail/ProductDetailPage";
 import ProductsPage from "./page/Products/ProductsPage";
 import UserProfile from "./page/profile/UserProfile";
 import Cart from "./page/cart";
+import { CartProvider } from "./contexts/CartContext";
+import OrderConfirmation from "./page/OrderConfirmation/OrderConfirmation";
 
 function App() {
   const [visible, setVisible] = useState(true);
@@ -42,32 +44,35 @@ function App() {
     return <VerifyEmailPage />;
   }
   return (
-    <Suspense fallback={<p>Loading...</p>}>
-      <div className="min-h-screen bg-background">
-        {visible && (
-          <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
-            <Header />
-          </div>
-        )}
-        <>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/profile" element={<UserProfile />} />
-            {/* 
-            <Route path="/profile/personal-info" element={<PersonalInfo />} />
-            <Route path="/profile/change-password" element={<ChangePassword />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} /> */}
-            <Route path="/products" element={<ProductsPage />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/category/:categoryId" element={<CategoryPage />} />
-            <Route path="/product/:productId" element={<ProductDetailPage />} />
-            <Route path="/admin/dashboard" element={<Dashboard />} />
-            <Route path="/staff/dashboard/*" element={<Staffdashboard />} />
-          </Routes>
-        </>
-        {visible && <Footer />}
-      </div>
-    </Suspense>
+    <CartProvider>
+      <Suspense fallback={<p>Loading...</p>}>
+        <div className="min-h-screen bg-background">
+          {visible && (
+            <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
+              <Header />
+            </div>
+          )}
+          <>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/profile" element={<UserProfile />} />
+              {/* 
+              <Route path="/profile/personal-info" element={<PersonalInfo />} />
+              <Route path="/profile/change-password" element={<ChangePassword />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} /> */}
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/category/:categoryId" element={<CategoryPage />} />
+              <Route path="/product/:productId" element={<ProductDetailPage />} />
+              <Route path="/admin/dashboard" element={<Dashboard />} />
+              <Route path="/staff/dashboard/*" element={<Staffdashboard />} />
+              <Route path="/order-confirmation" element={<OrderConfirmation />} />
+            </Routes>
+          </>
+          {visible && <Footer />}
+        </div>
+      </Suspense>
+    </CartProvider>
   );
 }
 

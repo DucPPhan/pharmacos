@@ -23,11 +23,13 @@ import {
 } from "../../utils/homeSessionStorage";
 import { useToast } from "@/components/ui/use-toast";
 import { staffApi } from "../staff/services/api";
+import { useCart } from "@/contexts/CartContext";
 
 const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { addToCart } = useCart();
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -239,8 +241,20 @@ const ProductsPage: React.FC = () => {
     setSortBy("featured");
   };
 
-  // Handle add to cart
   const handleAddToCart = (product, quantity) => {
+    // Add the product to the cart context
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.discount
+        ? product.price * (1 - product.discount / 100)
+        : product.price,
+      image: product.image,
+    },
+    quantity
+  );
+
+    // Show a toast notification
     toast({
       title: "Added to cart",
       description: `${quantity} × ${product.name} added to your cart`,
@@ -285,8 +299,8 @@ const ProductsPage: React.FC = () => {
           apiProducts.flatMap((p) =>
             Array.isArray(p.brand)
               ? p.brand
-                  .map((b) => (typeof b === "string" ? b.trim() : ""))
-                  .filter(Boolean)
+                .map((b) => (typeof b === "string" ? b.trim() : ""))
+                .filter(Boolean)
               : []
           )
         )
@@ -298,8 +312,8 @@ const ProductsPage: React.FC = () => {
           apiProducts.flatMap((p) =>
             Array.isArray(p.features)
               ? p.features
-                  .map((f) => (typeof f === "string" ? f.trim() : ""))
-                  .filter(Boolean)
+                .map((f) => (typeof f === "string" ? f.trim() : ""))
+                .filter(Boolean)
               : []
           )
         )
@@ -332,9 +346,8 @@ const ProductsPage: React.FC = () => {
       <div className="flex flex-col md:flex-row gap-6">
         {/* Filters Sidebar */}
         <div
-          className={`md:w-1/4 space-y-6 ${
-            filtersVisible ? "block" : "hidden md:block"
-          }`}
+          className={`md:w-1/4 space-y-6 ${filtersVisible ? "block" : "hidden md:block"
+            }`}
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold">Filters</h2>
@@ -550,7 +563,7 @@ const ProductsPage: React.FC = () => {
                   rating:
                     p.reviews && p.reviews.length > 0
                       ? p.reviews.reduce((acc, r) => acc + (r.rating || 0), 0) /
-                        p.reviews.length
+                      p.reviews.length
                       : undefined,
                   brand: p.brand,
                 };

@@ -29,6 +29,7 @@ import ProductGrid from "../../components/ProductGrid";
 import { useNavigate } from "react-router-dom";
 import CategoryNav from "./CategoryNav";
 import { motion, AnimatePresence } from "framer-motion";
+import { useCart } from "@/contexts/CartContext";
 
 const categories = [
   {
@@ -200,6 +201,7 @@ const Home = () => {
   const bannerRef = useRef(null);
   const [apiProducts, setApiProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const { addToCart } = useCart();
 
   // Auto rotate banners
   useEffect(() => {
@@ -256,6 +258,20 @@ const Home = () => {
 
   const prevBanner = () => {
     setCurrentBanner((prev) => (prev - 1 + banners.length) % banners.length);
+  };
+
+  const handleAddToCart = (product, quantity) => {
+    addToCart(
+      {
+        id: product.id,
+        name: product.name,
+        price: product.discount
+          ? product.price * (1 - product.discount / 100)
+          : product.price,
+        image: product.image,
+      },
+      quantity
+    );
   };
 
   return (
@@ -346,9 +362,8 @@ const Home = () => {
                     <button
                       key={index}
                       onClick={() => setCurrentBanner(index)}
-                      className={`h-2 w-10 rounded-full transition-all ${
-                        currentBanner === index ? "bg-white" : "bg-white/50"
-                      }`}
+                      className={`h-2 w-10 rounded-full transition-all ${currentBanner === index ? "bg-white" : "bg-white/50"
+                        }`}
                       aria-label={`Go to slide ${index + 1}`}
                     />
                   ))}
@@ -428,12 +443,14 @@ const Home = () => {
                   <div className="text-center py-8">Loading...</div>
                 ) : (
                   <ProductGrid
+                    onAddToCart={handleAddToCart}
                     products={apiProducts.map((p) => {
                       let image = "";
                       if (Array.isArray(p.images) && p.images.length > 0) {
                         const primary = p.images.find((img) => img.isPrimary);
                         image = primary ? primary.url : p.images[0].url;
                       }
+                      const isNew = p.createdAt && (new Date().getTime() - new Date(p.createdAt).getTime() < 14 * 24 * 60 * 60 * 1000);
                       return {
                         id: p._id || p.id,
                         name: p.name,
@@ -444,6 +461,8 @@ const Home = () => {
                         rating: p.aiFeatures?.recommendationScore
                           ? parseFloat(p.aiFeatures.recommendationScore)
                           : undefined,
+                        isNew: isNew,
+                        discount: p.discount || 0
                       };
                     })}
                   />
@@ -469,6 +488,7 @@ const Home = () => {
               <div className="text-center py-8">Loading...</div>
             ) : (
               <ProductGrid
+                onAddToCart={handleAddToCart}
                 products={apiProducts.map((p) => {
                   let image = "";
                   if (Array.isArray(p.images) && p.images.length > 0) {
@@ -576,11 +596,10 @@ const Home = () => {
                       .map((_, i) => (
                         <Star
                           key={i}
-                          className={`w-4 h-4 ${
-                            i < testimonial.rating
-                              ? "text-yellow-400 fill-yellow-400"
-                              : "text-gray-300"
-                          }`}
+                          className={`w-4 h-4 ${i < testimonial.rating
+                            ? "text-yellow-400 fill-yellow-400"
+                            : "text-gray-300"
+                            }`}
                         />
                       ))}
                   </div>

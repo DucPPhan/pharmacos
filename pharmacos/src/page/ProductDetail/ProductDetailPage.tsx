@@ -23,6 +23,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useCart } from "@/contexts/CartContext";
 
 // Product interface
 interface Product {
@@ -189,8 +190,8 @@ const ReviewFormDialog = ({
 };
 
 const ProductDetailPage: React.FC = () => {
-  const { productId } = useParams<{ productId: string }>();
   const [product, setProduct] = useState<Product | null>(null);
+  const { productId } = useParams<{ productId: string }>();
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -203,6 +204,7 @@ const ProductDetailPage: React.FC = () => {
   const [reviewTitle, setReviewTitle] = useState<string>("");
   const [reviewComment, setReviewComment] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const { addToCart } = useCart();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -217,8 +219,8 @@ const ProductDetailPage: React.FC = () => {
           }
         );
         const data = await res.json();
+        const p = data.data.product;
         if (data?.data?.product) {
-          const p = data.data.product;
           // Map images to array of url
           const images =
             Array.isArray(p.images) && p.images.length > 0
@@ -277,6 +279,9 @@ const ProductDetailPage: React.FC = () => {
             brand: p.brand,
           }))
         );
+        if (p.reviews.userId === JSON.parse(localStorage.getItem("user") || "{}").id) {
+          setUserReview(p.reviews);
+        }
       } catch {
         setProduct(null);
         setReviews([]);
@@ -291,13 +296,20 @@ const ProductDetailPage: React.FC = () => {
   // Check if user is logged in and if they have already reviewed
   useEffect(() => {
     const token = localStorage.getItem("token");
-    const user = JSON.parse(localStorage.getItem("user"));
-    setIsLoggedIn(!!token && !!user.id);
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const userId = user?.id;
 
-    if (reviews.length > 0 && user.id) {
+    setIsLoggedIn(!!token && !!userId);
+
+    if (reviews.length > 0 && userId) {
       // Find the user's review if it exists
-      const foundReview = reviews.find(review => review.userId === user.id);
-      setUserReview(foundReview || null);
+      const foundReview = reviews.find(review => review.userId === userId);
+      // setUserReview(foundReview || null);
+
+      // For debugging
+      // console.log("User ID:", userId);
+      // console.log("Found review:", foundReview);
+      console.log("All reviews:", reviews);
     }
   }, [reviews]);
 
@@ -327,6 +339,23 @@ const ProductDetailPage: React.FC = () => {
       </div>
     );
   }
+
+  const handleAddToCart = () => {
+    if (!product) return;
+
+    // Add the product with the current quantity
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+    }, quantity); // Pass the quantity here
+
+    toast({
+      title: "Added to cart",
+      description: `${quantity} ${quantity === 1 ? 'item' : 'items'} of ${product.name} ${quantity === 1 ? 'has' : 'have'} been added to your cart`,
+    });
+  };
 
   const handleOpenReviewForm = () => {
     if (!isLoggedIn) {
@@ -367,9 +396,11 @@ const ProductDetailPage: React.FC = () => {
       const userId = JSON.parse(localStorage.getItem("user"))?.id;
       const userName = JSON.parse(localStorage.getItem("user"))?.name || "User";
 
+      // Include subcategory to prevent validation error
       const reviewData = {
         rating: reviewRating,
-        comment: reviewComment
+        comment: reviewComment,
+        subcategory: "temporary" // Add this to prevent validation error
       };
 
       // If updating an existing review
@@ -389,6 +420,7 @@ const ProductDetailPage: React.FC = () => {
             review.id === userReview.id
               ? {
                 ...review,
+                userId: userId || "",
                 rating: reviewRating,
                 comment: reviewComment,
                 date: new Date().toISOString()
@@ -412,6 +444,11 @@ const ProductDetailPage: React.FC = () => {
             title: "Review Updated",
             description: "Your review has been updated successfully",
           });
+
+          setShowReviewForm(false);
+        } else {
+          // Handle API error
+          handleApiError(response);
         }
       } else {
         // Creating a new review
@@ -428,11 +465,11 @@ const ProductDetailPage: React.FC = () => {
           const result = await response.json();
 
           const newReview = {
-            id: result.id || `temp-${Date.now()}`,
+            id: result.id || result._id || `temp-${Date.now()}`,
             userId: userId || "",
             userName: userName,
             rating: reviewRating,
-            title: "", // Empty title as it's not in the API
+            title: "",
             comment: reviewComment,
             date: new Date().toISOString(),
             helpful: 0
@@ -451,18 +488,126 @@ const ProductDetailPage: React.FC = () => {
             title: "Review Submitted",
             description: "Your review has been submitted successfully",
           });
+
+          setShowReviewForm(false);
+        } else {
+          // Handle API error
+          handleApiError(response);
         }
       }
-
-      setShowReviewForm(false);
     } catch (error) {
+      console.error("Review submission error:", error);
       toast({
         title: "Error",
-        description: "There was a problem submitting your review",
+        description: "There was a problem with your request. Please try again later.",
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Helper function to handle API errors
+  const handleApiError = async (response) => {
+    try {
+      const errorData = await response.json();
+      let errorMessage = "There was a problem with your request";
+
+      if (errorData && errorData.message) {
+        errorMessage = errorData.message;
+
+        // Special handling for subcategory error
+        if (errorMessage.includes("subcategory")) {
+          errorMessage = "This product is missing required information. Please contact support.";
+
+          // Try an alternative approach - fetch the product first to get subcategory
+          tryAlternativeSubmission();
+          return;
+        }
+      }
+
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } catch (e) {
+      toast({
+        title: "Error",
+        description: "There was a problem processing your request",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Alternative submission approach
+  const tryAlternativeSubmission = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      // First, get the full product details including subcategory
+      const productResponse = await fetch(
+        `http://localhost:10000/api/products/${productId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (!productResponse.ok) {
+        throw new Error("Could not fetch product details");
+      }
+
+      const productData = await productResponse.json();
+      const product = productData?.data?.product;
+
+      if (!product) {
+        throw new Error("Product data not found");
+      }
+
+      // Now try submitting the review with the subcategory included
+      const reviewData = {
+        rating: reviewRating,
+        comment: reviewComment,
+        subcategory: product.subcategory || "default"
+      };
+
+      const submitUrl = userReview
+        ? `http://localhost:10000/api/products/${productId}/reviews/${userReview.id}`
+        : `http://localhost:10000/api/products/${productId}/reviews`;
+
+      const submitMethod = userReview ? 'PUT' : 'POST';
+
+      const response = await fetch(submitUrl, {
+        method: submitMethod,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(reviewData)
+      });
+
+      if (response.ok) {
+        toast({
+          title: userReview ? "Review Updated" : "Review Submitted",
+          description: userReview
+            ? "Your review has been updated successfully"
+            : "Your review has been submitted successfully",
+        });
+
+        setShowReviewForm(false);
+
+        // Refresh the product page to show the updated review
+        window.location.reload();
+      } else {
+        throw new Error("Alternative submission failed");
+      }
+    } catch (error) {
+      console.error("Alternative submission error:", error);
+      toast({
+        title: "Error",
+        description: "We're experiencing technical difficulties. Please try again later.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -671,6 +816,7 @@ const ProductDetailPage: React.FC = () => {
                 className="flex-grow flex items-center justify-center gap-2"
                 disabled={!product.inStock}
                 style={{ backgroundColor: "#7494ec" }}
+                onClick={handleAddToCart}
               >
                 <ShoppingCart className="h-5 w-5" />
                 Add to Cart
