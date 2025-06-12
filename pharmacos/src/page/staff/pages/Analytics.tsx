@@ -142,14 +142,29 @@ export function Analytics() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Analytics</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-[#1F3368]">Analytics</h2>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="sales">Sales Analytics</TabsTrigger>
-          <TabsTrigger value="products">Product Performance</TabsTrigger>
-          <TabsTrigger value="inventory">Inventory Analytics</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3 bg-[#1F3368]/5">
+          <TabsTrigger 
+            value="sales" 
+            className="data-[state=active]:bg-[#1F3368] data-[state=active]:text-white text-[#1F3368]"
+          >
+            Sales Analytics
+          </TabsTrigger>
+          <TabsTrigger 
+            value="products" 
+            className="data-[state=active]:bg-[#1F3368] data-[state=active]:text-white text-[#1F3368]"
+          >
+            Product Performance
+          </TabsTrigger>
+          <TabsTrigger 
+            value="inventory" 
+            className="data-[state=active]:bg-[#1F3368] data-[state=active]:text-white text-[#1F3368]"
+          >
+            Inventory Analytics
+          </TabsTrigger>
         </TabsList>
         
         {/* Sales Analytics */}
@@ -157,7 +172,7 @@ export function Analytics() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="col-span-1 lg:col-span-2">
               <CardHeader>
-                <CardTitle>Monthly Sales</CardTitle>
+                <CardTitle className="text-[#1F3368]">Monthly Sales</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
@@ -166,15 +181,19 @@ export function Analytics() {
                       data={salesData.monthlySales}
                       margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip formatter={(value) => [`$${value}`, 'Sales']} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                      <XAxis dataKey="month" stroke="#1F3368" />
+                      <YAxis stroke="#1F3368" />
+                      <Tooltip 
+                        formatter={(value) => [`$${value}`, 'Sales']}
+                        contentStyle={{ backgroundColor: 'white', borderColor: '#1F3368' }}
+                        labelStyle={{ color: '#1F3368' }}
+                      />
                       <Legend />
                       <Line 
                         type="monotone" 
                         dataKey="sales" 
-                        stroke="hsl(var(--primary))" 
+                        stroke="#1F3368" 
                         strokeWidth={2} 
                         activeDot={{ r: 8 }} 
                       />
@@ -186,7 +205,7 @@ export function Analytics() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Sales by Category</CardTitle>
+                <CardTitle className="text-[#1F3368]">Sales by Category</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
@@ -199,14 +218,21 @@ export function Analytics() {
                         labelLine={true}
                         label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                         outerRadius={100}
-                        fill="#8884d8"
+                        fill="#1F3368"
                         dataKey="value"
                       >
                         {salesData.salesByCategory.map((entry: any, index: number) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={`hsl(${index * 45}, 70%, 50%)`}
+                          />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value) => [`${value}%`, 'Percentage']} />
+                      <Tooltip 
+                        formatter={(value) => [`${value}%`, 'Percentage']}
+                        contentStyle={{ backgroundColor: 'white', borderColor: '#1F3368' }}
+                        labelStyle={{ color: '#1F3368' }}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -215,23 +241,25 @@ export function Analytics() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Recent Transactions</CardTitle>
+                <CardTitle className="text-[#1F3368]">Recent Transactions</CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Transaction ID</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
+                    <TableRow className="bg-[#1F3368]/5">
+                      <TableHead className="text-[#1F3368] font-semibold">Transaction ID</TableHead>
+                      <TableHead className="text-[#1F3368] font-semibold">Date</TableHead>
+                      <TableHead className="text-right text-[#1F3368] font-semibold">Amount</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {salesData.recentTransactions.map((transaction: any) => (
-                      <TableRow key={transaction.id}>
-                        <TableCell>{transaction.id}</TableCell>
-                        <TableCell>{transaction.date}</TableCell>
-                        <TableCell className="text-right">${transaction.amount.toFixed(2)}</TableCell>
+                      <TableRow key={transaction.id} className="hover:bg-[#1F3368]/5">
+                        <TableCell className="text-[#1F3368]">{transaction.id}</TableCell>
+                        <TableCell className="text-[#1F3368]">{transaction.date}</TableCell>
+                        <TableCell className="text-right text-[#1F3368]">
+                          ${transaction.amount.toFixed(2)}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -246,7 +274,7 @@ export function Analytics() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="col-span-1 lg:col-span-2">
               <CardHeader>
-                <CardTitle>Product Sales Trends</CardTitle>
+                <CardTitle className="text-[#1F3368]">Product Sales Trends</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
@@ -255,32 +283,24 @@ export function Analytics() {
                       data={productData.productTrends}
                       margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                      <XAxis dataKey="month" stroke="#1F3368" />
+                      <YAxis stroke="#1F3368" />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: 'white', borderColor: '#1F3368' }}
+                        labelStyle={{ color: '#1F3368' }}
+                      />
                       <Legend />
-                      <Line 
-                        type="monotone" 
-                        dataKey="Vitamin C Serum" 
-                        stroke={COLORS[0]} 
-                        strokeWidth={2} 
-                        activeDot={{ r: 8 }} 
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="Hyaluronic Acid" 
-                        stroke={COLORS[1]} 
-                        strokeWidth={2} 
-                        activeDot={{ r: 8 }} 
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="Retinol Cream" 
-                        stroke={COLORS[2]} 
-                        strokeWidth={2} 
-                        activeDot={{ r: 8 }} 
-                      />
+                      {["Vitamin C Serum", "Hyaluronic Acid", "Retinol Cream"].map((product, index) => (
+                        <Line
+                          key={product}
+                          type="monotone"
+                          dataKey={product}
+                          stroke={`hsl(${index * 45}, 70%, 50%)`}
+                          strokeWidth={2}
+                          activeDot={{ r: 8 }}
+                        />
+                      ))}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -289,7 +309,7 @@ export function Analytics() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Top Products by Revenue</CardTitle>
+                <CardTitle className="text-[#1F3368]">Top Products by Revenue</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
@@ -298,11 +318,19 @@ export function Analytics() {
                       data={productData.topProducts}
                       margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip formatter={(value) => [`$${value}`, 'Revenue']} />
-                      <Bar dataKey="revenue" fill="hsl(var(--chart-1))" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                      <XAxis dataKey="name" stroke="#1F3368" />
+                      <YAxis stroke="#1F3368" />
+                      <Tooltip 
+                        formatter={(value) => [`$${value}`, 'Revenue']}
+                        contentStyle={{ backgroundColor: 'white', borderColor: '#1F3368' }}
+                        labelStyle={{ color: '#1F3368' }}
+                      />
+                      <Bar 
+                        dataKey="revenue" 
+                        fill="#1F3368"
+                        radius={[4, 4, 0, 0]} 
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -311,23 +339,25 @@ export function Analytics() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Top Products by Units Sold</CardTitle>
+                <CardTitle className="text-[#1F3368]">Top Products by Units Sold</CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead className="text-right">Units Sold</TableHead>
-                      <TableHead className="text-right">Revenue</TableHead>
+                    <TableRow className="bg-[#1F3368]/5">
+                      <TableHead className="text-[#1F3368] font-semibold">Product</TableHead>
+                      <TableHead className="text-right text-[#1F3368] font-semibold">Units Sold</TableHead>
+                      <TableHead className="text-right text-[#1F3368] font-semibold">Revenue</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {productData.topProducts.map((product: any) => (
-                      <TableRow key={product.name}>
-                        <TableCell>{product.name}</TableCell>
-                        <TableCell className="text-right">{product.sales}</TableCell>
-                        <TableCell className="text-right">${product.revenue.toFixed(2)}</TableCell>
+                      <TableRow key={product.name} className="hover:bg-[#1F3368]/5">
+                        <TableCell className="text-[#1F3368]">{product.name}</TableCell>
+                        <TableCell className="text-right text-[#1F3368]">{product.sales}</TableCell>
+                        <TableCell className="text-right text-[#1F3368]">
+                          ${product.revenue.toFixed(2)}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -342,7 +372,7 @@ export function Analytics() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="col-span-1 lg:col-span-2">
               <CardHeader>
-                <CardTitle>Stock Availability History</CardTitle>
+                <CardTitle className="text-[#1F3368]">Stock Availability History</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
@@ -353,40 +383,35 @@ export function Analytics() {
                       stackOffset="expand"
                       layout="vertical"
                     >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
-                      <YAxis dataKey="month" type="category" />
-                      <Tooltip formatter={(value) => [`${value}%`, 'Percentage']} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                      <XAxis 
+                        type="number" 
+                        domain={[0, 100]} 
+                        tickFormatter={(value) => `${value}%`}
+                        stroke="#1F3368"
+                      />
+                      <YAxis 
+                        dataKey="month" 
+                        type="category"
+                        stroke="#1F3368"
+                      />
+                      <Tooltip 
+                        formatter={(value) => [`${value}%`, 'Percentage']}
+                        contentStyle={{ backgroundColor: 'white', borderColor: '#1F3368' }}
+                        labelStyle={{ color: '#1F3368' }}
+                      />
                       <Legend />
-                      <Bar dataKey="inStock" stackId="a" fill="hsl(var(--chart-2))" name="In Stock" />
-                      <Bar dataKey="outOfStock" stackId="a" fill="hsl(var(--chart-1))" name="Out of Stock" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Current Stock Levels</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={inventoryData.stockLevels}
-                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                      layout="vertical"
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
-                      <YAxis dataKey="name" type="category" width={150} />
-                      <Tooltip />
                       <Bar 
-                        dataKey="stock" 
-                        fill="hsl(var(--chart-3))" 
-                        radius={[0, 4, 4, 0]}
-                        label={{ position: 'right', formatter: (value: number) => value }}
+                        dataKey="inStock" 
+                        stackId="a" 
+                        fill="#1F3368" 
+                        name="In Stock" 
+                      />
+                      <Bar 
+                        dataKey="outOfStock" 
+                        stackId="a" 
+                        fill="#E11D48" 
+                        name="Out of Stock" 
                       />
                     </BarChart>
                   </ResponsiveContainer>
@@ -396,15 +421,55 @@ export function Analytics() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Low Stock Items</CardTitle>
+                <CardTitle className="text-[#1F3368]">Current Stock Levels</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={inventoryData.stockLevels}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                      layout="vertical"
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                      <XAxis type="number" stroke="#1F3368" />
+                      <YAxis 
+                        dataKey="name" 
+                        type="category" 
+                        width={150}
+                        stroke="#1F3368"
+                      />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: 'white', borderColor: '#1F3368' }}
+                        labelStyle={{ color: '#1F3368' }}
+                      />
+                      <Bar 
+                        dataKey="stock" 
+                        fill="#1F3368" 
+                        radius={[0, 4, 4, 0]}
+                        label={{ 
+                          position: 'right', 
+                          formatter: (value: number) => value,
+                          fill: '#1F3368'
+                        }}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-[#1F3368]">Low Stock Items</CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead className="text-right">Current Stock</TableHead>
-                      <TableHead className="text-right">Status</TableHead>
+                    <TableRow className="bg-[#1F3368]/5">
+                      <TableHead className="text-[#1F3368] font-semibold">Product</TableHead>
+                      <TableHead className="text-right text-[#1F3368] font-semibold">Current Stock</TableHead>
+                      <TableHead className="text-right text-[#1F3368] font-semibold">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -412,10 +477,10 @@ export function Analytics() {
                       .filter((item: any) => item.stock <= 15)
                       .sort((a: any, b: any) => a.stock - b.stock)
                       .map((item: any) => (
-                        <TableRow key={item.name}>
-                          <TableCell>{item.name}</TableCell>
-                          <TableCell className="text-right">{item.stock}</TableCell>
-                          <TableCell className="text-right">
+                        <TableRow key={item.name} className="hover:bg-[#1F3368]/5">
+                          <TableCell className="text-[#1F3368]">{item.name}</TableCell>
+                          <TableCell className="text-right text-[#1F3368]">{item.stock}</TableCell>
+                          <TableCell className="text-right text-[#1F3368]">
                             {item.stock <= 5 ? (
                               <span className="text-destructive font-medium">Critical</span>
                             ) : item.stock <= 10 ? (

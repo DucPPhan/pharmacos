@@ -49,6 +49,8 @@ export function Inventory() {
     imageUrl: "",
     price: 0,
     stockQuantity: 0,
+    subcategory: "",
+    instructions: "",
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<any>(null);
@@ -169,6 +171,8 @@ export function Inventory() {
       description,
       size,
       brand,
+      subcategory,
+      instructions,
     } = newProduct;
     if (
       !name ||
@@ -177,7 +181,9 @@ export function Inventory() {
       !skinType ||
       !description ||
       !size ||
-      !brand
+      !brand ||
+      !subcategory ||
+      !instructions
     )
       return false;
     if (price <= 0 || stockQuantity < 0) return false;
@@ -196,6 +202,8 @@ export function Inventory() {
       imageUrl: "",
       price: 0,
       stockQuantity: 0,
+      subcategory: "",
+      instructions: "",
     });
     setCurrentProduct(null);
   };
@@ -290,7 +298,7 @@ export function Inventory() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">
+        <h2 className="text-3xl font-bold tracking-tight text-[#1F3368]">
           Inventory Management
         </h2>
         <Button
@@ -299,6 +307,7 @@ export function Inventory() {
             resetForm();
             setShowAddDialog(true);
           }}
+          className="bg-[#1F3368] hover:bg-[#152347] text-white"
         >
           <Plus className="mr-2 h-4 w-4" /> Add Product
         </Button>
@@ -306,15 +315,15 @@ export function Inventory() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Products</CardTitle>
+          <CardTitle className="text-[#1F3368]">Products</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4 mb-6">
             <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#1F3368]" />
               <Input
                 placeholder="Search products..."
-                className="pl-8"
+                className="pl-8 border-[#1F3368] focus:ring-[#1F3368]"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -324,7 +333,7 @@ export function Inventory() {
                 value={selectedCategory}
                 onValueChange={setSelectedCategory}
               >
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-[180px] border-[#1F3368] text-[#1F3368]">
                   <SelectValue placeholder="Select Category">
                     {selectedCategory === "all"
                       ? "All Categories"
@@ -332,24 +341,27 @@ export function Inventory() {
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="all" className="text-[#1F3368]">All Categories</SelectItem>
                   {categoryOptions.map((category) => (
-                    <SelectItem key={category} value={category}>
+                    <SelectItem key={category} value={category} className="text-[#1F3368]">
                       {category}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={selectedBrand} onValueChange={setSelectedBrand}>
-                <SelectTrigger className="w-[180px]">
+              <Select
+                value={selectedBrand}
+                onValueChange={setSelectedBrand}
+              >
+                <SelectTrigger className="w-[180px] border-[#1F3368] text-[#1F3368]">
                   <SelectValue placeholder="Select Brand">
                     {selectedBrand === "all" ? "All Brands" : selectedBrand}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Brands</SelectItem>
+                  <SelectItem value="all" className="text-[#1F3368]">All Brands</SelectItem>
                   {brandOptions.map((brand) => (
-                    <SelectItem key={brand} value={brand}>
+                    <SelectItem key={brand} value={brand} className="text-[#1F3368]">
                       {brand}
                     </SelectItem>
                   ))}
@@ -359,97 +371,102 @@ export function Inventory() {
           </div>
 
           {isLoading ? (
-            <div className="text-center py-6">Loading...</div>
+            <div className="text-center py-6 text-[#1F3368]">Loading...</div>
           ) : (
-            <div className="border rounded-md overflow-auto">
+            <div className="border rounded-md overflow-auto border-[#1F3368]">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Image</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Brand</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead>Skin Type</TableHead>
-                    <TableHead>Benefits</TableHead>
-                    <TableHead>Stock</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                  <TableRow className="bg-[#1F3368]/5">
+                    <TableHead className="text-[#1F3368] font-semibold">Name</TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">Image</TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">Category</TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">Brand</TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">Size</TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">Skin Type</TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">Benefits</TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">Stock</TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">Price</TableHead>
+                    <TableHead className="text-right text-[#1F3368] font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredProducts.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-6">
+                      <TableCell colSpan={10} className="text-center py-6 text-[#1F3368]">
                         No products found
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredProducts.map((p) => (
-                      <TableRow key={p._id}>
-                        <TableCell>{p.name}</TableCell>
+                      <TableRow key={p._id} className="hover:bg-[#1F3368]/5">
+                        <TableCell className="text-[#1F3368]">{p.name}</TableCell>
                         <TableCell>
                           {p.imageUrl ? (
-                            <img
-                              src={p.imageUrl}
-                              alt={p.name}
-                              style={{
-                                width: 48,
-                                height: 48,
-                                objectFit: "cover",
-                                borderRadius: 6,
-                              }}
-                            />
+                            <div className="relative w-12 h-12">
+                              <img
+                                src={p.imageUrl.startsWith('http') ? p.imageUrl : `http://localhost:10000/${p.imageUrl}`}
+                                alt={p.name}
+                                className="object-cover w-full h-full rounded-md"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = 'https://via.placeholder.com/48?text=No+Image';
+                                }}
+                              />
+                            </div>
                           ) : (
-                            <span className="text-gray-400">No image</span>
+                            <div className="w-12 h-12 bg-gray-200 rounded-md flex items-center justify-center text-gray-500 text-xs">
+                              No image
+                            </div>
                           )}
                         </TableCell>
-                        <TableCell>{p.category}</TableCell>
-                        <TableCell>{p.brand}</TableCell>
-                        <TableCell>{p.size}</TableCell>
-                        <TableCell>{p.skinType}</TableCell>
-                        <TableCell>{p.benefits.join(", ")}</TableCell>
-                        <TableCell>{p.stockQuantity}</TableCell>
-                        <TableCell>${p.price}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setCurrentProduct(p);
-                                setNewProduct({
-                                  name: p.name,
-                                  description: p.description,
-                                  benefits: Array.isArray(p.benefits)
-                                    ? p.benefits
-                                    : p.benefits
-                                    ? [p.benefits]
-                                    : [""],
-                                  skinType: p.skinType,
-                                  size: p.size,
-                                  category: p.category,
-                                  brand: p.brand,
-                                  imageUrl: p.imageUrl,
-                                  price: p.price,
-                                  stockQuantity: p.stockQuantity,
-                                });
-                                setShowAddDialog(true);
-                              }}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => {
-                                setProductToDelete(p);
-                                setDeleteDialogOpen(true);
-                              }}
-                            >
-                              Delete
-                            </Button>
-                          </div>
+                        <TableCell className="text-[#1F3368]">{p.category}</TableCell>
+                        <TableCell className="text-[#1F3368]">{p.brand}</TableCell>
+                        <TableCell className="text-[#1F3368]">{p.size}</TableCell>
+                        <TableCell className="text-[#1F3368]">{p.skinType}</TableCell>
+                        <TableCell className="text-[#1F3368]">{p.benefits.join(", ")}</TableCell>
+                        <TableCell className="text-[#1F3368]">{p.stockQuantity}</TableCell>
+                        <TableCell className="text-[#1F3368]">${p.price}</TableCell>
+                        <TableCell className="text-right space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-[#1F3368] text-[#1F3368] hover:bg-[#1F3368] hover:text-white"
+                            onClick={() => {
+                              setCurrentProduct(p);
+                              setNewProduct({
+                                name: p.name,
+                                description: p.description,
+                                benefits: Array.isArray(p.benefits)
+                                  ? p.benefits
+                                  : p.benefits
+                                  ? [p.benefits]
+                                  : [""],
+                                skinType: p.skinType,
+                                size: p.size,
+                                category: p.category,
+                                brand: p.brand,
+                                imageUrl: p.imageUrl,
+                                price: p.price,
+                                stockQuantity: p.stockQuantity,
+                                subcategory: p.subcategory || "",
+                                instructions: p.instructions || "",
+                              });
+                              setShowAddDialog(true);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={() => {
+                              setProductToDelete(p);
+                              setDeleteDialogOpen(true);
+                            }}
+                          >
+                            Delete
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))
@@ -464,16 +481,18 @@ export function Inventory() {
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent style={{ maxHeight: "80vh", overflowY: "auto" }}>
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-[#1F3368]">
               {currentProduct ? "Edit Product" : "Add Product"}
             </DialogTitle>
-            <DialogDescription>Fill in product info</DialogDescription>
+            <DialogDescription className="text-[#1F3368]/70">
+              Fill in product info
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <label
                 htmlFor="name"
-                className="text-left font-medium min-w-[120px] pr-2"
+                className="text-left font-medium min-w-[120px] pr-2 text-[#1F3368]"
               >
                 Product Name:
               </label>
@@ -484,11 +503,11 @@ export function Inventory() {
                 onChange={(e) =>
                   setNewProduct({ ...newProduct, name: e.target.value })
                 }
-                className="col-span-3 ml-0"
+                className="col-span-3 ml-0 border-[#1F3368] text-[#1F3368]"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <label className="text-left font-medium min-w-[120px] pr-2">
+              <label className="text-left font-medium min-w-[120px] pr-2 text-[#1F3368]">
                 Benefits:
               </label>
               <div className="col-span-3 space-y-2">
@@ -538,7 +557,7 @@ export function Inventory() {
             <div className="grid grid-cols-4 items-center gap-4">
               <label
                 htmlFor="skinType"
-                className="text-left font-medium min-w-[120px] pr-2"
+                className="text-left font-medium min-w-[120px] pr-2 text-[#1F3368]"
               >
                 Skin Type:
               </label>
@@ -568,7 +587,7 @@ export function Inventory() {
             <div className="grid grid-cols-4 items-center gap-4">
               <label
                 htmlFor="size"
-                className="text-left font-medium min-w-[120px] pr-2"
+                className="text-left font-medium min-w-[120px] pr-2 text-[#1F3368]"
               >
                 Size:
               </label>
@@ -585,7 +604,7 @@ export function Inventory() {
             <div className="grid grid-cols-4 items-center gap-4">
               <label
                 htmlFor="category"
-                className="text-left font-medium min-w-[120px] pr-2"
+                className="text-left font-medium min-w-[120px] pr-2 text-[#1F3368]"
               >
                 Category:
               </label>
@@ -616,7 +635,7 @@ export function Inventory() {
             <div className="grid grid-cols-4 items-center gap-4">
               <label
                 htmlFor="brand"
-                className="text-left font-medium min-w-[120px] pr-2"
+                className="text-left font-medium min-w-[120px] pr-2 text-[#1F3368]"
               >
                 Brand:
               </label>
@@ -647,7 +666,7 @@ export function Inventory() {
             <div className="grid grid-cols-4 items-center gap-4">
               <label
                 htmlFor="imageUrl"
-                className="text-left font-medium min-w-[120px] pr-2"
+                className="text-left font-medium min-w-[120px] pr-2 text-[#1F3368]"
               >
                 Image URL:
               </label>
@@ -664,7 +683,7 @@ export function Inventory() {
             <div className="grid grid-cols-4 items-center gap-4">
               <label
                 htmlFor="price"
-                className="text-left font-medium min-w-[120px] pr-2"
+                className="text-left font-medium min-w-[120px] pr-2 text-[#1F3368]"
               >
                 Price:
               </label>
@@ -687,7 +706,7 @@ export function Inventory() {
             <div className="grid grid-cols-4 items-center gap-4">
               <label
                 htmlFor="stockQuantity"
-                className="text-left font-medium min-w-[120px] pr-2"
+                className="text-left font-medium min-w-[120px] pr-2 text-[#1F3368]"
               >
                 Stock Quantity:
               </label>
@@ -710,8 +729,42 @@ export function Inventory() {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <label
+                htmlFor="subcategory"
+                className="text-left font-medium min-w-[120px] pr-2 text-[#1F3368]"
+              >
+                Subcategory:
+              </label>
+              <Input
+                id="subcategory"
+                placeholder="Subcategory"
+                value={newProduct.subcategory}
+                className="col-span-3"
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, subcategory: e.target.value })
+                }
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label
+                htmlFor="instructions"
+                className="text-left font-medium min-w-[120px] pr-2 text-[#1F3368]"
+              >
+                Instructions:
+              </label>
+              <Input
+                id="instructions"
+                placeholder="Instructions"
+                value={newProduct.instructions}
+                className="col-span-3"
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, instructions: e.target.value })
+                }
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label
                 htmlFor="description"
-                className="text-left font-medium min-w-[120px] pr-2"
+                className="text-left font-medium min-w-[120px] pr-2 text-[#1F3368]"
               >
                 Description:
               </label>
@@ -727,10 +780,17 @@ export function Inventory() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowAddDialog(false)}
+              className="border-[#1F3368] text-[#1F3368] hover:bg-[#1F3368] hover:text-white"
+            >
               Cancel
             </Button>
-            <Button onClick={currentProduct ? updateProduct : createProduct}>
+            <Button
+              onClick={currentProduct ? updateProduct : createProduct}
+              className="bg-[#1F3368] hover:bg-[#152347] text-white"
+            >
               {currentProduct ? "Save Changes" : "Create Product"}
             </Button>
           </DialogFooter>
@@ -740,8 +800,8 @@ export function Inventory() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Xác nhận xóa sản phẩm</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-[#1F3368]">Xác nhận xóa sản phẩm</DialogTitle>
+            <DialogDescription className="text-[#1F3368]/70">
               Bạn có chắc chắn muốn xóa sản phẩm <b>{productToDelete?.name}</b>{" "}
               không?
             </DialogDescription>
@@ -750,6 +810,7 @@ export function Inventory() {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
+              className="border-[#1F3368] text-[#1F3368] hover:bg-[#1F3368] hover:text-white"
             >
               Hủy
             </Button>
@@ -761,6 +822,7 @@ export function Inventory() {
                 setDeleteDialogOpen(false);
                 setProductToDelete(null);
               }}
+              className="bg-red-600 hover:bg-red-700"
             >
               Xóa
             </Button>

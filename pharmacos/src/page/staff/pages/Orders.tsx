@@ -112,23 +112,26 @@ export function Orders() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Order Management</h2>
-        <Button variant="outline">
+        <h2 className="text-3xl font-bold tracking-tight text-[#1F3368]">Order Management</h2>
+        <Button 
+          variant="outline" 
+          className="border-[#1F3368] text-[#1F3368] hover:bg-[#1F3368] hover:text-white"
+        >
           <Download className="mr-2 h-4 w-4" /> Export
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Orders</CardTitle>
+          <CardTitle className="text-[#1F3368]">Orders</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4 mb-6">
             <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#1F3368]" />
               <Input
                 placeholder="Search orders..."
-                className="pl-8"
+                className="pl-8 border-[#1F3368] focus:ring-[#1F3368]"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -137,48 +140,51 @@ export function Orders() {
               value={statusFilter}
               onValueChange={setStatusFilter}
             >
-              <SelectTrigger className="md:w-[180px]">
+              <SelectTrigger className="md:w-[180px] border-[#1F3368] text-[#1F3368]">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Processing">Processing</SelectItem>
-                <SelectItem value="Shipped">Shipped</SelectItem>
-                <SelectItem value="Delivered">Delivered</SelectItem>
-                <SelectItem value="Cancelled">Cancelled</SelectItem>
+                <SelectItem value="all" className="text-[#1F3368]">All Statuses</SelectItem>
+                <SelectItem value="Pending" className="text-[#1F3368]">Pending</SelectItem>
+                <SelectItem value="Processing" className="text-[#1F3368]">Processing</SelectItem>
+                <SelectItem value="Shipped" className="text-[#1F3368]">Shipped</SelectItem>
+                <SelectItem value="Delivered" className="text-[#1F3368]">Delivered</SelectItem>
+                <SelectItem value="Cancelled" className="text-[#1F3368]">Cancelled</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {isLoading ? (
-            <div className="flex justify-center py-8">Loading...</div>
+            <div className="text-center py-6 text-[#1F3368]">Loading...</div>
           ) : (
-            <div className="rounded-md border">
+            <div className="border rounded-md overflow-auto border-[#1F3368]">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                  <TableRow className="bg-[#1F3368]/5">
+                    <TableHead className="text-[#1F3368] font-semibold">Order ID</TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">Customer</TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">Date</TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">Status</TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">Total</TableHead>
+                    <TableHead className="text-right text-[#1F3368] font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredOrders.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
+                      <TableCell 
+                        colSpan={6} 
+                        className="text-center py-6 text-[#1F3368]"
+                      >
                         No orders found
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredOrders.map((order) => (
-                      <TableRow key={order.id}>
-                        <TableCell>{order.id}</TableCell>
-                        <TableCell>{order.customer}</TableCell>
-                        <TableCell>{order.date}</TableCell>
+                      <TableRow key={order.id} className="hover:bg-[#1F3368]/5">
+                        <TableCell className="text-[#1F3368]">{order.id}</TableCell>
+                        <TableCell className="text-[#1F3368]">{order.customer}</TableCell>
+                        <TableCell className="text-[#1F3368]">{order.date}</TableCell>
                         <TableCell>
                           <Badge
                             variant={
@@ -192,15 +198,27 @@ export function Orders() {
                                 ? "destructive"
                                 : "outline"
                             }
+                            className={
+                              order.status === "Delivered"
+                                ? "bg-green-100 text-green-800"
+                                : order.status === "Shipped"
+                                ? "bg-blue-100 text-blue-800"
+                                : order.status === "Processing"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : order.status === "Cancelled"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-gray-100 text-gray-800"
+                            }
                           >
                             {order.status}
                           </Badge>
                         </TableCell>
-                        <TableCell>${order.total.toFixed(2)}</TableCell>
+                        <TableCell className="text-[#1F3368]">${order.total.toFixed(2)}</TableCell>
                         <TableCell className="text-right">
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="text-[#1F3368] hover:bg-[#1F3368]/10"
                             onClick={() => viewOrderDetails(order)}
                           >
                             <Eye className="h-4 w-4 mr-2" />
@@ -221,83 +239,53 @@ export function Orders() {
       <Dialog open={showOrderDetails} onOpenChange={setShowOrderDetails}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Order Details - {currentOrder?.id}</DialogTitle>
-            <DialogDescription>
-              View and update order information
+            <DialogTitle className="text-[#1F3368]">Order Details</DialogTitle>
+            <DialogDescription className="text-[#1F3368]/70">
+              View and manage order information
             </DialogDescription>
           </DialogHeader>
           
           {currentOrder && (
-            <div className="space-y-6">
-              {/* Customer & Order Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2">Customer Information</h3>
-                  <p className="font-medium">{currentOrder.customer}</p>
-                  <p className="text-sm text-muted-foreground">{currentOrder.shipping.address}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {currentOrder.shipping.city}, {currentOrder.shipping.state} {currentOrder.shipping.zip}
-                  </p>
+                  <h3 className="font-semibold text-[#1F3368] mb-2">Order Information</h3>
+                  <div className="space-y-1 text-[#1F3368]">
+                    <p>Order ID: {currentOrder.id}</p>
+                    <p>Date: {currentOrder.date}</p>
+                    <p>Status: {currentOrder.status}</p>
+                    <p>Total: ${currentOrder.total.toFixed(2)}</p>
+                  </div>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2">Order Information</h3>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Date:</span>
-                    <span className="font-medium">{currentOrder.date}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Total:</span>
-                    <span className="font-medium">${currentOrder.total.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between items-center mt-4">
-                    <span className="text-sm">Status:</span>
-                    <Select value={newStatus} onValueChange={setNewStatus}>
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Pending">Pending</SelectItem>
-                        <SelectItem value="Processing">Processing</SelectItem>
-                        <SelectItem value="Shipped">Shipped</SelectItem>
-                        <SelectItem value="Delivered">Delivered</SelectItem>
-                        <SelectItem value="Cancelled">Cancelled</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <h3 className="font-semibold text-[#1F3368] mb-2">Customer Information</h3>
+                  <div className="space-y-1 text-[#1F3368]">
+                    <p>Name: {currentOrder.customer}</p>
+                    <p>Email: {currentOrder.email}</p>
+                    <p>Phone: {currentOrder.phone}</p>
                   </div>
                 </div>
               </div>
-              
-              {/* Order Items */}
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">Order Items</h3>
+                <h3 className="font-semibold text-[#1F3368] mb-2">Order Items</h3>
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead className="text-right">Quantity</TableHead>
-                      <TableHead className="text-right">Price</TableHead>
-                      <TableHead className="text-right">Subtotal</TableHead>
+                    <TableRow className="bg-[#1F3368]/5">
+                      <TableHead className="text-[#1F3368] font-semibold">Product</TableHead>
+                      <TableHead className="text-[#1F3368] font-semibold">Quantity</TableHead>
+                      <TableHead className="text-right text-[#1F3368] font-semibold">Price</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {currentOrder.items.map((item: any) => (
-                      <TableRow key={item.id}>
-                        <TableCell>{item.name}</TableCell>
-                        <TableCell className="text-right">{item.quantity}</TableCell>
-                        <TableCell className="text-right">${item.price.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">
-                          ${(item.quantity * item.price).toFixed(2)}
+                      <TableRow key={item.id} className="hover:bg-[#1F3368]/5">
+                        <TableCell className="text-[#1F3368]">{item.name}</TableCell>
+                        <TableCell className="text-[#1F3368]">{item.quantity}</TableCell>
+                        <TableCell className="text-right text-[#1F3368]">
+                          ${item.price.toFixed(2)}
                         </TableCell>
                       </TableRow>
                     ))}
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-right font-medium">
-                        Total
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        ${currentOrder.total.toFixed(2)}
-                      </TableCell>
-                    </TableRow>
                   </TableBody>
                 </Table>
               </div>
@@ -305,10 +293,13 @@ export function Orders() {
           )}
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowOrderDetails(false)}>
-              Cancel
+            <Button
+              variant="outline"
+              onClick={() => setShowOrderDetails(false)}
+              className="border-[#1F3368] text-[#1F3368] hover:bg-[#1F3368] hover:text-white"
+            >
+              Close
             </Button>
-            <Button onClick={updateOrderStatus}>Update Order</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
