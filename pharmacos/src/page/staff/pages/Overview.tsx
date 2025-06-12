@@ -94,7 +94,7 @@ export function Overview() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-[#1F3368]">Dashboard</h2>
       </div>
 
       {/* Overview Stats */}
@@ -103,29 +103,41 @@ export function Overview() {
           title="Total Revenue"
           value={`$${salesData.totalRevenue.toLocaleString()}`}
           description="from last month"
-          icon={<DollarSign className="h-4 w-4" />}
+          icon={<DollarSign className="h-4 w-4 text-[#1F3368]" />}
           trend={salesData.revenueTrend}
+          className="border-[#1F3368]"
+          titleClassName="text-[#1F3368]"
+          valueClassName="text-[#1F3368]"
         />
         <StatsCard
           title="Orders"
           value={`+${salesData.totalOrders}`}
           description="from last month"
-          icon={<ShoppingCart className="h-4 w-4" />}
+          icon={<ShoppingCart className="h-4 w-4 text-[#1F3368]" />}
           trend={salesData.ordersTrend}
+          className="border-[#1F3368]"
+          titleClassName="text-[#1F3368]"
+          valueClassName="text-[#1F3368]"
         />
         <StatsCard
           title="Active Users"
           value={salesData.activeUsers.toLocaleString()}
           description="from last month"
-          icon={<Users className="h-4 w-4" />}
+          icon={<Users className="h-4 w-4 text-[#1F3368]" />}
           trend={salesData.usersTrend}
+          className="border-[#1F3368]"
+          titleClassName="text-[#1F3368]"
+          valueClassName="text-[#1F3368]"
         />
         <StatsCard
           title="Inventory Items"
           value={salesData.inventoryItems.toLocaleString()}
           description="from last month"
-          icon={<Package className="h-4 w-4" />}
+          icon={<Package className="h-4 w-4 text-[#1F3368]" />}
           trend={salesData.inventoryTrend}
+          className="border-[#1F3368]"
+          titleClassName="text-[#1F3368]"
+          valueClassName="text-[#1F3368]"
         />
       </div>
 
@@ -133,7 +145,7 @@ export function Overview() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="col-span-1 lg:col-span-2">
           <CardHeader>
-            <CardTitle>Monthly Sales</CardTitle>
+            <CardTitle className="text-[#1F3368]">Monthly Sales</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
@@ -142,14 +154,18 @@ export function Overview() {
                   data={salesData.monthlySales}
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => [`$${value}`, "Sales"]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <XAxis dataKey="month" stroke="#1F3368" />
+                  <YAxis stroke="#1F3368" />
+                  <Tooltip 
+                    formatter={(value) => [`$${value}`, "Sales"]}
+                    contentStyle={{ backgroundColor: 'white', borderColor: '#1F3368' }}
+                    labelStyle={{ color: '#1F3368' }}
+                  />
                   <Line
                     type="monotone"
                     dataKey="sales"
-                    stroke="hsl(var(--primary))"
+                    stroke="#1F3368"
                     strokeWidth={2}
                     activeDot={{ r: 8 }}
                   />
@@ -159,25 +175,25 @@ export function Overview() {
           </CardContent>
         </Card>
 
-        <Card className="col-span-1">
+        <Card>
           <CardHeader>
-            <CardTitle>Recent Orders</CardTitle>
+            <CardTitle className="text-[#1F3368]">Recent Orders</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
+                <TableRow className="bg-[#1F3368]/5">
+                  <TableHead className="text-[#1F3368] font-semibold">Order ID</TableHead>
+                  <TableHead className="text-[#1F3368] font-semibold">Customer</TableHead>
+                  <TableHead className="text-[#1F3368] font-semibold">Status</TableHead>
+                  <TableHead className="text-right text-[#1F3368] font-semibold">Amount</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {orders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell>{order.id}</TableCell>
-                    <TableCell>{order.customer}</TableCell>
+                  <TableRow key={order.id} className="hover:bg-[#1F3368]/5">
+                    <TableCell className="text-[#1F3368]">{order.id}</TableCell>
+                    <TableCell className="text-[#1F3368]">{order.customer}</TableCell>
                     <TableCell>
                       <Badge
                         variant={
@@ -189,11 +205,20 @@ export function Overview() {
                             ? "destructive"
                             : "outline"
                         }
+                        className={
+                          order.status === "Delivered"
+                            ? "bg-green-100 text-green-800"
+                            : order.status === "Shipped"
+                            ? "bg-blue-100 text-blue-800"
+                            : order.status === "Processing"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-gray-100 text-gray-800"
+                        }
                       >
                         {order.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">${order.amount}</TableCell>
+                    <TableCell className="text-right text-[#1F3368]">${order.amount}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -201,25 +226,41 @@ export function Overview() {
           </CardContent>
         </Card>
 
-        <Card className="col-span-1">
+        <Card>
           <CardHeader>
-            <CardTitle>Low Stock Alerts</CardTitle>
+            <CardTitle className="text-[#1F3368]">Low Stock Items</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {lowStockItems.map((item) => (
-                <div key={item.id} className="flex items-center">
-                  <AlertTriangle className="h-4 w-4 text-amber-500 mr-2" />
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">{item.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {item.stock} units remaining
-                    </div>
-                  </div>
-                  <Progress className="w-24" value={(item.stock / item.max) * 100} />
-                </div>
-              ))}
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-[#1F3368]/5">
+                  <TableHead className="text-[#1F3368] font-semibold">Product</TableHead>
+                  <TableHead className="text-[#1F3368] font-semibold">Stock</TableHead>
+                  <TableHead className="text-right text-[#1F3368] font-semibold">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {lowStockItems.map((item) => (
+                  <TableRow key={item.id} className="hover:bg-[#1F3368]/5">
+                    <TableCell className="text-[#1F3368]">{item.name}</TableCell>
+                    <TableCell className="text-[#1F3368]">{item.stock}</TableCell>
+                    <TableCell className="text-right">
+                      <Progress
+                        value={(item.stock / item.max) * 100}
+                        className="w-[80px] ml-auto"
+                        indicatorClassName={
+                          item.stock <= 5
+                            ? "bg-red-500"
+                            : item.stock <= 10
+                            ? "bg-yellow-500"
+                            : "bg-[#1F3368]"
+                        }
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>
