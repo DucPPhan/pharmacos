@@ -18,7 +18,12 @@ export default function Header() {
     const [isAISearchOpen, setIsAISearchOpen] = useState(false);
     const navigate = useNavigate();
     const isLoggedIn = !!localStorage.getItem("user");
+    const [isUser, setIsUser] = useState(true);
 
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if ( user && user.role === "staff") {
+        setIsUser(false);
+    }
     const handleAISearchComplete = (results) => {
         // Handle search results, perhaps navigate to search results page
         console.log('Search completed with results:', results);
@@ -90,6 +95,9 @@ export default function Header() {
                                         navigate("/login");
                                     } else {
                                         navigate("/profile");
+                                    }
+                                    if (!isUser) {
+                                        navigate("/staff");
                                     }
                                 }}
                             >

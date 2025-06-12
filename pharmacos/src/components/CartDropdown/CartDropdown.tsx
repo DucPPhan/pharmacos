@@ -40,7 +40,7 @@ const CartDropdown: React.FC = () => {
     return (
         <div className="relative" ref={dropdownRef}>
             <button
-                className="relative p-2 text-gray-700 hover:text-primary focus:outline-none"
+                className="relative p-2 text-white hover:text-primary focus:outline-none"
                 onClick={() => setIsOpen(!isOpen)}
                 aria-label="Shopping cart"
             >
@@ -126,7 +126,7 @@ const CartDropdown: React.FC = () => {
                                 <span>${subtotal.toFixed(2)}</span>
                             </div>
 
-                            <div className="space-y-2">
+                            <div className="space-y-2" style={{ maxWidth: '50%'}}>
                                 <Button
                                     className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800"
                                     variant="outline"
