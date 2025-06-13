@@ -14,6 +14,8 @@ import {
     Upload,
     message,
     Tooltip,
+    Tabs,
+    Tag,
 } from "antd";
 import {
     UserOutlined,
@@ -26,6 +28,7 @@ import {
     PlusOutlined,
     GiftOutlined,
     MedicineBoxOutlined,
+    ClockCircleOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import Footer from "@/components/Footer";
@@ -96,7 +99,7 @@ const PersonalInfo: React.FC<{
 }> = ({ user, onEdit, onChangePassword }) => (
     <Card title={null} className="user-profile-card" bodyStyle={{ padding: 0 }}>
         <div className="user-profile-card-header">
-            <Tooltip title="Thông tin cá nhân" placement="bottom">
+            <Tooltip title="Personal Information" placement="bottom">
                 <Avatar
                     size={120}
                     src={
@@ -112,35 +115,35 @@ const PersonalInfo: React.FC<{
         </div>
         <div className="user-profile-card-body">
             <div className="user-profile-row">
-                <span className="user-profile-label">Họ và tên</span>
+                <span className="user-profile-label">Full Name</span>
                 <span className="user-profile-value">{user.name}</span>
             </div>
             <div className="user-profile-row">
-                <span className="user-profile-label">Số điện thoại</span>
+                <span className="user-profile-label">Phone Number</span>
                 <span className="user-profile-value">
-                    {user.phone || "Chưa cập nhật"}
+                    {user.phone || "Not updated"}
                 </span>
             </div>
             <div className="user-profile-row">
                 <span className="user-profile-label">Email</span>
                 <span className="user-profile-value">
-                    {user.email || "Chưa cập nhật"}
+                    {user.email || "Not updated"}
                 </span>
             </div>
             <div className="user-profile-row">
-                <span className="user-profile-label">Giới tính</span>
+                <span className="user-profile-label">Gender</span>
                 <span className="user-profile-value">{user.gender}</span>
             </div>
             <div className="user-profile-row">
-                <span className="user-profile-label">Ngày sinh</span>
+                <span className="user-profile-label">Birthday</span>
                 <span className="user-profile-value">
-                    {user.birthday || "Chưa cập nhật"}
+                    {user.birthday || "Not updated"}
                 </span>
             </div>
             <div className="user-profile-row">
-                <span className="user-profile-label">Địa chỉ</span>
+                <span className="user-profile-label">Address</span>
                 <span className="user-profile-value user-profile-address">
-                    {user.address || "Chưa cập nhật"}
+                    {user.address || "Not updated"}
                 </span>
             </div>
             <div className="user-profile-edit-btn-wrap" style={{ gap: 16 }}>
@@ -155,7 +158,7 @@ const PersonalInfo: React.FC<{
                         onEdit();
                     }}
                 >
-                    Chỉnh sửa thông tin
+                    Edit Information
                 </Button>
                 <Button
                     shape="round"
@@ -171,7 +174,7 @@ const PersonalInfo: React.FC<{
                         onChangePassword();
                     }}
                 >
-                    Đổi mật khẩu
+                    Change Password
                 </Button>
             </div>
         </div>
@@ -215,17 +218,17 @@ const EditProfileInlineForm: React.FC<{
 
     const handleAvatarChange = (info: any) => {
         if (info.file.status === "done") {
-            message.success("Tải ảnh lên thành công!");
+            message.success("Upload avatar successfully!");
             setAvatarUrl("https://cdn-icons-png.flaticon.com/512/3135/3135715.png");
         } else if (info.file.status === "error") {
-            message.error("Tải ảnh lên thất bại.");
+            message.error("Upload avatar failed.");
         }
     };
 
     return (
         <Card title={null} className="user-profile-card" bodyStyle={{ padding: 0, height: '100%' }}>
             <div className="user-profile-card-header">
-                <Tooltip title="Thông tin cá nhân" placement="bottom">
+                <Tooltip title="Personal Information" placement="bottom">
                     <Upload
                     >
                         <Avatar
@@ -258,40 +261,40 @@ const EditProfileInlineForm: React.FC<{
                 >
                     <Form.Item
                         name="name"
-                        label="Họ và tên"
+                        label="Full Name"
                         rules={[
-                            { required: true, message: "Vui lòng nhập họ và tên!" },
-                            { min: 2, message: "Họ và tên phải có ít nhất 2 ký tự!" },
+                            { required: true, message: "Please enter your full name!" },
+                            { min: 2, message: "Full name must be at least 2 characters!" },
                             {
                                 pattern: nameRegex,
-                                message: "Họ và tên không hợp lệ!",
+                                message: "Invalid full name!",
                             },
                             {
                                 validator: (_, value) => {
                                     if (value && /^\d+$/.test(value)) {
-                                        return Promise.reject("Họ và tên không hợp lệ!");
+                                        return Promise.reject("Invalid full name!");
                                     }
                                     return Promise.resolve();
                                 },
                             },
                         ]}
                     >
-                        <Input size="large" placeholder="Nhập họ và tên" />
+                        <Input size="large" placeholder="Enter full name" />
                     </Form.Item>
                     <Form.Item
                         name="phone"
-                        label="Số điện thoại"
+                        label="Phone Number"
                         rules={[
-                            { required: true, message: "Vui lòng nhập số điện thoại!" },
+                            { required: true, message: "Please enter your phone number!" },
                             {
                                 pattern: phoneRegex,
-                                message: "Số điện thoại không hợp lệ!",
+                                message: "Invalid phone number!",
                             },
                         ]}
                     >
                         <Input
                             size="large"
-                            placeholder="Nhập số điện thoại"
+                            placeholder="Enter phone number"
                             maxLength={10}
                         />
                     </Form.Item>
@@ -299,32 +302,32 @@ const EditProfileInlineForm: React.FC<{
                         name="email"
                         label="Email"
                         rules={[
-                            { required: true, message: "Vui lòng nhập email!" },
-                            { type: "email", message: "Email không hợp lệ!" },
+                            { required: true, message: "Please enter your email!" },
+                            { type: "email", message: "Invalid email!" },
                         ]}
                     >
-                        <Input size="large" placeholder="Nhập email" />
+                        <Input size="large" placeholder="Enter email" />
                     </Form.Item>
                     <Form.Item
                         name="gender"
-                        label="Giới tính"
-                        rules={[{ required: true, message: "Vui lòng chọn giới tính!" }]}
+                        label="Gender"
+                        rules={[{ required: true, message: "Please select gender!" }]}
                     >
-                        <Select size="large" placeholder="Chọn giới tính">
-                            <Option value="male">Nam</Option>
-                            <Option value="female">Nữ</Option>
-                            <Option value="Khác">Khác</Option>
+                        <Select size="large" placeholder="Select gender">
+                            <Option value="male">Male</Option>
+                            <Option value="female">Female</Option>
+                            <Option value="Khác">Other</Option>
                         </Select>
                     </Form.Item>
                     <Form.Item
                         name="birthday"
-                        label="Ngày sinh"
+                        label="Birthday"
                         rules={[
-                            { required: true, message: "Vui lòng chọn ngày sinh!" },
+                            { required: true, message: "Please select birthday!" },
                             {
                                 validator: (_, value) => {
                                     if (value && value.isAfter(dayjs(), "day")) {
-                                        return Promise.reject("Ngày sinh không hợp lệ!");
+                                        return Promise.reject("Invalid birthday!");
                                     }
                                     return Promise.resolve();
                                 },
@@ -335,7 +338,7 @@ const EditProfileInlineForm: React.FC<{
                             size="large"
                             style={{ width: "100%" }}
                             format="DD/MM/YYYY"
-                            placeholder="Chọn ngày sinh"
+                            placeholder="Select birthday"
                             className="user-profile-datepicker"
                             disabledDate={(current) =>
                                 current && current > dayjs().endOf("day")
@@ -344,16 +347,16 @@ const EditProfileInlineForm: React.FC<{
                     </Form.Item>
                     <Form.Item
                         name="address"
-                        label="Địa chỉ"
+                        label="Address"
                         rules={[
-                            { required: true, message: "Vui lòng nhập địa chỉ!" },
-                            { min: 5, message: "Địa chỉ phải có ít nhất 5 ký tự!" },
+                            { required: true, message: "Please enter your address!" },
+                            { min: 5, message: "Address must be at least 5 characters!" },
                         ]}
                     >
                         <TextArea
                             rows={3}
                             size="large"
-                            placeholder="Nhập địa chỉ"
+                            placeholder="Enter address"
                             className="user-profile-textarea"
                         />
                     </Form.Item>
@@ -371,7 +374,7 @@ const EditProfileInlineForm: React.FC<{
                             }}
                             onClick={handleSave}
                         >
-                            Lưu thay đổi
+                            Save Changes
                         </Button>
                         <Button
                             shape="round"
@@ -379,7 +382,7 @@ const EditProfileInlineForm: React.FC<{
                             onClick={onCancel}
                             style={{ minWidth: 100 }}
                         >
-                            Hủy
+                            Cancel
                         </Button>
                     </Form.Item>
                 </Form>
@@ -401,11 +404,11 @@ const ChangePasswordForm: React.FC<{
             setLoading(true);
             await changePassword(oldPassword, newPassword);
             setLoading(false);
-            message.success("Đổi mật khẩu thành công!");
+            message.success("Password changed successfully!");
             onSuccess();
         } catch (err: any) {
             setLoading(false);
-            message.error(err.message || "Đổi mật khẩu thất bại!");
+            message.error(err.message || "Password change failed!");
         }
     };
 
@@ -418,26 +421,26 @@ const ChangePasswordForm: React.FC<{
                     icon={<UserOutlined />}
                     className="user-profile-avatar"
                 />
-                <div className="user-profile-name">Change password</div>
+                <div className="user-profile-name">Change Password</div>
             </div>
             <div className="user-profile-card-body">
                 <Form form={form} layout="vertical" className="user-profile-form">
                     <Form.Item
                         name="oldPassword"
-                        label="Mật khẩu cũ"
+                        label="Old Password"
                         rules={[
-                            { required: true, message: "Vui lòng nhập mật khẩu cũ!" },
-                            { min: 1, message: "Mật khẩu phải có ít nhất 6 ký tự!" },
+                            { required: true, message: "Please enter your old password!" },
+                            { min: 1, message: "Password must be at least 6 characters!" },
                         ]}
                     >
-                        <Input.Password size="large" placeholder="Nhập mật khẩu cũ" />
+                        <Input.Password size="large" placeholder="Enter old password" />
                     </Form.Item>
                     <Form.Item
                         name="newPassword"
-                        label="Mật khẩu mới"
+                        label="New Password"
                         rules={[
-                            { required: true, message: "Vui lòng nhập mật khẩu mới!" },
-                            { min: 1, message: "Mật khẩu phải có ít nhất 6 ký tự!" },
+                            { required: true, message: "Please enter your new password!" },
+                            { min: 1, message: "Password must be at least 6 characters!" },
                             {
                                 validator: (_, value) => {
                                     if (!value) return Promise.resolve();
@@ -446,7 +449,7 @@ const ChangePasswordForm: React.FC<{
                                         value === form.getFieldValue("oldPassword")
                                     ) {
                                         return Promise.reject(
-                                            "Mật khẩu mới phải khác mật khẩu cũ!"
+                                            "New password must be different from old password!"
                                         );
                                     }
                                     return Promise.resolve();
@@ -454,25 +457,25 @@ const ChangePasswordForm: React.FC<{
                             },
                         ]}
                     >
-                        <Input.Password size="large" placeholder="Nhập mật khẩu mới" />
+                        <Input.Password size="large" placeholder="Enter new password" />
                     </Form.Item>
                     <Form.Item
                         name="confirmPassword"
-                        label="Xác nhận mật khẩu mới"
+                        label="Confirm New Password"
                         dependencies={["newPassword"]}
                         rules={[
-                            { required: true, message: "Vui lòng xác nhận mật khẩu mới!" },
+                            { required: true, message: "Please confirm your new password!" },
                             {
                                 validator: (_, value) => {
                                     if (!value || form.getFieldValue("newPassword") === value) {
                                         return Promise.resolve();
                                     }
-                                    return Promise.reject("Mật khẩu xác nhận không khớp!");
+                                    return Promise.reject("Passwords do not match!");
                                 },
                             },
                         ]}
                     >
-                        <Input.Password size="large" placeholder="Nhập lại mật khẩu mới" />
+                        <Input.Password size="large" placeholder="Re-enter new password" />
                     </Form.Item>
                     <Form.Item style={{ marginTop: 32, textAlign: "center" }}>
                         <Button
@@ -482,7 +485,7 @@ const ChangePasswordForm: React.FC<{
                             style={{ minWidth: 100, marginRight: 16, width: 120, height: 40 }}
                             disabled={loading}
                         >
-                            Hủy
+                            Cancel
                         </Button>
                         <Button
                             type="primary"
@@ -494,7 +497,7 @@ const ChangePasswordForm: React.FC<{
                                 handleSubmit();
                             }}
                         >
-                            Đổi Mật Khẩu
+                            Change Password
                         </Button>
                     </Form.Item>
                 </Form>
@@ -537,9 +540,9 @@ const fetchProfileByRole = async (): Promise<UserInfo> => {
         phone: data.phone || data.phoneNumber || "",
         gender:
             data.gender === "male"
-                ? "Nam"
+                ? "Male"
                 : data.gender === "female"
-                    ? "Nữ"
+                    ? "Female"
                     : data.gender || "",
         birthday: data.dateOfBirth
             ? dayjs(data.dateOfBirth).format("DD/MM/YYYY")
@@ -566,9 +569,9 @@ const updateProfileByRole = async (data: UserInfo): Promise<UserInfo> => {
             address: data.address,
             name: data.name,
             gender:
-                data.gender === "Nam"
+                data.gender === "Male"
                     ? "male"
-                    : data.gender === "Nữ"
+                    : data.gender === "Female"
                         ? "female"
                         : data.gender,
             dateOfBirth: data.birthday
@@ -583,9 +586,9 @@ const updateProfileByRole = async (data: UserInfo): Promise<UserInfo> => {
             address: data.address,
             name: data.name,
             gender:
-                data.gender === "Nam"
+                data.gender === "Male"
                     ? "male"
-                    : data.gender === "Nữ"
+                    : data.gender === "Female"
                         ? "female"
                         : data.gender,
             dateOfBirth: data.birthday
@@ -649,10 +652,26 @@ const changePassword = async (oldPassword: string, newPassword: string) => {
     if (!res.ok) {
         const errText = await res.text();
         console.error("API change password error:", errText);
-        throw new Error("Đổi mật khẩu thất bại!");
+        throw new Error("Password change failed!");
     }
     return { success: true };
 };
+
+const ORDER_STATUS_MAP: Record<string, { label: string; color: string }> = {
+    pending: { label: "Pending", color: "orange" },
+    processing: { label: "Processing", color: "blue" },
+    completed: { label: "Completed", color: "green" },
+    cancelled: { label: "Cancelled", color: "red" },
+
+};
+
+const ORDER_TABS = [
+    { key: "all", label: "All" },
+    { key: "pending", label: "Pending" },
+    { key: "processing", label: "Processing" },
+    { key: "completed", label: "Completed" },
+    { key: "cancelled", label: "Cancelled" },
+];
 
 const UserProfile: React.FC = () => {
     const [activeMenu, setActiveMenu] = useState<string>(
@@ -664,6 +683,7 @@ const UserProfile: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [purchaseHistory, setPurchaseHistory] = useState<any[]>([]);
     const [orders, setOrders] = useState<any[]>([]);
+    const [orderTab, setOrderTab] = useState<string>("all");
 
     useEffect(() => {
         setLoading(true);
@@ -674,7 +694,7 @@ const UserProfile: React.FC = () => {
             })
             .catch((err) => {
                 setLoading(false);
-                message.error("Không lấy được thông tin người dùng!");
+                message.error("Failed to get user information!");
             });
     }, []);
 
@@ -729,9 +749,9 @@ const UserProfile: React.FC = () => {
             const updated = await updateProfileByRole(values);
             setUser(updated);
             setEditMode(false);
-            message.success("Cập nhật thông tin thành công!");
+            message.success("Profile updated successfully!");
         } catch (err: any) {
-            message.error(err.message || "Cập nhật thông tin thất bại!");
+            message.error(err.message || "Profile update failed!");
         }
         setLoading(false);
     };
@@ -739,52 +759,125 @@ const UserProfile: React.FC = () => {
     const renderOrders = () => {
         if (!orders || orders.length === 0) {
             return (
-                <div>
-                    <div className="user-profile-section-empty-title">
-                        Không có đơn hàng nào
+                <div style={{ textAlign: "center", padding: "48px 0" }}>
+                    <div
+                        style={{
+                            width: 140,
+                            height: 140,
+                            margin: "0 auto 24px auto",
+                            borderRadius: "50%",
+                            background: "#f5f8ff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            boxShadow: "0 0 32px 0 #e6f0ff",
+                        }}
+                    >
+                        <GiftOutlined style={{ fontSize: 64, color: "#7494ec" }} />
                     </div>
-                    <div className="user-profile-section-empty-desc">
-                        Bạn chưa có đơn hàng nào.
+                    <div style={{ fontWeight: 600, fontSize: 22, marginBottom: 8, color: "#222" }}>
+                        You have no orders yet.
                     </div>
+                    <div style={{ color: "#888", marginBottom: 24 }}>
+                        Discover thousands of products at Pharmacy!
+                    </div>
+
                 </div>
             );
         }
+
+        // Debug: log status values
+        // console.log(orders.map(o => o.status));
+
+        // Map các status phổ biến về đúng tab
+        const normalizeStatus = (status: string | undefined) => {
+            if (!status) return "pending";
+            const s = status.toLowerCase();
+            if (s === "pending") return "pending";
+            if (s === "processing") return "processing";
+            if (s === "completed") return "completed";
+            if (s === "cancelled" || s === "canceled") return "cancelled";
+            return s;
+        };
+
+        const filteredOrders =
+            orderTab === "all"
+                ? orders
+                : orders.filter((o) => normalizeStatus(o.status) === orderTab);
+
         return (
-            <div style={{ marginTop: 24 }}>
-                <div
-                    style={{
-                        fontWeight: 600,
-                        fontSize: 18,
-                        marginBottom: 12,
-                        color: "#7494ec",
-                    }}
-                >
-                    Đơn hàng của tôi
-                </div>
-                <div style={{ maxHeight: 260, overflowY: "auto" }}>
-                    {orders.map((item, idx) => (
-                        <Card
-                            key={item.id || idx}
-                            style={{
-                                marginBottom: 16,
-                                borderRadius: 12,
-                                border: "1px solid #f0f0f0",
-                            }}
-                            bodyStyle={{ padding: 16 }}
-                        >
-                            <div style={{ fontWeight: 500, fontSize: 16 }}>
-                                Đơn #{item.id || idx + 1}
-                            </div>
-                            <div>
-                                Ngày đặt:{" "}
-                                {item.date ? dayjs(item.date).format("DD/MM/YYYY") : "---"}
-                            </div>
-                            <div>
-                                Tổng tiền:{" "}
-                                {item.total ? item.total.toLocaleString() + "₫" : "---"}
-                            </div>
-                        </Card>
-                    ))}
+            <div style={{ marginTop: 8 }}>
+                <Tabs
+                    activeKey={orderTab}
+                    onChange={setOrderTab}
+                    items={ORDER_TABS.map(tab => ({
+                        key: tab.key,
+                        label: tab.label,
+                    }))}
+                    style={{ marginBottom: 16 }}
+                />
+                <div style={{ maxHeight: 400, overflowY: "auto" }}>
+                    {filteredOrders.length === 0 ? (
+                        <div style={{ textAlign: "center", color: "#888", marginTop: 32 }}>
+                            No orders in this status.
+                        </div>
+                    ) : (
+                        filteredOrders.map((order, idx) => (
+                            <Card
+                                key={order.id || idx}
+                                style={{
+                                    marginBottom: 16,
+                                    borderRadius: 12,
+                                    border: "1px solid #f0f0f0",
+                                }}
+                                bodyStyle={{ padding: 16 }}
+                            >
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                    <div>
+                                        <b>
+                                            Order
+                                            <span style={{ marginLeft: 8, color: "#aaa" }}>
+                                                #{order.id}
+                                            </span>
+                                        </b>
+                                    </div>
+                                    <Tag color={ORDER_STATUS_MAP[order.status || "processing"]?.color || "orange"}>
+                                        {ORDER_STATUS_MAP[order.status || "processing"]?.label || "Processing"}
+                                    </Tag>
+                                </div>
+                                <div className="user-profile-order-items">
+                                    {(order.items || []).map((item: any, i: number) => (
+                                        <div key={i} className="user-profile-order-item">
+                                            <div className="user-profile-order-item-name">
+                                                {(item.productId && item.productId.name) ||
+                                                    item.name ||
+                                                    "No product name"}
+                                            </div>
+                                            <div className="user-profile-order-item-price">
+                                                {(item.unitPrice ?? item.price ?? 0).toLocaleString()}₫ x{item.quantity ?? 1}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                    <div>
+                                        <a href={`/order/${order.id}`}>View details</a>
+                                    </div>
+                                    <div>
+                                        <span style={{ color: "#888", marginRight: 8 }}>Total:</span>
+                                        <span style={{ color: "#1677ff", fontWeight: 600, fontSize: 16 }}>
+                                            {(order.totalAmount ?? order.total ?? 0).toLocaleString() + "₫"}
+                                        </span>
+                                    </div>
+                                </div>
+                                {order.note && (
+                                    <div style={{ marginTop: 8, color: "#888", fontSize: 13 }}>
+                                        {order.note}
+                                    </div>
+                                )}
+                            </Card>
+                        ))
+                    )}
                 </div>
             </div>
         );
@@ -793,52 +886,139 @@ const UserProfile: React.FC = () => {
     const renderPurchaseHistory = () => {
         if (!purchaseHistory || purchaseHistory.length === 0) {
             return (
-                <div>
-                    <div className="user-profile-section-empty-title">
-                        Không có lịch sử mua hàng
+                <div style={{ textAlign: "center", padding: "48px 0" }}>
+                    <div
+                        style={{
+                            width: 140,
+                            height: 140,
+                            margin: "0 auto 24px auto",
+                            borderRadius: "50%",
+                            background: "#f5f8ff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            boxShadow: "0 0 32px 0 #e6f0ff",
+                        }}
+                    >
+                        <ClockCircleOutlined style={{ fontSize: 64, color: "#7494ec" }} />
                     </div>
-                    <div className="user-profile-section-empty-desc">
-                        Bạn chưa có lịch sử mua hàng nào.
+                    <div style={{ fontWeight: 600, fontSize: 22, marginBottom: 8, color: "#222" }}>
+                        You have no purchase history.
+                    </div>
+                    <div style={{ color: "#888", marginBottom: 24 }}>
+                        Start shopping to see your purchase history.
                     </div>
                 </div>
             );
         }
+        //display purchase history
+        const normalizedHistory = purchaseHistory.map((entry: any) => {
+            if (entry.order && entry.items) {
+                return {
+                    ...entry.order,
+                    items: entry.items,
+                    status: entry.order.status,
+                    totalAmount: entry.order.totalAmount,
+                    date: entry.order.orderDate || entry.order.createdAt,
+                    note: entry.order.note,
+                };
+            }
+            return entry;
+        });
+
+        const normalizeStatus = (status: string | undefined) => {
+            if (!status) return "pending";
+            const s = status.trim().toLowerCase();
+            if (s === "pending") return "pending";
+            if (s === "processing") return "processing";
+            if (s === "completed") return "completed";
+            if (s === "cancelled" || s === "canceled") return "cancelled";
+            return s;
+        };
+
+        const filteredHistory =
+            orderTab === "all"
+                ? normalizedHistory
+                : normalizedHistory.filter((o) => normalizeStatus(o.status) === orderTab);
+
         return (
-            <div style={{ marginTop: 24 }}>
-                <div
-                    style={{
-                        fontWeight: 600,
-                        fontSize: 18,
-                        marginBottom: 12,
-                        color: "#7494ec",
-                    }}
-                >
-                    Lịch sử mua hàng
-                </div>
-                <div style={{ maxHeight: 260, overflowY: "auto" }}>
-                    {purchaseHistory.map((item, idx) => (
-                        <Card
-                            key={item.id || idx}
-                            style={{
-                                marginBottom: 16,
-                                borderRadius: 12,
-                                border: "1px solid #f0f0f0",
-                            }}
-                            bodyStyle={{ padding: 16 }}
-                        >
-                            <div style={{ fontWeight: 500, fontSize: 16 }}>
-                                Đơn #{item.id || idx + 1}
-                            </div>
-                            <div>
-                                Ngày mua:{" "}
-                                {item.date ? dayjs(item.date).format("DD/MM/YYYY") : "---"}
-                            </div>
-                            <div>
-                                Tổng tiền:{" "}
-                                {item.total ? item.total.toLocaleString() + "₫" : "---"}
-                            </div>
-                        </Card>
-                    ))}
+            <div style={{ marginTop: 8 }}>
+                <Tabs
+                    activeKey={orderTab}
+                    onChange={setOrderTab}
+                    items={ORDER_TABS.map(tab => ({
+                        key: tab.key,
+                        label: tab.label,
+                    }))}
+                    style={{ marginBottom: 16 }}
+                />
+
+                <div style={{ maxHeight: 400, overflowY: "auto" }}>
+                    {filteredHistory.length === 0 ? (
+                        <div style={{ textAlign: "center", color: "#888", marginTop: 32 }}>
+                            No purchase history in this status.
+                        </div>
+                    ) : (
+                        filteredHistory.map((item, idx) => {
+                            const normalizedStatus = normalizeStatus(item.status);
+                            return (
+                                <Card
+                                    key={item.id || idx}
+                                    style={{
+                                        marginBottom: 16,
+                                        borderRadius: 12,
+                                        border: "1px solid #f0f0f0",
+                                    }}
+                                    bodyStyle={{ padding: 16 }}
+                                >
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                        <div>
+                                            <b>
+                                                Purchase
+                                                <span style={{ marginLeft: 8, color: "#aaa" }}>
+                                                    #{item.id || idx + 1}
+                                                </span>
+                                            </b>
+                                        </div>
+                                        <Tag color={ORDER_STATUS_MAP[normalizedStatus]?.color || "blue"}>
+                                            {ORDER_STATUS_MAP[normalizedStatus]?.label || "Processing"}
+                                        </Tag>
+                                    </div>
+                                    <div className="user-profile-order-items">
+                                        {(item.items || []).map((prod: any, i: number) => (
+                                            <div key={i} className="user-profile-order-item">
+                                                <div className="user-profile-order-item-name">
+                                                    {(prod.productId && prod.productId.name) ||
+                                                        prod.name ||
+                                                        "No product name"}
+                                                </div>
+                                                <div className="user-profile-order-item-price">
+                                                    {(prod.unitPrice ?? prod.price ?? 0).toLocaleString()}₫ x{prod.quantity ?? 1}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                        <div>
+                                            Purchase Date:{" "}
+                                            {item.date ? dayjs(item.date).format("DD/MM/YYYY") : "---"}
+                                        </div>
+                                        <div>
+                                            <span style={{ color: "#888", marginRight: 8 }}>Total:</span>
+                                            <span style={{ color: "#1677ff", fontWeight: 600, fontSize: 16 }}>
+                                                {(item.totalAmount ?? item.total ?? 0).toLocaleString() + "₫"}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {item.note && (
+                                        <div style={{ marginTop: 8, color: "#888", fontSize: 13 }}>
+                                            {item.note}
+                                        </div>
+                                    )}
+                                </Card>
+                            );
+                        })
+                    )}
                 </div>
             </div>
         );
@@ -882,17 +1062,14 @@ const UserProfile: React.FC = () => {
                     <Card
                         title={
                             <span className="user-profile-section-title">
-                                Đơn Hàng Của Tôi
+                                My Orders
                             </span>
                         }
                         className="user-profile-section-card"
                         bodyStyle={{ padding: 0 }}
-                        style={{ maxWidth: 520, margin: "0 auto" }}
+                        style={{ maxWidth: 720, margin: "0 auto" }}
                     >
                         <div className="user-profile-section-content">
-                            <div className="user-profile-section-icon">
-                                <GiftOutlined />
-                            </div>
                             {renderOrders()}
                             <Button
                                 type="primary"
@@ -905,7 +1082,7 @@ const UserProfile: React.FC = () => {
                                 icon={<ShoppingCartOutlined />}
                                 style={{ marginTop: 24 }}
                             >
-                                Mua sắm ngay
+                                Shop Now
                             </Button>
                         </div>
                     </Card>
@@ -915,17 +1092,14 @@ const UserProfile: React.FC = () => {
                     <Card
                         title={
                             <span className="user-profile-section-title">
-                                Lịch Sử Mua Hàng
+                                Purchase History
                             </span>
                         }
                         className="user-profile-section-card"
                         bodyStyle={{ padding: 0 }}
-                        style={{ maxWidth: 520, margin: "0 auto" }}
+                        style={{ maxWidth: 720, margin: "0 auto" }}
                     >
                         <div className="user-profile-section-content">
-                            <div className="user-profile-section-icon">
-                                <GiftOutlined />
-                            </div>
                             {renderPurchaseHistory()}
                         </div>
                     </Card>
@@ -942,7 +1116,7 @@ const UserProfile: React.FC = () => {
                 <Layout className="user-profile-inner-layout">
                     <Sider width={340} className="user-profile-sider">
                         <div className="user-profile-sider-header">
-                            <Tooltip title="Thông tin người dùng" placement="right">
+                            <Tooltip title="User Information" placement="right">
                                 <Avatar
                                     size={100}
                                     src={
@@ -965,17 +1139,17 @@ const UserProfile: React.FC = () => {
                                 {
                                     key: "thongtincanhan",
                                     icon: <UserOutlined style={{ fontSize: 20 }} />,
-                                    label: "Thông tin cá nhân",
+                                    label: "Personal Information",
                                 },
                                 {
                                     key: "donhang",
                                     icon: <ShoppingCartOutlined style={{ fontSize: 20 }} />,
-                                    label: "Đơn hàng của tôi",
+                                    label: "My Orders",
                                 },
                                 {
                                     key: "donthuoc",
                                     icon: <FileTextOutlined style={{ fontSize: 20 }} />,
-                                    label: "Lịch Sử Mua Hàng",
+                                    label: "Purchase History",
                                 },
                                 {
                                     key: "logout",
@@ -985,7 +1159,7 @@ const UserProfile: React.FC = () => {
                                         />
                                     ),
                                     label: (
-                                        <span className="user-profile-logout-label">Đăng xuất</span>
+                                        <span className="user-profile-logout-label">Logout</span>
                                     ),
                                     danger: true,
                                     style: { marginTop: 12 },
