@@ -1,13 +1,28 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+// src/contexts/CartContext.tsx
 
-interface CartItem {
-    id: string;
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { apiFetch } from '@/lib/api'; // Assuming you have a centralized api helper
+
+// Define a clear interface for what an item in the cart looks like
+// Exporting it allows other components to use this type
+export interface CartItem {
+    id: string;       // Product ID
     name: string;
     price: number;
     image: string;
     quantity: number;
 }
 
+// Define an interface for the details needed to submit an order
+export interface OrderDetails {
+    recipientName: string;
+    phone: string;
+    shippingAddress: string;
+    note: string;
+    paymentMethod: string;
+}
+
+// Define the shape of the context's value
 interface CartContextType {
     cartItems: CartItem[];
     addToCart: (item: Omit<CartItem, 'quantity'>, quantity?: number) => void;
@@ -15,47 +30,48 @@ interface CartContextType {
     removeItem: (id: string) => void;
     clearCart: () => void;
     subtotal: number;
-    submitOrder: () => Promise<void>;
+    itemCount: number;
+    submitOrder: (details: OrderDetails) => Promise<void>;
     isSubmitting: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [cartItems, setCartItems] = useState<CartItem[]>([]);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+// A key for storing the cart in localStorage
+const CART_STORAGE_KEY = 'pharmacos_cart';
 
-    // Load cart from localStorage on component mount
-    useEffect(() => {
-        const savedCart = localStorage.getItem('cart');
-        if (savedCart) {
-            try {
-                setCartItems(JSON.parse(savedCart));
-            } catch (error) {
-                console.error('Failed to parse cart from localStorage', error);
-            }
+export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+    const [cartItems, setCartItems] = useState<CartItem[]>(() => {
+        // Load cart from localStorage on initial render
+        try {
+            const savedCart = localStorage.getItem(CART_STORAGE_KEY);
+            return savedCart ? JSON.parse(savedCart) : [];
+        } catch (error) {
+            console.error('Failed to parse cart from localStorage', error);
+            return [];
         }
-    }, []);
+    });
+
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Save cart to localStorage whenever it changes
     useEffect(() => {
-        localStorage.setItem('cart', JSON.stringify(cartItems));
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
     }, [cartItems]);
 
     const addToCart = (item: Omit<CartItem, 'quantity'>, quantity: number = 1) => {
         setCartItems(prevItems => {
-            // Check if item already exists in cart
             const existingItem = prevItems.find(cartItem => cartItem.id === item.id);
 
             if (existingItem) {
-                // If item exists, increase quantity by the specified amount
+                // If item exists, increase its quantity
                 return prevItems.map(cartItem =>
                     cartItem.id === item.id
                         ? { ...cartItem, quantity: cartItem.quantity + quantity }
                         : cartItem
                 );
             } else {
-                // If item doesn't exist, add it with the specified quantity
+                // If item doesn't exist, add it to the cart
                 return [...prevItems, { ...item, quantity }];
             }
         });
@@ -65,11 +81,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setCartItems(prevItems =>
             prevItems.map(item => {
                 if (item.id === id) {
-                    const newQuantity = Math.max(1, item.quantity + change);
+                    const newQuantity = Math.max(1, item.quantity + change); // Quantity cannot be less than 1
                     return { ...item, quantity: newQuantity };
                 }
                 return item;
-            })
+            }).filter(item => item.quantity > 0) // Ensure items with 0 quantity are removed
         );
     };
 
@@ -81,55 +97,54 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setCartItems([]);
     };
 
+    // Calculate subtotal
     const subtotal = cartItems.reduce(
         (sum, item) => sum + item.price * item.quantity,
         0
     );
 
-    const submitOrder = async () => {
-        if (cartItems.length === 0) return;
+    // Calculate total number of items
+    const itemCount = cartItems.reduce((count, item) => count + item.quantity, 0);
 
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        const customerId = user.id;
+    const submitOrder = async (details: OrderDetails) => {
+        if (cartItems.length === 0) {
+            throw new Error("Cart is empty.");
+        }
 
-        if (!customerId) {
+        const userString = localStorage.getItem('user');
+        if (!userString) {
             throw new Error('User not logged in');
         }
+        const user = JSON.parse(userString);
+        const customerId = user.id;
 
         setIsSubmitting(true);
 
         try {
-            const token = localStorage.getItem('token');
             const orderData = {
                 customerId,
                 items: cartItems.map(item => ({
                     productId: item.id,
                     quantity: item.quantity,
                     unitPrice: item.price
-                }))
+                })),
+                ...details
             };
 
-            const response = await fetch('http://localhost:10000/api/orders', {
+            // Using the centralized apiFetch function for consistency
+            await apiFetch('http://localhost:10000/api/orders', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify(orderData)
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to create order');
-            }
-
-            // Clear cart after successful order
+            // Clear cart after successful order submission
             clearCart();
         } finally {
             setIsSubmitting(false);
         }
     };
 
+    // The value provided to consumers of the context
     const contextValue: CartContextType = {
         cartItems,
         addToCart,
@@ -137,6 +152,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         removeItem,
         clearCart,
         subtotal,
+        itemCount, // Provide itemCount
         submitOrder,
         isSubmitting
     };
@@ -148,6 +164,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     );
 };
 
+// Custom hook for easy consumption of the cart context
 export const useCart = () => {
     const context = useContext(CartContext);
     if (context === undefined) {

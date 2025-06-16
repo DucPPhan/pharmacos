@@ -1,4 +1,4 @@
-// src/components/CartDropdown.tsx
+// MODIFIED: Added useState and AlertDialog components
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Trash2, Plus, Minus, X } from 'lucide-react';
@@ -6,16 +6,30 @@ import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { CartItem } from '@/contexts/CartContext';
 
 const CartDropdown: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
+    // State to hold the item that is pending deletion
+    const [itemToDelete, setItemToDelete] = useState<CartItem | null>(null);
+
     const dropdownRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
     const { cartItems, updateQuantity, removeItem, subtotal } = useCart();
 
     const itemCount = cartItems.reduce((count, item) => count + item.quantity, 0);
 
-    // Close dropdown when clicking outside
+    // Effect to close the dropdown when clicking outside of it
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -35,6 +49,14 @@ const CartDropdown: React.FC = () => {
     const handleCheckout = () => {
         setIsOpen(false);
         navigate('/cart');
+    };
+
+    // Handler for when the user confirms the deletion
+    const handleConfirmDelete = () => {
+        if (itemToDelete) {
+            removeItem(itemToDelete.id);
+            setItemToDelete(null); // Close the dialog after deletion
+        }
     };
 
     return (
@@ -106,8 +128,12 @@ const CartDropdown: React.FC = () => {
                                                         <Plus className="h-3 w-3" />
                                                     </button>
                                                 </div>
+                                                {/* MODIFIED: The delete button now opens the dialog instead of deleting directly */}
                                                 <button
-                                                    onClick={() => removeItem(item.id)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setItemToDelete(item);
+                                                    }}
                                                     className="text-gray-400 hover:text-red-500"
                                                     aria-label="Remove item"
                                                 >
@@ -126,9 +152,9 @@ const CartDropdown: React.FC = () => {
                                 <span>${subtotal.toFixed(2)}</span>
                             </div>
 
-                            <div className="space-y-2" style={{ maxWidth: '50%'}}>
+                            <div className="grid grid-cols-2 gap-2">
                                 <Button
-                                    className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800"
+                                    className="w-full"
                                     variant="outline"
                                     onClick={() => {
                                         setIsOpen(false);
@@ -149,6 +175,27 @@ const CartDropdown: React.FC = () => {
                     )}
                 </div>
             </div>
+
+            {/* AlertDialog component for deletion confirmation */}
+            <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will permanently remove <strong>"{itemToDelete?.name}"</strong> from your cart.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleConfirmDelete}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };

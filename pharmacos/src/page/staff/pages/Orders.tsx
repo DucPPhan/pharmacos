@@ -28,9 +28,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { staffApi } from "@/page/staff/services/api";
 import { Search, Filter, Download, Eye } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 export function Orders() {
+  const { toast } = useToast();
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
