@@ -22,7 +22,7 @@ interface Ward {
     name: string;
 }
 
-interface UserInfo {
+export interface UserInfo {
     name: string;
     phone: string;
     city?: string;
@@ -78,6 +78,16 @@ const updateProfile = async (data: Partial<UserInfo>) => {
     });
     if (!res.ok) throw new Error("Failed to update profile");
     return await res.json();
+};
+
+export const getFullAddress = (user: UserInfo | null) => {
+    if (!user) return "";
+    return [
+        user.address,
+        user.ward,
+        user.district,
+        user.city
+    ].filter(Boolean).join(", ");
 };
 
 const AddressBook: React.FC = () => {

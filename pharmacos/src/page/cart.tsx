@@ -27,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { apiFetch } from "@/lib/api"; // Import our centralized api helper
+import { getFullAddress, UserInfo } from "./profile/AddressBook"; // Thêm dòng này
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -78,15 +79,12 @@ const Cart = () => {
     try {
       // Fetch the latest user profile from the API
       const profileData = await apiFetch('http://localhost:10000/api/customers/profile');
-
-      // Pre-fill the form with the fetched data
       setCheckoutInfo(prev => ({
         ...prev,
         recipientName: profileData.name || '',
         phone: profileData.phone || '',
-        shippingAddress: profileData.address || ''
+        shippingAddress: getFullAddress(profileData)
       }));
-
       // Open the dialog only after successfully fetching the data
       setIsCheckoutDialogOpen(true);
 
