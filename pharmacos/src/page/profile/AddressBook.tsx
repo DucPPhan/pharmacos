@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Card, Form, Input, Button, Spin, message, Select, Switch, Radio } from "antd";
-import { EditOutlined, SaveOutlined, HomeOutlined } from "@ant-design/icons";
+import { Card, Form, Input, Button, Spin, message, Select, Switch, Radio, Modal, Tooltip } from "antd";
+import { EditOutlined, SaveOutlined, HomeOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import "./UserProfile.css";
 
 const { Option } = Select;
@@ -33,6 +33,19 @@ export interface UserInfo {
     isDefault?: boolean;
 }
 
+export interface AddressInfo {
+    _id?: string;
+    name: string;
+    phone: string;
+    city?: string;
+    district?: string;
+    ward?: string;
+    address?: string;
+    addressType?: string;
+    isDefault?: boolean;
+    email?: string;
+}
+
 const fetchProfile = async (): Promise<UserInfo> => {
     const token = localStorage.getItem("token");
     const url = "http://localhost:10000/api/customers/profile";
@@ -51,7 +64,7 @@ const fetchProfile = async (): Promise<UserInfo> => {
         district: data.district || "",
         ward: data.ward || "",
         address: data.address || "",
-        addressType: data.addressType || "Nhà",
+        addressType: data.addressType || "Home",
         isDefault: !!data.isDefault,
     };
 };
@@ -80,7 +93,7 @@ const updateProfile = async (data: Partial<UserInfo>) => {
     return await res.json();
 };
 
-export const getFullAddress = (user: UserInfo | null) => {
+export const getFullAddress = (user: AddressInfo | null) => {
     if (!user) return "";
     return [
         user.address,
@@ -88,6 +101,68 @@ export const getFullAddress = (user: UserInfo | null) => {
         user.district,
         user.city
     ].filter(Boolean).join(", ");
+};
+
+const fetchAddresses = async (): Promise<AddressInfo[]> => {
+    const token = localStorage.getItem("token");
+    const url = "http://localhost:10000/api/customers/addresses";
+    const res = await fetch(url, {
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+    });
+    if (!res.ok) {
+        // Thêm log chi tiết lỗi để debug
+        const errText = await res.text();
+        console.error("Failed to fetch addresses:", res.status, errText);
+        throw new Error("Failed to fetch addresses");
+    }
+    return await res.json();
+};
+
+const addAddress = async (data: Partial<AddressInfo>) => {
+    const token = localStorage.getItem("token");
+    const url = "http://localhost:10000/api/customers/addresses";
+    const res = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error("Failed to add address");
+    return await res.json();
+};
+
+const updateAddress = async (id: string, data: Partial<AddressInfo>) => {
+    const token = localStorage.getItem("token");
+    const url = `http://localhost:10000/api/customers/addresses/${id}`;
+    const res = await fetch(url, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error("Failed to update address");
+    return await res.json();
+};
+
+const deleteAddress = async (id: string) => {
+    const token = localStorage.getItem("token");
+    const url = `http://localhost:10000/api/customers/addresses/${id}`;
+    const res = await fetch(url, {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+    });
+    if (!res.ok) throw new Error("Failed to delete address");
+    return await res.json();
 };
 
 const AddressBook: React.FC = () => {
@@ -99,12 +174,33 @@ const AddressBook: React.FC = () => {
     const [provinces, setProvinces] = useState<Province[]>([]);
     const [districts, setDistricts] = useState<District[]>([]);
     const [wards, setWards] = useState<Ward[]>([]);
+    const [addresses, setAddresses] = useState<AddressInfo[]>([]);
+    const [showForm, setShowForm] = useState(false);
+    const [editing, setEditing] = useState<AddressInfo | null>(null);
 
     useEffect(() => {
         fetch("https://provinces.open-api.vn/api/?depth=3")
             .then(res => res.json())
             .then((data: Province[]) => setProvinces(data))
             .catch(() => setProvinces([]));
+    }, []);
+
+    const loadAddresses = async () => {
+        setLoading(true);
+        try {
+            const data = await fetchAddresses();
+            setAddresses(data);
+        } catch (e) {
+            // Hiển thị lỗi chi tiết hơn
+            message.error("Failed to load addresses. Please check your backend and network.");
+            // Log lỗi ra console để dễ debug
+            console.error(e);
+        }
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        loadAddresses();
     }, []);
 
     useEffect(() => {
@@ -142,19 +238,73 @@ const AddressBook: React.FC = () => {
         setWards(district ? district.wards : []);
     };
 
+    const handleAddNew = () => {
+        setShowForm(true);
+        setEditing(null);
+        form.resetFields(); // Xóa toàn bộ thông tin cũ trên form
+        // Đặt lại giá trị mặc định cho các trường cần thiết
+        form.setFieldsValue({
+            name: "",
+            phone: "",
+            city: undefined,
+            district: undefined,
+            ward: undefined,
+            address: "",
+            addressType: "Home",
+            isDefault: false,
+        });
+        setDistricts([]);
+        setWards([]);
+    };
+
+    const handleEdit = (addr: AddressInfo) => {
+        setShowForm(true);
+        setEditing(addr);
+        form.setFieldsValue(addr);
+        const province = provinces.find((p) => p.name === addr.city);
+        setDistricts(province ? province.districts : []);
+        const district = province?.districts.find((d) => d.name === addr.district);
+        setWards(district ? district.wards : []);
+    };
+
+    const handleDelete = async (id: string) => {
+        Modal.confirm({
+            title: "Delete address?",
+            content: "Are you sure you want to delete this address?",
+            okText: "Delete",
+            okType: "danger",
+            cancelText: "Cancel",
+            onOk: async () => {
+                setLoading(true);
+                try {
+                    await deleteAddress(id);
+                    await loadAddresses();
+                    message.success("Address deleted!");
+                } catch {
+                    message.error("Delete failed!");
+                }
+                setLoading(false);
+            }
+        });
+    };
+
     const handleSave = async () => {
         try {
             const values = await form.validateFields();
             setLoading(true);
-            await updateProfile(values);
-            const updated = await fetchProfile();
-            setUser(updated);
-            setEditMode(false);
+            if (editing && editing._id) {
+                await updateAddress(editing._id, values);
+            } else {
+                await addAddress(values);
+            }
+            await loadAddresses();
+            setShowForm(false);
+            setEditing(null);
             setLoading(false);
-            message.success("Cập nhật thành công!");
+            message.success(editing ? "Address updated!" : "Address added!");
         } catch (err: any) {
             setLoading(false);
-            message.error(err.message || "Update failed!");
+            message.error(err.message || "Operation failed!");
         }
     };
 
@@ -168,58 +318,39 @@ const AddressBook: React.FC = () => {
 
     return (
         <Card
-            title={<span className="user-profile-section-title"><HomeOutlined style={{ marginRight: 8 }} />Address Book</span>}
+            title={
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span className="user-profile-section-title">
+                        <HomeOutlined style={{ marginRight: 8 }} />Address Book
+                    </span>
+                    <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={handleAddNew}
+                        style={{ marginLeft: 12, display: "flex", alignItems: "center" }}
+                    >
+                        Add Address
+                    </Button>
+                </div>
+            }
             className="user-profile-section-card"
             bodyStyle={{ padding: 0 }}
             style={{ maxWidth: 480, margin: "0 auto" }}
         >
             <div className="user-profile-section-content" style={{ maxWidth: 420, margin: "0 auto" }}>
-                {!editMode ? (
-                    <div style={{ width: "100%", textAlign: "left" }}>
-                        <div style={{ fontWeight: 600, marginBottom: 8, color: "#666" }}>Recipient Information</div>
-                        <div style={{ marginBottom: 12 }}>
-                            <span style={{ fontWeight: 600 }}>{user.name}</span>
-                            {" | "}
-                            <span>{user.phone}</span>
-                        </div>
-                        <div style={{ marginBottom: 12 }}>
-                            <span>
-                                {[user.address, user.ward, user.district, user.city].filter(Boolean).join(", ")}
-                            </span>
-                        </div>
-                        <div style={{ marginBottom: 12 }}>
-                            <span>
-                                <span style={{ background: "#f5f5f5", borderRadius: 4, padding: "2px 8px", marginRight: 8 }}>
-                                    <HomeOutlined style={{ marginRight: 4 }} />
-                                    {user.addressType}
-                                </span>
-                                {user.isDefault && (
-                                    <span style={{ background: "#1890ff", color: "#fff", borderRadius: 4, padding: "2px 8px" }}>
-                                        Default
-                                    </span>
-                                )}
-                            </span>
-                        </div>
-                        <Button
-                            type="primary"
-                            icon={<EditOutlined />}
-                            className="user-profile-section-btn"
-                            size="large"
-                            style={{ width: "100%", fontWeight: 600, marginTop: 24 }}
-                            onClick={() => setEditMode(true)}
-                        >
-                            Update Address
-                        </Button>
-                    </div>
-                ) : (
+                {showForm ? (
+                    // Chỉ hiển thị form khi showForm = true, KHÔNG hiển thị danh sách addresses
                     <Form
                         form={form}
                         layout="vertical"
-                        initialValues={user}
+                        initialValues={editing || { addressType: "Home", isDefault: false }}
                         className="user-profile-form"
                         onFinish={handleSave}
+                        style={{ background: "#fff", borderRadius: 8, padding: 24, marginBottom: 24 }}
                     >
-                        <div style={{ fontWeight: 600, marginBottom: 8, color: "#666" }}>Recipient Information</div>
+                        <div style={{ fontWeight: 600, marginBottom: 8, color: "#666" }}>
+                            {editing ? "Edit Address" : "Add New Address"}
+                        </div>
                         <Form.Item
                             label="Full Name"
                             name="name"
@@ -329,58 +460,134 @@ const AddressBook: React.FC = () => {
                             />
                         </Form.Item>
                         <div style={{ fontWeight: 600, margin: "24px 0 8px 0", color: "#666" }}>Address Type</div>
-                        <Form.Item name="addressType" initialValue="Nhà" style={{ marginBottom: 16 }}>
+                        <Form.Item name="addressType" initialValue="Home" style={{ marginBottom: 16 }}>
                             <Radio.Group>
-                                <Radio.Button value="Nhà">Home</Radio.Button>
-                                <Radio.Button value="Văn phòng">Office</Radio.Button>
+                                <Radio.Button value="Home">Home</Radio.Button>
+                                <Radio.Button value="Office">Office</Radio.Button>
                             </Radio.Group>
                         </Form.Item>
                         <Form.Item
                             style={{
                                 marginBottom: 24,
-                                background: "#f6f8fa",
+                                background: "#f0f2f5",
                                 borderRadius: 8,
                                 padding: "12px 16px",
                                 display: "flex",
                                 alignItems: "center",
-                                justifyContent: "space-between"
+                                justifyContent: "space-between",
+                                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
                             }}
                         >
-                            <span style={{ fontWeight: 500, color: "#222" }}>Set as default address</span>
+                            <span
+                                style={{
+                                    color: "#000",
+                                    fontWeight: 600,
+                                    fontSize: 16,
+                                    flex: 1,
+                                }}
+                            >
+                                Set as default address
+                            </span>
+
                             <Form.Item name="isDefault" valuePropName="checked" noStyle>
                                 <Switch
                                     checked={form.getFieldValue("isDefault")}
-                                    onChange={checked => form.setFieldValue("isDefault", checked)}
-                                    style={{ marginLeft: 12 }}
-                                    checkedChildren=""
-                                    unCheckedChildren=""
+                                    onChange={(checked) => form.setFieldValue("isDefault", checked)}
+                                    style={{
+                                        marginLeft: 12,
+                                        backgroundColor: form.getFieldValue("isDefault") ? "#1890ff" : "#blue",
+                                        transition: "all 0.3s ease",
+                                    }}
                                 />
                             </Form.Item>
                         </Form.Item>
+
                         <Form.Item style={{ marginTop: 24 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                                <Button
+                                    type="primary"
+                                    htmlType="submit"
+                                    icon={<SaveOutlined />}
+                                    className="user-profile-section-btn"
+                                    size="large"
+                                    style={{ flex: 1.2, fontWeight: 600, height: 40 }}
+                                    loading={loading}
+                                >
+                                    {editing ? "Save Changes" : "Add Address"}
+                                </Button>
+                                <Button
+                                    size="large"
+                                    style={{ flex: 0.8, height: 40 }}
+                                    onClick={() => {
+                                        setShowForm(false);
+                                        setEditing(null);
+                                    }}
+                                >
+                                    Cancel
+                                </Button>
+                            </div>
+                        </Form.Item>
+
+
+                    </Form>
+                ) : (
+                    loading ? (
+                        <Spin size="large" />
+                    ) : (
+                        <div>
+                            {addresses.map(addr => (
+                                <div key={addr._id} style={{
+                                    background: "#fff",
+                                    borderRadius: 12,
+                                    marginBottom: 16,
+                                    padding: 20,
+                                    boxShadow: "0 1px 4px #eee",
+                                    display: "flex",
+                                    flexDirection: "column"
+                                }}>
+                                    <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>
+                                        {addr.name} <span style={{ fontWeight: 400, color: "#888" }}>| {addr.phone}</span>
+                                    </div>
+                                    <div style={{ marginBottom: 8 }}>
+                                        {getFullAddress(addr)}
+                                    </div>
+                                    <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+                                        <span style={{ background: "#f5f5f5", borderRadius: 4, padding: "2px 8px", marginRight: 8 }}>
+                                            <HomeOutlined style={{ marginRight: 4 }} />
+                                            {addr.addressType}
+                                        </span>
+                                        {addr.isDefault && (
+                                            <span style={{ background: "#1890ff", color: "#fff", borderRadius: 4, padding: "2px 8px", marginRight: 8 }}>
+                                                Default
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <Button type="link" onClick={() => handleEdit(addr)} style={{ padding: 0, marginRight: 8 }}>Edit</Button>
+                                        <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDelete(addr._id!)} style={{ padding: 0, marginRight: 8 }}>Delete</Button>
+                                    </div>
+                                </div>
+                            ))}
                             <Button
                                 type="primary"
-                                htmlType="submit"
-                                icon={<SaveOutlined />}
-                                className="user-profile-section-btn"
-                                size="large"
-                                style={{ width: "100%", fontWeight: 600 }}
-                            >
-                                Save Changes
-                            </Button>
-                            <Button
-                                shape="round"
-                                size="large"
-                                style={{ width: "100%", marginTop: 12 }}
-                                onClick={() => {
-                                    form.setFieldsValue(user);
-                                    setEditMode(false);
+                                icon={<PlusOutlined />}
+                                onClick={handleAddNew}
+                                style={{
+                                    margin: "16px 0",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    opacity: 1,
+                                    transition: "opacity 0.2s",
+                                    color: "#fff",
+                                    backgroundColor: "#1890ff",
+                                    borderColor: "#1890ff",
                                 }}
                             >
-                                Cancel
+                                Add Address
                             </Button>
-                        </Form.Item>
-                    </Form>
+
+                        </div>
+                    )
                 )}
             </div>
         </Card>
