@@ -23,6 +23,9 @@ import Cart from "./page/cart";
 import { CartProvider } from "./contexts/CartContext";
 import OrderConfirmation from "./page/OrderConfirmation/OrderConfirmation";
 import OrderDetail from "./page/order/OrderDetail";
+import ScrollToTop from "./components/ui/ScrollToTop";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { Toaster } from "./components/ui/toaster";
 
 function App() {
   const [visible, setVisible] = useState(true);
@@ -47,6 +50,7 @@ function App() {
   return (
     <CartProvider>
       <Suspense fallback={<p>Loading...</p>}>
+        <ScrollToTop />
         <div className="min-h-screen bg-background">
           {visible && (
             <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
@@ -55,6 +59,7 @@ function App() {
           )}
           <>
             <Routes>
+              {/* Public routes */}
               <Route path="/" element={<Home />} />
               <Route path="/profile/*" element={<UserProfile />} />
               {/* 
@@ -62,9 +67,36 @@ function App() {
               <Route path="/profile/change-password" element={<ChangePassword />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} /> */}
               <Route path="/products" element={<ProductsPage />} />
-              <Route path="/cart" element={<Cart />} />
               <Route path="/category/:categoryId" element={<CategoryPage />} />
               <Route path="/product/:productId" element={<ProductDetailPage />} />
+
+              {/* Protected routes */}
+              <Route
+                path="/profile/*"
+                element={
+                  <ProtectedRoute>
+                    <UserProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/cart"
+                element={
+                  <ProtectedRoute>
+                    <Cart />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/order-confirmation"
+                element={
+                  <ProtectedRoute>
+                    <OrderConfirmation />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Your other routes */}
               <Route path="/admin/dashboard" element={<Dashboard />} />
               <Route path="/staff/dashboard/*" element={<Staffdashboard />} />
               <Route path="/order-confirmation" element={<OrderConfirmation />} />
@@ -73,6 +105,7 @@ function App() {
           </>
           {visible && <Footer />}
         </div>
+        <Toaster />
       </Suspense>
     </CartProvider>
   );

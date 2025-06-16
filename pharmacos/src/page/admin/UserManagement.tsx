@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-
+import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,7 +33,7 @@ import {
 
 import { Input } from "@/components/ui/input";
 
-const   API_URL = "http://localhost:10000/api/admin/accounts";
+const API_URL = "http://localhost:10000/api/admin/accounts";
 
 // Helper to get token
 const getAuthHeader = () => {
@@ -44,6 +42,7 @@ const getAuthHeader = () => {
 };
 
 const UserManagement = () => {
+  const { toast } = useToast();
   const [users, setUsers] = useState([]);
   const [pendingChange, setPendingChange] = useState(null);
   const [detailsUserId, setDetailsUserId] = useState(null);
@@ -94,7 +93,10 @@ const UserManagement = () => {
           )
         );
 
-        toast.success("Status updated successfully!");
+        toast({
+          title: "Success",
+          description: "Status updated successfully!",
+        });
       } else {
         const user = users.find((u) => u._id === id);
         if (!user) return;
@@ -108,10 +110,17 @@ const UserManagement = () => {
           prev.map((u) => (u._id === id ? updatedUser : u))
         );
 
-        toast.success(`${field} updated successfully!`);
+        toast({
+          title: "Success",
+          description: `${field} updated successfully!`,
+        });
       }
     } catch (err) {
-      toast.error("Error updating user");
+      toast({
+        title: "Error",
+        description: "Error updating user",
+        variant: "destructive",
+      });
       console.error(err);
     } finally {
       setPendingChange(null);
@@ -155,16 +164,23 @@ const UserManagement = () => {
         prevUsers.map((user) =>
           user._id === confirmEditData.id
             ? {
-                ...user,
-                username: confirmEditData.username,
-                email: confirmEditData.email,
-              }
+              ...user,
+              username: confirmEditData.username,
+              email: confirmEditData.email,
+            }
             : user
         )
       );
-      toast.success("User updated successfully!");
+      toast({
+        title: "Success",
+        description: "User updated successfully!",
+      });
     } catch (error) {
-      toast.error("Error confirming edit");
+      toast({
+        title: "Error",
+        description: "Error confirming edit",
+        variant: "destructive",
+      });
       console.error("Error confirming edit:", error);
     } finally {
       setEditingUserId(null);
@@ -177,9 +193,16 @@ const UserManagement = () => {
       try {
         await axios.delete(`${API_URL}/${id}`, { headers: getAuthHeader() });
         setUsers((prevUsers) => prevUsers.filter((user) => user._id !== id));
-        toast.success("User deleted successfully!");
+        toast({
+          title: "Success",
+          description: "User deleted successfully!",
+        });
       } catch (error) {
-        toast.error("Error deleting user");
+        toast({
+          title: "Error",
+          description: "Error deleting user",
+          variant: "destructive",
+        });
         console.error("Error deleting user:", error);
       }
     }
@@ -221,9 +244,16 @@ const UserManagement = () => {
         name: "",
         role: "staff",
       });
-      toast.success("Staff added successfully!");
+      toast({
+        title: "Success",
+        description: "Staff added successfully!",
+      });
     } catch (error) {
-      toast.error("Error adding staff");
+      toast({
+        title: "Error",
+        description: "Error adding staff",
+        variant: "destructive",
+      });
       console.error("Error adding staff:", error);
     }
   };
@@ -276,7 +306,7 @@ const UserManagement = () => {
                       className="bg-card border rounded px-2 py-1"
                     >
                       <option value="active">Active</option>
-      
+
                       <option value="locked">Lock</option>
                     </select>
                   </TableCell>
@@ -393,7 +423,6 @@ const UserManagement = () => {
         </Dialog>
       </Card>
 
-      <ToastContainer position="top-right" autoClose={3000} />
     </>
   );
 };
