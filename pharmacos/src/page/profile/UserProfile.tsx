@@ -2,39 +2,35 @@ import React, { useState, useEffect } from "react";
 import {
     Layout,
     Menu,
-    Card,
     Avatar,
     Button,
     Spin,
     Modal,
+    message,
+    Tooltip,
+    Card,
     Form,
     Input,
     DatePicker,
     Select,
-    Upload,
-    message,
-    Tooltip,
-    Tabs,
-    Tag,
+    Upload
 } from "antd";
 import {
     UserOutlined,
     ShoppingCartOutlined,
-    HomeOutlined,
     FileTextOutlined,
     LogoutOutlined,
     EditOutlined,
-    CameraOutlined,
-    PlusOutlined,
-    GiftOutlined,
-    MedicineBoxOutlined,
-    ClockCircleOutlined,
+    HomeOutlined,
 } from "@ant-design/icons";
-import dayjs from "dayjs";
-import Footer from "@/components/Footer";
-import Header from "@/components/Header";
-import "./UserProfile.css";
 import CategoryNav from "../home/CategoryNav";
+import "./UserProfile.css";
+import { useNavigate, useLocation, Routes, Route, Navigate } from "react-router-dom";
+import MyOrders from "./MyOrders";
+import PurchaseHistory from "./PurchaseHistory";
+import AddressBook from "./AddressBook";
+import dayjs from "dayjs";
+
 
 const { Sider, Content } = Layout;
 const { Option } = Select;
@@ -50,47 +46,6 @@ interface UserInfo {
     address?: string;
     skinType?: string;
 }
-// đơn hàng
-const fetchOrders = async () => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const token = localStorage.getItem('token');
-    // Luôn gọi API, không kiểm tra role ở đây nữa
-    const res = await fetch('http://localhost:10000/api/orders/my-orders', {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-        }
-    });
-    if (!res.ok) {
-        const errText = await res.text();
-        console.error("API purchase history error:", errText);
-        return [];
-    }
-    return await res.json();
-};
-
-// lịch sử mua hàng
-const fetchPurchaseHistory = async () => {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role") || "customer";
-    if (role !== "customer") return [];
-    const res = await fetch(
-        "http://localhost:10000/api/customers/purchase-history",
-        {
-            headers: {
-                "Content-Type": "application/json",
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-        }
-    );
-    if (!res.ok) {
-        const errText = await res.text();
-        console.error("API purchase history error:", errText);
-        return [];
-    }
-    return await res.json();
-};
 
 const PersonalInfo: React.FC<{
     user: UserInfo;
@@ -138,12 +93,6 @@ const PersonalInfo: React.FC<{
                 <span className="user-profile-label">Birthday</span>
                 <span className="user-profile-value">
                     {user.birthday || "Not updated"}
-                </span>
-            </div>
-            <div className="user-profile-row">
-                <span className="user-profile-label">Address</span>
-                <span className="user-profile-value user-profile-address">
-                    {user.address || "Not updated"}
                 </span>
             </div>
             <div className="user-profile-edit-btn-wrap" style={{ gap: 16 }}>
@@ -215,16 +164,6 @@ const EditProfileInlineForm: React.FC<{
             })
             .catch(() => { });
     };
-
-    const handleAvatarChange = (info: any) => {
-        if (info.file.status === "done") {
-            message.success("Upload avatar successfully!");
-            setAvatarUrl("https://cdn-icons-png.flaticon.com/512/3135/3135715.png");
-        } else if (info.file.status === "error") {
-            message.error("Upload avatar failed.");
-        }
-    };
-
     return (
         <Card title={null} className="user-profile-card" bodyStyle={{ padding: 0, height: '100%' }}>
             <div className="user-profile-card-header">
@@ -299,16 +238,6 @@ const EditProfileInlineForm: React.FC<{
                         />
                     </Form.Item>
                     <Form.Item
-                        name="email"
-                        label="Email"
-                        rules={[
-                            { required: true, message: "Please enter your email!" },
-                            { type: "email", message: "Invalid email!" },
-                        ]}
-                    >
-                        <Input size="large" placeholder="Enter email" />
-                    </Form.Item>
-                    <Form.Item
                         name="gender"
                         label="Gender"
                         rules={[{ required: true, message: "Please select gender!" }]}
@@ -343,21 +272,6 @@ const EditProfileInlineForm: React.FC<{
                             disabledDate={(current) =>
                                 current && current > dayjs().endOf("day")
                             }
-                        />
-                    </Form.Item>
-                    <Form.Item
-                        name="address"
-                        label="Address"
-                        rules={[
-                            { required: true, message: "Please enter your address!" },
-                            { min: 5, message: "Address must be at least 5 characters!" },
-                        ]}
-                    >
-                        <TextArea
-                            rows={3}
-                            size="large"
-                            placeholder="Enter address"
-                            className="user-profile-textarea"
                         />
                     </Form.Item>
                     <Form.Item style={{ marginTop: 32, textAlign: "center" }}>
@@ -477,12 +391,20 @@ const ChangePasswordForm: React.FC<{
                     >
                         <Input.Password size="large" placeholder="Re-enter new password" />
                     </Form.Item>
-                    <Form.Item style={{ marginTop: 32, textAlign: "center" }}>
+                    <Form.Item
+                        style={{
+                            marginTop: 32,
+                            textAlign: "center",
+                            display: "flex",
+                            justifyContent: "center",
+                            gap: 16,
+                        }}
+                    >
                         <Button
                             shape="round"
                             size="large"
                             onClick={onCancel}
-                            style={{ minWidth: 100, marginRight: 16, width: 120, height: 40 }}
+                            style={{ width: 120, height: 40 }}
                             disabled={loading}
                         >
                             Cancel
@@ -492,6 +414,7 @@ const ChangePasswordForm: React.FC<{
                             shape="round"
                             size="large"
                             className="user-profile-edit-btn"
+                            style={{ width: 160, height: 40 }}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 handleSubmit();
@@ -514,14 +437,9 @@ const getUserRole = () => {
 // Hàm fetch profile động theo role, truyền token vào header Authorization
 const fetchProfileByRole = async (): Promise<UserInfo> => {
     const user = JSON.parse(localStorage.getItem("user"));
-    const role = user.role;
+    // Xóa mọi logic liên quan staff, chỉ lấy customer
     const token = localStorage.getItem("token");
-    let url = "";
-    if (role === "staff") {
-        url = "http://localhost:10000/api/staff/profile";
-    } else {
-        url = "http://localhost:10000/api/customers/profile";
-    }
+    const url = "http://localhost:10000/api/customers/profile";
     const res = await fetch(url, {
         headers: {
             "Content-Type": "application/json",
@@ -553,50 +471,25 @@ const fetchProfileByRole = async (): Promise<UserInfo> => {
     };
 };
 
-// Hàm update profile động theo role
+// Hàm update profile chỉ cho customer
 const updateProfileByRole = async (data: UserInfo): Promise<UserInfo> => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    const role = user.role;
     const token = localStorage.getItem('token');
-    let url = "";
-    let body: any = {};
-    let method = "PATCH";
-
-    if (role === "staff") {
-        url = "http://localhost:10000/api/staff/profile";
-        body = {
-            phone: data.phone,
-            address: data.address,
-            name: data.name,
-            gender:
-                data.gender === "Male"
-                    ? "male"
-                    : data.gender === "Female"
-                        ? "female"
-                        : data.gender,
-            dateOfBirth: data.birthday
-                ? dayjs(data.birthday, "DD/MM/YYYY").format("YYYY-MM-DD")
-                : undefined,
-        };
-        method = "PATCH";
-    } else {
-        url = "http://localhost:10000/api/customers/profile";
-        body = {
-            phone: data.phone,
-            address: data.address,
-            name: data.name,
-            gender:
-                data.gender === "Male"
-                    ? "male"
-                    : data.gender === "Female"
-                        ? "female"
-                        : data.gender,
-            dateOfBirth: data.birthday
-                ? dayjs(data.birthday, "DD/MM/YYYY").format("YYYY-MM-DD")
-                : undefined,
-        };
-        method = "PATCH";
-    }
+    const url = "http://localhost:10000/api/customers/profile";
+    const body = {
+        phone: data.phone,
+        address: data.address,
+        name: data.name,
+        gender:
+            data.gender === "Male"
+                ? "male"
+                : data.gender === "Female"
+                    ? "female"
+                    : data.gender,
+        dateOfBirth: data.birthday
+            ? dayjs(data.birthday, "DD/MM/YYYY").format("YYYY-MM-DD")
+            : undefined,
+    };
+    const method = "PATCH";
 
     const res = await fetch(url, {
         method,
@@ -614,32 +507,15 @@ const updateProfileByRole = async (data: UserInfo): Promise<UserInfo> => {
     }
     return await fetchProfileByRole();
 };
-
-// API đổi mật khẩu động cho customer và staff (không giả lập, luôn gọi API nếu có endpoint)
+// API đổi mật khẩu chỉ cho customer
 const changePassword = async (oldPassword: string, newPassword: string) => {
     const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role") || "customer";
-    let url = "";
-    let body: any = {};
-    let method = "PUT";
-
-    if (role === "customer") {
-        url = "http://localhost:10000/api/customers/change-password";
-        body = {
-            currentPassword: oldPassword,
-            newPassword: newPassword,
-        };
-        method = "PUT";
-    } else if (role === "staff") {
-        url = "http://localhost:10000/api/staff/change-password";
-        body = {
-            currentPassword: oldPassword,
-            newPassword: newPassword,
-        };
-        method = "PUT";
-    } else {
-        throw new Error("Không hỗ trợ đổi mật khẩu cho loại tài khoản này!");
-    }
+    const url = "http://localhost:10000/api/customers/change-password";
+    const body = {
+        currentPassword: oldPassword,
+        newPassword: newPassword,
+    };
+    const method = "PUT";
 
     const res = await fetch(url, {
         method,
@@ -657,33 +533,56 @@ const changePassword = async (oldPassword: string, newPassword: string) => {
     return { success: true };
 };
 
-const ORDER_STATUS_MAP: Record<string, { label: string; color: string }> = {
-    pending: { label: "Pending", color: "orange" },
-    processing: { label: "Processing", color: "blue" },
-    completed: { label: "Completed", color: "green" },
-    cancelled: { label: "Cancelled", color: "red" },
-
-};
-
-const ORDER_TABS = [
-    { key: "all", label: "All" },
-    { key: "pending", label: "Pending" },
-    { key: "processing", label: "Processing" },
-    { key: "completed", label: "Completed" },
-    { key: "cancelled", label: "Cancelled" },
+const MENU_CONFIG = [
+    {
+        key: "thongtincanhan",
+        icon: <UserOutlined style={{ fontSize: 20 }} />,
+        label: "Personal Information",
+        path: "/profile"
+    },
+    {
+        key: "donhang",
+        icon: <ShoppingCartOutlined style={{ fontSize: 20 }} />,
+        label: "My Orders",
+        path: "/profile/don-hang-cua-toi"
+    },
+    {
+        key: "donthuoc",
+        icon: <FileTextOutlined style={{ fontSize: 20 }} />,
+        label: "Purchase History",
+        path: "/profile/lich-su-mua-hang"
+    },
+    {
+        key: "addressbook",
+        icon: <HomeOutlined style={{ fontSize: 20 }} />,
+        label: "Address Book",
+        path: "/profile/address-book"
+    },
+    {
+        key: "logout",
+        icon: <LogoutOutlined style={{ fontSize: 20, color: "#ff4d4f" }} />,
+        label: <span className="user-profile-logout-label">Logout</span>,
+        danger: true,
+        style: { marginTop: 12 }
+    }
 ];
 
+const getMenuKeyByPath = (pathname: string) => {
+    if (pathname.endsWith("/don-hang-cua-toi")) return "donhang";
+    if (pathname.endsWith("/lich-su-mua-hang")) return "donthuoc";
+    if (pathname.endsWith("/address-book")) return "addressbook";
+    return "thongtincanhan";
+};
+
 const UserProfile: React.FC = () => {
-    const [activeMenu, setActiveMenu] = useState<string>(
-        () => localStorage.getItem("profileActiveMenu") || "thongtincanhan"
-    );
     const [user, setUser] = useState<UserInfo | null>(null);
     const [editMode, setEditMode] = useState(false);
     const [changePasswordMode, setChangePasswordMode] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [purchaseHistory, setPurchaseHistory] = useState<any[]>([]);
-    const [orders, setOrders] = useState<any[]>([]);
-    const [orderTab, setOrderTab] = useState<string>("all");
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const activeMenu = getMenuKeyByPath(location.pathname);
 
     useEffect(() => {
         setLoading(true);
@@ -692,20 +591,18 @@ const UserProfile: React.FC = () => {
                 setUser(data);
                 setLoading(false);
             })
-            .catch((err) => {
+            .catch(() => {
                 setLoading(false);
                 message.error("Failed to get user information!");
             });
     }, []);
 
     useEffect(() => {
-        if (activeMenu === "donhang") {
-            fetchOrders().then(setOrders);
+        if (location.pathname === "/profile" || location.pathname === "/profile/") {
+            return;
         }
-        if (activeMenu === "donthuoc") {
-            fetchPurchaseHistory().then(setPurchaseHistory);
-        }
-    }, [activeMenu]);
+        localStorage.setItem("profileActiveMenu", activeMenu);
+    }, [location.pathname, activeMenu]);
 
     const handleMenuClick = (e: any) => {
         if (e.key === "logout") {
@@ -738,8 +635,10 @@ const UserProfile: React.FC = () => {
                 },
             });
         } else {
-            setActiveMenu(e.key);
-            localStorage.setItem("profileActiveMenu", e.key);
+            const menu = MENU_CONFIG.find(m => m.key === e.key);
+            if (menu && menu.path) {
+                navigate(menu.path);
+            }
         }
     };
 
@@ -756,359 +655,28 @@ const UserProfile: React.FC = () => {
         setLoading(false);
     };
 
-    const renderOrders = () => {
-        if (!orders || orders.length === 0) {
-            return (
-                <div style={{ textAlign: "center", padding: "48px 0" }}>
-                    <div
-                        style={{
-                            width: 140,
-                            height: 140,
-                            margin: "0 auto 24px auto",
-                            borderRadius: "50%",
-                            background: "#f5f8ff",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            boxShadow: "0 0 32px 0 #e6f0ff",
-                        }}
-                    >
-                        <GiftOutlined style={{ fontSize: 64, color: "#7494ec" }} />
-                    </div>
-                    <div style={{ fontWeight: 600, fontSize: 22, marginBottom: 8, color: "#222" }}>
-                        You have no orders yet.
-                    </div>
-                    <div style={{ color: "#888", marginBottom: 24 }}>
-                        Discover thousands of products at Pharmacy!
-                    </div>
-
-                </div>
-            );
-        }
-
-        // Debug: log status values
-        // console.log(orders.map(o => o.status));
-
-        // Map các status phổ biến về đúng tab
-        const normalizeStatus = (status: string | undefined) => {
-            if (!status) return "pending";
-            const s = status.toLowerCase();
-            if (s === "pending") return "pending";
-            if (s === "processing") return "processing";
-            if (s === "completed") return "completed";
-            if (s === "cancelled" || s === "canceled") return "cancelled";
-            return s;
-        };
-
-        const filteredOrders =
-            orderTab === "all"
-                ? orders
-                : orders.filter((o) => normalizeStatus(o.status) === orderTab);
-
-        return (
-            <div style={{ marginTop: 8 }}>
-                <Tabs
-                    activeKey={orderTab}
-                    onChange={setOrderTab}
-                    items={ORDER_TABS.map(tab => ({
-                        key: tab.key,
-                        label: tab.label,
-                    }))}
-                    style={{ marginBottom: 16 }}
+    const renderPersonalInfo = () => (
+        <div className="user-profile-main-content">
+            {!editMode && !changePasswordMode ? (
+                <PersonalInfo
+                    user={user!}
+                    onEdit={() => setEditMode(true)}
+                    onChangePassword={() => setChangePasswordMode(true)}
                 />
-                <div style={{ maxHeight: 400, overflowY: "auto" }}>
-                    {filteredOrders.length === 0 ? (
-                        <div style={{ textAlign: "center", color: "#888", marginTop: 32 }}>
-                            No orders in this status.
-                        </div>
-                    ) : (
-                        filteredOrders.map((order, idx) => (
-                            <Card
-                                key={order.id || idx}
-                                style={{
-                                    marginBottom: 16,
-                                    borderRadius: 12,
-                                    border: "1px solid #f0f0f0",
-                                }}
-                                bodyStyle={{ padding: 16 }}
-                            >
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                    <div>
-                                        <b>
-                                            Order
-                                            <span style={{ marginLeft: 8, color: "#aaa" }}>
-                                                #{order.id}
-                                            </span>
-                                        </b>
-                                    </div>
-                                    <Tag color={ORDER_STATUS_MAP[order.status || "processing"]?.color || "orange"}>
-                                        {ORDER_STATUS_MAP[order.status || "processing"]?.label || "Processing"}
-                                    </Tag>
-                                </div>
-                                <div className="user-profile-order-items">
-                                    {(order.items || []).map((item: any, i: number) => (
-                                        <div key={i} className="user-profile-order-item">
-                                            <div className="user-profile-order-item-name">
-                                                {(item.productId && item.productId.name) ||
-                                                    item.name ||
-                                                    "No product name"}
-                                            </div>
-                                            <div className="user-profile-order-item-price">
-                                                {(item.unitPrice ?? item.price ?? 0).toLocaleString()}₫ x{item.quantity ?? 1}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                    <div>
-                                        <a href={`/order/${order.id}`}>View details</a>
-                                    </div>
-                                    <div>
-                                        <span style={{ color: "#888", marginRight: 8 }}>Total:</span>
-                                        <span style={{ color: "#1677ff", fontWeight: 600, fontSize: 16 }}>
-                                            {(order.totalAmount ?? order.total ?? 0).toLocaleString() + "₫"}
-                                        </span>
-                                    </div>
-                                </div>
-                                {order.note && (
-                                    <div style={{ marginTop: 8, color: "#888", fontSize: 13 }}>
-                                        {order.note}
-                                    </div>
-                                )}
-                            </Card>
-                        ))
-                    )}
-                </div>
-            </div>
-        );
-    };
-
-    const renderPurchaseHistory = () => {
-        if (!purchaseHistory || purchaseHistory.length === 0) {
-            return (
-                <div style={{ textAlign: "center", padding: "48px 0" }}>
-                    <div
-                        style={{
-                            width: 140,
-                            height: 140,
-                            margin: "0 auto 24px auto",
-                            borderRadius: "50%",
-                            background: "#f5f8ff",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            boxShadow: "0 0 32px 0 #e6f0ff",
-                        }}
-                    >
-                        <ClockCircleOutlined style={{ fontSize: 64, color: "#7494ec" }} />
-                    </div>
-                    <div style={{ fontWeight: 600, fontSize: 22, marginBottom: 8, color: "#222" }}>
-                        You have no purchase history.
-                    </div>
-                    <div style={{ color: "#888", marginBottom: 24 }}>
-                        Start shopping to see your purchase history.
-                    </div>
-                </div>
-            );
-        }
-        //display purchase history
-        const normalizedHistory = purchaseHistory.map((entry: any) => {
-            if (entry.order && entry.items) {
-                return {
-                    ...entry.order,
-                    items: entry.items,
-                    status: entry.order.status,
-                    totalAmount: entry.order.totalAmount,
-                    date: entry.order.orderDate || entry.order.createdAt,
-                    note: entry.order.note,
-                };
-            }
-            return entry;
-        });
-
-        const normalizeStatus = (status: string | undefined) => {
-            if (!status) return "pending";
-            const s = status.trim().toLowerCase();
-            if (s === "pending") return "pending";
-            if (s === "processing") return "processing";
-            if (s === "completed") return "completed";
-            if (s === "cancelled" || s === "canceled") return "cancelled";
-            return s;
-        };
-
-        const filteredHistory =
-            orderTab === "all"
-                ? normalizedHistory
-                : normalizedHistory.filter((o) => normalizeStatus(o.status) === orderTab);
-
-        return (
-            <div style={{ marginTop: 8 }}>
-                <Tabs
-                    activeKey={orderTab}
-                    onChange={setOrderTab}
-                    items={ORDER_TABS.map(tab => ({
-                        key: tab.key,
-                        label: tab.label,
-                    }))}
-                    style={{ marginBottom: 16 }}
+            ) : editMode ? (
+                <EditProfileInlineForm
+                    user={user!}
+                    onCancel={() => setEditMode(false)}
+                    onSave={handleSaveProfile}
                 />
-
-                <div style={{ maxHeight: 400, overflowY: "auto" }}>
-                    {filteredHistory.length === 0 ? (
-                        <div style={{ textAlign: "center", color: "#888", marginTop: 32 }}>
-                            No purchase history in this status.
-                        </div>
-                    ) : (
-                        filteredHistory.map((item, idx) => {
-                            const normalizedStatus = normalizeStatus(item.status);
-                            return (
-                                <Card
-                                    key={item.id || idx}
-                                    style={{
-                                        marginBottom: 16,
-                                        borderRadius: 12,
-                                        border: "1px solid #f0f0f0",
-                                    }}
-                                    bodyStyle={{ padding: 16 }}
-                                >
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                        <div>
-                                            <b>
-                                                Purchase
-                                                <span style={{ marginLeft: 8, color: "#aaa" }}>
-                                                    #{item.id || idx + 1}
-                                                </span>
-                                            </b>
-                                        </div>
-                                        <Tag color={ORDER_STATUS_MAP[normalizedStatus]?.color || "blue"}>
-                                            {ORDER_STATUS_MAP[normalizedStatus]?.label || "Processing"}
-                                        </Tag>
-                                    </div>
-                                    <div className="user-profile-order-items">
-                                        {(item.items || []).map((prod: any, i: number) => (
-                                            <div key={i} className="user-profile-order-item">
-                                                <div className="user-profile-order-item-name">
-                                                    {(prod.productId && prod.productId.name) ||
-                                                        prod.name ||
-                                                        "No product name"}
-                                                </div>
-                                                <div className="user-profile-order-item-price">
-                                                    {(prod.unitPrice ?? prod.price ?? 0).toLocaleString()}₫ x{prod.quantity ?? 1}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                        <div>
-                                            Purchase Date:{" "}
-                                            {item.date ? dayjs(item.date).format("DD/MM/YYYY") : "---"}
-                                        </div>
-                                        <div>
-                                            <span style={{ color: "#888", marginRight: 8 }}>Total:</span>
-                                            <span style={{ color: "#1677ff", fontWeight: 600, fontSize: 16 }}>
-                                                {(item.totalAmount ?? item.total ?? 0).toLocaleString() + "₫"}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    {item.note && (
-                                        <div style={{ marginTop: 8, color: "#888", fontSize: 13 }}>
-                                            {item.note}
-                                        </div>
-                                    )}
-                                </Card>
-                            );
-                        })
-                    )}
-                </div>
-            </div>
-        );
-    };
-
-    const renderContent = () => {
-        if (loading || !user) {
-            return (
-                <div className="user-profile-loading">
-                    <Spin size="large" />
-                </div>
-            );
-        }
-
-        switch (activeMenu) {
-            case "thongtincanhan":
-                return (
-                    <div className="user-profile-main-content">
-                        {!editMode && !changePasswordMode ? (
-                            <PersonalInfo
-                                user={user}
-                                onEdit={() => setEditMode(true)}
-                                onChangePassword={() => setChangePasswordMode(true)}
-                            />
-                        ) : editMode ? (
-                            <EditProfileInlineForm
-                                user={user}
-                                onCancel={() => setEditMode(false)}
-                                onSave={handleSaveProfile}
-                            />
-                        ) : (
-                            <ChangePasswordForm
-                                onCancel={() => setChangePasswordMode(false)}
-                                onSuccess={() => setChangePasswordMode(false)}
-                            />
-                        )}
-                    </div>
-                );
-            case "donhang":
-                return (
-                    <Card
-                        title={
-                            <span className="user-profile-section-title">
-                                My Orders
-                            </span>
-                        }
-                        className="user-profile-section-card"
-                        bodyStyle={{ padding: 0 }}
-                        style={{ maxWidth: 720, margin: "0 auto" }}
-                    >
-                        <div className="user-profile-section-content">
-                            {renderOrders()}
-                            <Button
-                                type="primary"
-                                shape="round"
-                                size="large"
-                                className="user-profile-section-btn"
-                                onClick={() => {
-                                    window.location.href = "/";
-                                }}
-                                icon={<ShoppingCartOutlined />}
-                                style={{ marginTop: 24 }}
-                            >
-                                Shop Now
-                            </Button>
-                        </div>
-                    </Card>
-                );
-            case "donthuoc":
-                return (
-                    <Card
-                        title={
-                            <span className="user-profile-section-title">
-                                Purchase History
-                            </span>
-                        }
-                        className="user-profile-section-card"
-                        bodyStyle={{ padding: 0 }}
-                        style={{ maxWidth: 720, margin: "0 auto" }}
-                    >
-                        <div className="user-profile-section-content">
-                            {renderPurchaseHistory()}
-                        </div>
-                    </Card>
-                );
-            default:
-                return null;
-        }
-    };
-
+            ) : (
+                <ChangePasswordForm
+                    onCancel={() => setChangePasswordMode(false)}
+                    onSuccess={() => setChangePasswordMode(false)}
+                />
+            )}
+        </div>
+    );
     return (
         <>
             <CategoryNav />
@@ -1135,43 +703,27 @@ const UserProfile: React.FC = () => {
                             selectedKeys={[activeMenu]}
                             onClick={handleMenuClick}
                             className="user-profile-sider-menu"
-                            items={[
-                                {
-                                    key: "thongtincanhan",
-                                    icon: <UserOutlined style={{ fontSize: 20 }} />,
-                                    label: "Personal Information",
-                                },
-                                {
-                                    key: "donhang",
-                                    icon: <ShoppingCartOutlined style={{ fontSize: 20 }} />,
-                                    label: "My Orders",
-                                },
-                                {
-                                    key: "donthuoc",
-                                    icon: <FileTextOutlined style={{ fontSize: 20 }} />,
-                                    label: "Purchase History",
-                                },
-                                {
-                                    key: "logout",
-                                    icon: (
-                                        <LogoutOutlined
-                                            style={{ fontSize: 20, color: "#ff4d4f" }}
-                                        />
-                                    ),
-                                    label: (
-                                        <span className="user-profile-logout-label">Logout</span>
-                                    ),
-                                    danger: true,
-                                    style: { marginTop: 12 },
-                                },
-                            ]}
+                            items={MENU_CONFIG}
                         />
                     </Sider>
-                    <Content className="user-profile-content">{renderContent()}</Content>
+                    <Content className="user-profile-content">
+                        {(!user || loading) ? (
+                            <div className="user-profile-loading">
+                                <Spin size="large" />
+                            </div>
+                        ) : (
+                            <Routes>
+                                <Route path="" element={renderPersonalInfo()} />
+                                <Route path="don-hang-cua-toi" element={<MyOrders />} />
+                                <Route path="lich-su-mua-hang" element={<PurchaseHistory />} />
+                                <Route path="address-book" element={<AddressBook />} />
+                                <Route path="*" element={<Navigate to="" replace />} />
+                            </Routes>
+                        )}
+                    </Content>
                 </Layout>
             </Layout>
         </>
     );
 };
-
 export default UserProfile;

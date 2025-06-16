@@ -25,7 +25,7 @@ const OrderConfirmation = () => {
 
                     <div className="space-y-4">
                         <Button asChild className="w-full" style={{ backgroundColor: "#7494ec" }}>
-                            <Link to="/profile/orders" className="flex items-center justify-center">
+                            <Link to="/profile/don-hang-cua-toi" className="flex items-center justify-center">
                                 <ShoppingBag className="mr-2 h-4 w-4" />
                                 View My Orders
                             </Link>

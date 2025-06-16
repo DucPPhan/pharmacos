@@ -22,6 +22,7 @@ import UserProfile from "./page/profile/UserProfile";
 import Cart from "./page/cart";
 import { CartProvider } from "./contexts/CartContext";
 import OrderConfirmation from "./page/OrderConfirmation/OrderConfirmation";
+import OrderDetail from "./page/order/OrderDetail";
 
 function App() {
   const [visible, setVisible] = useState(true);
@@ -55,7 +56,7 @@ function App() {
           <>
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/profile" element={<UserProfile />} />
+              <Route path="/profile/*" element={<UserProfile />} />
               {/* 
               <Route path="/profile/personal-info" element={<PersonalInfo />} />
               <Route path="/profile/change-password" element={<ChangePassword />} />
@@ -67,6 +68,7 @@ function App() {
               <Route path="/admin/dashboard" element={<Dashboard />} />
               <Route path="/staff/dashboard/*" element={<Staffdashboard />} />
               <Route path="/order-confirmation" element={<OrderConfirmation />} />
+              <Route path="/order/:id" element={<OrderDetail />} />
             </Routes>
           </>
           {visible && <Footer />}
