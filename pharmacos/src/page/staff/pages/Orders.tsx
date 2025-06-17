@@ -54,6 +54,7 @@ export function Orders() {
   const ordersPerPage = 10;
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [pendingStatusChange, setPendingStatusChange] = useState<{ orderId: string; status: string } | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
 
   // Helper function to capitalize first letter
   const capitalizeFirstLetter = (str: string) => {
@@ -148,6 +149,16 @@ export function Orders() {
   const confirmStatusChange = async () => {
     if (!pendingStatusChange) return;
 
+    // Validate cancel reason if status is cancelled
+    if (pendingStatusChange.status.toLowerCase() === 'cancelled' && !cancelReason.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide a reason for cancellation",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`http://localhost:10000/api/orders/${pendingStatusChange.orderId}/status`, {
@@ -157,7 +168,8 @@ export function Orders() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          status: pendingStatusChange.status.toLowerCase()
+          status: pendingStatusChange.status.toLowerCase(),
+          ...(pendingStatusChange.status.toLowerCase() === 'cancelled' && { cancelReason })
         })
       });
 
@@ -186,6 +198,7 @@ export function Orders() {
       });
     } finally {
       setPendingStatusChange(null);
+      setCancelReason("");
     }
   };
 
@@ -441,7 +454,12 @@ export function Orders() {
       {/* Status Change Confirmation Dialog */}
       <AlertDialog 
         open={!!pendingStatusChange} 
-        onOpenChange={(isOpen) => !isOpen && setPendingStatusChange(null)}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setPendingStatusChange(null);
+            setCancelReason("");
+          }
+        }}
       >
         <AlertDialogContent className="bg-white">
           <AlertDialogHeader>
@@ -450,9 +468,27 @@ export function Orders() {
               Are you sure you want to change this order's status to {capitalizeFirstLetter(pendingStatusChange?.status || '')}?
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {pendingStatusChange?.status.toLowerCase() === 'cancelled' && (
+            <div className="mb-4">
+              <label htmlFor="cancelReason" className="block text-sm font-medium text-[#1F3368] mb-2">
+                Cancellation Reason (Required)
+              </label>
+              <Input
+                id="cancelReason"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Please provide a reason for cancellation"
+                className="w-full border-[#1F3368] focus:ring-[#1F3368]"
+              />
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel 
               className="border-[#1F3368] text-[#1F3368] hover:bg-[#1F3368] hover:text-white"
+              onClick={() => {
+                setPendingStatusChange(null);
+                setCancelReason("");
+              }}
             >
               Cancel
             </AlertDialogCancel>
