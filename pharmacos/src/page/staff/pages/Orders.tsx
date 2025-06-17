@@ -27,8 +27,19 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { staffApi } from "@/page/staff/services/api";
-import { Search, Filter, Download, Eye } from "lucide-react";
+import { Search, Filter, Download, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { addDays, format } from "date-fns";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 export function Orders() {
   const { toast } = useToast();
@@ -39,38 +50,49 @@ export function Orders() {
   const [currentOrder, setCurrentOrder] = useState<any>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
   const [newStatus, setNewStatus] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ordersPerPage = 10;
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [pendingStatusChange, setPendingStatusChange] = useState<{ orderId: string; status: string } | null>(null);
+
+  // Helper function to capitalize first letter
+  const capitalizeFirstLetter = (str: string) => {
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  };
 
   // Load orders
   useEffect(() => {
     const loadOrders = async () => {
       try {
         setIsLoading(true);
-        const token = localStorage.getItem("token");
-        const response = await fetch("http://localhost:10000/api/staff/orders", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const data = await response.json();
+        const response = await staffApi.getOrders();
+        const data = response.data;
         
         // Transform the orders data to match our component's structure
-        const transformedOrders = data.map((order: any) => ({
-          id: order._id,
-          customer: `${order.user?.firstName || ''} ${order.user?.lastName || ''}`,
-          email: order.user?.email || '',
-          phone: order.user?.phone || '',
-          date: new Date(order.createdAt).toLocaleDateString(),
-          status: order.status,
-          total: order.totalAmount,
-          items: order.items.map((item: any) => ({
-            id: item._id,
-            name: item.product?.name || 'Unknown Product',
-            quantity: item.quantity,
-            price: item.price
-          }))
+        const transformedOrders = data.map((order: any) => {
+          const userName = `${order.user?.firstName || ''} ${order.user?.lastName || ''}`.trim();
+          return {
+            id: order._id,
+            recipientName: order.recipientName || userName || 'N/A',
+            phone: order.phone || order.user?.phone || 'N/A',
+            shippingAddress: order.shippingAddress || 'N/A',
+            date: new Date(order.createdAt).toLocaleDateString(),
+            rawDate: new Date(order.createdAt),
+            status: capitalizeFirstLetter(order.status),
+            quantity: order.items && order.items.length > 0 ? order.items[0].quantity : 0,
+            unitPrice: order.items && order.items.length > 0 ? order.items[0].price : 0,
+            items: order.items || []
+          };
+        });
+
+        // Sort by creation date (oldest first) and add order number
+        const sortedOrders = transformedOrders.sort((a, b) => a.rawDate.getTime() - b.rawDate.getTime());
+        const numberedOrders = sortedOrders.map((order, index) => ({
+          ...order,
+          orderNumber: index + 1
         }));
 
-        setOrders(transformedOrders);
+        setOrders(numberedOrders);
       } catch (error) {
         console.error("Error loading orders:", error);
         toast({
@@ -90,10 +112,27 @@ export function Orders() {
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
       order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customer.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" ? true : order.status === statusFilter;
+      order.recipientName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all"
+        ? true
+        : order.status?.toLowerCase().trim() === statusFilter.toLowerCase().trim();
     return matchesSearch && matchesStatus;
   });
+
+  // Sort orders by date
+  const sortedOrders = [...filteredOrders].sort((a, b) => {
+    if (sortOrder === 'desc') {
+      return b.rawDate - a.rawDate;
+    } else {
+      return a.rawDate - b.rawDate;
+    }
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(sortedOrders.length / ordersPerPage);
+  const startIndex = (currentPage - 1) * ordersPerPage;
+  const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ordersPerPage);
 
   // Show order details
   const viewOrderDetails = (order: any) => {
@@ -102,40 +141,42 @@ export function Orders() {
     setShowOrderDetails(true);
   };
 
-  // Update order status
-  const updateOrderStatus = async () => {
-    if (!currentOrder) return;
-    
+  const handleStatusChange = (orderId: string, newStatus: string) => {
+    setPendingStatusChange({ orderId, status: newStatus });
+  };
+
+  const confirmStatusChange = async () => {
+    if (!pendingStatusChange) return;
+
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:10000/api/staff/orders/${currentOrder.id}/status`, {
+      const response = await fetch(`http://localhost:10000/api/orders/${pendingStatusChange.orderId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({
+          status: pendingStatusChange.status.toLowerCase()
+        })
       });
 
       if (!response.ok) {
         throw new Error('Failed to update order status');
       }
-      
-      // Update local state
+
       setOrders(
         orders.map((order) =>
-          order.id === currentOrder.id
-            ? { ...order, status: newStatus }
+          order.id === pendingStatusChange.orderId
+            ? { ...order, status: capitalizeFirstLetter(pendingStatusChange.status) }
             : order
         )
       );
-      
+
       toast({
         title: "Order updated",
-        description: `Order ${currentOrder.id} status changed to ${newStatus}`,
+        description: `Order status changed to ${capitalizeFirstLetter(pendingStatusChange.status)}`,
       });
-      
-      setShowOrderDetails(false);
     } catch (error) {
       console.error("Error updating order:", error);
       toast({
@@ -143,6 +184,8 @@ export function Orders() {
         description: "Failed to update order status",
         variant: "destructive",
       });
+    } finally {
+      setPendingStatusChange(null);
     }
   };
 
@@ -182,11 +225,19 @@ export function Orders() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all" className="text-[#1F3368]">All Statuses</SelectItem>
-                <SelectItem value="Pending" className="text-[#1F3368]">Pending</SelectItem>
-                <SelectItem value="Processing" className="text-[#1F3368]">Processing</SelectItem>
-                <SelectItem value="Shipped" className="text-[#1F3368]">Shipped</SelectItem>
-                <SelectItem value="Delivered" className="text-[#1F3368]">Delivered</SelectItem>
-                <SelectItem value="Cancelled" className="text-[#1F3368]">Cancelled</SelectItem>
+                <SelectItem value="pending" className="text-[#1F3368]">Pending</SelectItem>
+                <SelectItem value="processing" className="text-[#1F3368]">Processing</SelectItem>
+                <SelectItem value="completed" className="text-[#1F3368]">Completed</SelectItem>
+                <SelectItem value="cancelled" className="text-[#1F3368]">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sortOrder} onValueChange={value => setSortOrder(value as 'desc' | 'asc')}>
+              <SelectTrigger className="md:w-[180px] border-[#1F3368] text-[#1F3368]">
+                <SelectValue>{sortOrder === 'desc' ? 'Ngày gần nhất' : 'Ngày xa nhất'}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="desc" className="text-[#1F3368]">Ngày gần nhất</SelectItem>
+                <SelectItem value="asc" className="text-[#1F3368]">Ngày xa nhất</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -194,80 +245,106 @@ export function Orders() {
           {isLoading ? (
             <div className="text-center py-6 text-[#1F3368]">Loading...</div>
           ) : (
-            <div className="border rounded-md overflow-auto border-[#1F3368]">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-[#1F3368]/5">
-                    <TableHead className="text-[#1F3368] font-semibold">Order ID</TableHead>
-                    <TableHead className="text-[#1F3368] font-semibold">Customer</TableHead>
-                    <TableHead className="text-[#1F3368] font-semibold">Date</TableHead>
-                    <TableHead className="text-[#1F3368] font-semibold">Status</TableHead>
-                    <TableHead className="text-[#1F3368] font-semibold">Total</TableHead>
-                    <TableHead className="text-right text-[#1F3368] font-semibold">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredOrders.length === 0 ? (
-                    <TableRow>
-                      <TableCell 
-                        colSpan={6} 
-                        className="text-center py-6 text-[#1F3368]"
-                      >
-                        No orders found
-                      </TableCell>
+            <>
+              <div className="border rounded-md overflow-auto border-[#1F3368]">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-[#1F3368]/5">
+                      <TableHead className="text-[#1F3368] font-semibold">Order #</TableHead>
+                      <TableHead className="text-[#1F3368] font-semibold">Recipient Name</TableHead>
+                      <TableHead className="text-[#1F3368] font-semibold">Date</TableHead>
+                      <TableHead className="text-[#1F3368] font-semibold">Phone</TableHead>
+                      <TableHead className="text-[#1F3368] font-semibold">Status</TableHead>
+                      <TableHead className="text-[#1F3368] font-semibold">Quantity</TableHead>
+                      <TableHead className="text-[#1F3368] font-semibold">Unit Price</TableHead>
+                      <TableHead className="text-right text-[#1F3368] font-semibold">Actions</TableHead>
                     </TableRow>
-                  ) : (
-                    filteredOrders.map((order) => (
-                      <TableRow key={order.id} className="hover:bg-[#1F3368]/5">
-                        <TableCell className="text-[#1F3368]">{order.id}</TableCell>
-                        <TableCell className="text-[#1F3368]">{order.customer}</TableCell>
-                        <TableCell className="text-[#1F3368]">{order.date}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              order.status === "Delivered"
-                                ? "success"
-                                : order.status === "Shipped"
-                                ? "default"
-                                : order.status === "Processing"
-                                ? "secondary"
-                                : order.status === "Cancelled"
-                                ? "destructive"
-                                : "outline"
-                            }
-                            className={
-                              order.status === "Delivered"
-                                ? "bg-green-100 text-green-800"
-                                : order.status === "Shipped"
-                                ? "bg-blue-100 text-blue-800"
-                                : order.status === "Processing"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : order.status === "Cancelled"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-gray-100 text-gray-800"
-                            }
-                          >
-                            {order.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-[#1F3368]">${order.total.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-[#1F3368] hover:bg-[#1F3368]/10"
-                            onClick={() => viewOrderDetails(order)}
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            View
-                          </Button>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedOrders.length === 0 ? (
+                      <TableRow>
+                        <TableCell 
+                          colSpan={8} 
+                          className="text-center py-6 text-[#1F3368]"
+                        >
+                          No orders found
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                    ) : (
+                      paginatedOrders.map((order) => (
+                        <TableRow key={order.id} className="hover:bg-[#1F3368]/5">
+                          <TableCell className="text-[#1F3368] font-medium">{order.orderNumber}</TableCell>
+                          <TableCell className="text-[#1F3368]">{order.recipientName}</TableCell>
+                          <TableCell className="text-[#1F3368]">{order.date}</TableCell>
+                          <TableCell className="text-[#1F3368]">{order.phone}</TableCell>
+                          <TableCell>
+                            <Select
+                              value={order.status}
+                              onValueChange={(value) => handleStatusChange(order.id, value)}
+                            >
+                              <SelectTrigger className="w-[120px] border-[#1F3368] text-[#1F3368]">
+                                <SelectValue>{order.status}</SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pending" className="text-[#1F3368]">Pending</SelectItem>
+                                <SelectItem value="processing" className="text-[#1F3368]">Processing</SelectItem>
+                                <SelectItem value="completed" className="text-[#1F3368]">Completed</SelectItem>
+                                <SelectItem value="cancelled" className="text-[#1F3368]">Cancelled</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell className="text-[#1F3368]">{order.quantity}</TableCell>
+                          <TableCell className="text-[#1F3368]">${order.unitPrice.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-[#1F3368] hover:bg-[#1F3368]/10"
+                              onClick={() => viewOrderDetails(order)}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              View
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              
+              {/* Pagination Controls */}
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-sm text-[#1F3368]">
+                  Showing {startIndex + 1} to {Math.min(startIndex + ordersPerPage, sortedOrders.length)} of {sortedOrders.length} orders
+                </p>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
+                    disabled={currentPage === 1}
+                    className="border-[#1F3368] text-[#1F3368] hover:bg-[#1F3368] hover:text-white"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <div className="text-sm text-[#1F3368]">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
+                    disabled={currentPage === totalPages}
+                    className="border-[#1F3368] text-[#1F3368] hover:bg-[#1F3368] hover:text-white"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -297,22 +374,20 @@ export function Orders() {
                           <SelectValue>{newStatus}</SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Pending" className="text-[#1F3368]">Pending</SelectItem>
-                          <SelectItem value="Processing" className="text-[#1F3368]">Processing</SelectItem>
-                          <SelectItem value="Shipped" className="text-[#1F3368]">Shipped</SelectItem>
-                          <SelectItem value="Delivered" className="text-[#1F3368]">Delivered</SelectItem>
-                          <SelectItem value="Cancelled" className="text-[#1F3368]">Cancelled</SelectItem>
+                          <SelectItem value="pending" className="text-[#1F3368]">Pending</SelectItem>
+                          <SelectItem value="processing" className="text-[#1F3368]">Processing</SelectItem>
+                          <SelectItem value="completed" className="text-[#1F3368]">Completed</SelectItem>
+                          <SelectItem value="cancelled" className="text-[#1F3368]">Cancelled</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                    <p>Total: ${currentOrder.total.toFixed(2)}</p>
+                    <p>Total: ${currentOrder.quantity * currentOrder.unitPrice}</p>
                   </div>
                 </div>
                 <div>
                   <h3 className="font-semibold text-[#1F3368] mb-2">Customer Information</h3>
                   <div className="space-y-1 text-[#1F3368]">
-                    <p>Name: {currentOrder.customer}</p>
-                    <p>Email: {currentOrder.email}</p>
+                    <p>Name: {currentOrder.recipientName}</p>
                     <p>Phone: {currentOrder.phone}</p>
                   </div>
                 </div>
@@ -353,7 +428,7 @@ export function Orders() {
             </Button>
             {newStatus !== currentOrder?.status && (
               <Button
-                onClick={updateOrderStatus}
+                onClick={() => handleStatusChange(currentOrder.id, newStatus)}
                 className="bg-[#1F3368] hover:bg-[#152347] text-white"
               >
                 Update Status
@@ -362,6 +437,34 @@ export function Orders() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Status Change Confirmation Dialog */}
+      <AlertDialog 
+        open={!!pendingStatusChange} 
+        onOpenChange={(isOpen) => !isOpen && setPendingStatusChange(null)}
+      >
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[#1F3368]">Confirm Status Change</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to change this order's status to {capitalizeFirstLetter(pendingStatusChange?.status || '')}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              className="border-[#1F3368] text-[#1F3368] hover:bg-[#1F3368] hover:text-white"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmStatusChange}
+              className="bg-[#1F3368] hover:bg-[#152347] text-white"
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
