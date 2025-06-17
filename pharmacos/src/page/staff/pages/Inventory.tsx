@@ -105,14 +105,18 @@ export function Inventory() {
       });
       const data = await res.json();
       const productList = Array.isArray(data.products) ? data.products : data;
-      const transformedProducts = productList.map(product => ({
-        ...product,
-        imageUrl: product.imageUrl 
-          ? (product.imageUrl.startsWith('http') 
-            ? product.imageUrl 
-            : `http://localhost:10000/${product.imageUrl}`)
-          : ''
-      }));
+      const transformedProducts = productList.map((product) => {
+        // Get primary image URL or first image URL or empty string
+        const imageUrl =
+          product.images?.find((img: any) => img.isPrimary)?.url ||
+          product.images?.[0]?.url ||
+          "";
+
+        return {
+          ...product,
+          imageUrl: imageUrl,
+        };
+      });
       setProducts(transformedProducts);
       const uniqueCategories = Array.from(
         new Set(transformedProducts.map((p) => String(p.category)))
@@ -203,7 +207,9 @@ export function Inventory() {
     setNewProduct({ ...newProduct, imageUrl: url });
     // Update preview if URL is not empty
     if (url) {
-      const fullUrl = url.startsWith('http') ? url : `http://localhost:10000/${url}`;
+      const fullUrl = url.startsWith("http")
+        ? url
+        : `http://localhost:10000/${url}`;
       setImagePreview(fullUrl);
     } else {
       setImagePreview("");
@@ -362,27 +368,36 @@ export function Inventory() {
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all" className="text-[#1F3368]">All Categories</SelectItem>
+                  <SelectItem value="all" className="text-[#1F3368]">
+                    All Categories
+                  </SelectItem>
                   {categoryOptions.map((category) => (
-                    <SelectItem key={category} value={category} className="text-[#1F3368]">
+                    <SelectItem
+                      key={category}
+                      value={category}
+                      className="text-[#1F3368]"
+                    >
                       {category}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Select
-                value={selectedBrand}
-                onValueChange={setSelectedBrand}
-              >
+              <Select value={selectedBrand} onValueChange={setSelectedBrand}>
                 <SelectTrigger className="w-[180px] border-[#1F3368] text-[#1F3368]">
                   <SelectValue placeholder="Select Brand">
                     {selectedBrand === "all" ? "All Brands" : selectedBrand}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all" className="text-[#1F3368]">All Brands</SelectItem>
+                  <SelectItem value="all" className="text-[#1F3368]">
+                    All Brands
+                  </SelectItem>
                   {brandOptions.map((brand) => (
-                    <SelectItem key={brand} value={brand} className="text-[#1F3368]">
+                    <SelectItem
+                      key={brand}
+                      value={brand}
+                      className="text-[#1F3368]"
+                    >
                       {brand}
                     </SelectItem>
                   ))}
@@ -398,29 +413,54 @@ export function Inventory() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-[#1F3368]/5">
-                    <TableHead className="text-[#1F3368] font-semibold">Name</TableHead>
-                    <TableHead className="text-[#1F3368] font-semibold">Image</TableHead>
-                    <TableHead className="text-[#1F3368] font-semibold">Category</TableHead>
-                    <TableHead className="text-[#1F3368] font-semibold">Brand</TableHead>
-                    <TableHead className="text-[#1F3368] font-semibold">Size</TableHead>
-                    <TableHead className="text-[#1F3368] font-semibold">Skin Type</TableHead>
-                    <TableHead className="text-[#1F3368] font-semibold">Benefits</TableHead>
-                    <TableHead className="text-[#1F3368] font-semibold">Stock</TableHead>
-                    <TableHead className="text-[#1F3368] font-semibold">Price</TableHead>
-                    <TableHead className="text-right text-[#1F3368] font-semibold">Actions</TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">
+                      Name
+                    </TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">
+                      Image
+                    </TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">
+                      Category
+                    </TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">
+                      Brand
+                    </TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">
+                      Size
+                    </TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">
+                      Skin Type
+                    </TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">
+                      Benefits
+                    </TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">
+                      Stock
+                    </TableHead>
+                    <TableHead className="text-[#1F3368] font-semibold">
+                      Price
+                    </TableHead>
+                    <TableHead className="text-right text-[#1F3368] font-semibold">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredProducts.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-6 text-[#1F3368]">
+                      <TableCell
+                        colSpan={10}
+                        className="text-center py-6 text-[#1F3368]"
+                      >
                         No products found
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredProducts.map((p) => (
                       <TableRow key={p._id} className="hover:bg-[#1F3368]/5">
-                        <TableCell className="text-[#1F3368]">{p.name}</TableCell>
+                        <TableCell className="text-[#1F3368]">
+                          {p.name}
+                        </TableCell>
                         <TableCell>
                           <div className="relative w-16 h-16">
                             {p.imageUrl ? (
@@ -431,7 +471,8 @@ export function Inventory() {
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
                                   target.onerror = null; // Prevent infinite loop
-                                  target.src = 'https://via.placeholder.com/64?text=Error';
+                                  target.src =
+                                    "https://via.placeholder.com/64?text=Error";
                                 }}
                               />
                             ) : (
@@ -441,13 +482,27 @@ export function Inventory() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-[#1F3368]">{p.category}</TableCell>
-                        <TableCell className="text-[#1F3368]">{p.brand}</TableCell>
-                        <TableCell className="text-[#1F3368]">{p.size}</TableCell>
-                        <TableCell className="text-[#1F3368]">{p.skinType}</TableCell>
-                        <TableCell className="text-[#1F3368]">{p.benefits.join(", ")}</TableCell>
-                        <TableCell className="text-[#1F3368]">{p.stockQuantity}</TableCell>
-                        <TableCell className="text-[#1F3368]">${p.price}</TableCell>
+                        <TableCell className="text-[#1F3368]">
+                          {p.category}
+                        </TableCell>
+                        <TableCell className="text-[#1F3368]">
+                          {p.brand}
+                        </TableCell>
+                        <TableCell className="text-[#1F3368]">
+                          {p.size}
+                        </TableCell>
+                        <TableCell className="text-[#1F3368]">
+                          {p.skinType}
+                        </TableCell>
+                        <TableCell className="text-[#1F3368]">
+                          {p.benefits.join(", ")}
+                        </TableCell>
+                        <TableCell className="text-[#1F3368]">
+                          {p.stockQuantity}
+                        </TableCell>
+                        <TableCell className="text-[#1F3368]">
+                          ${p.price}
+                        </TableCell>
                         <TableCell className="text-right space-x-2">
                           <Button
                             size="sm"
@@ -456,11 +511,13 @@ export function Inventory() {
                             onClick={() => {
                               setCurrentProduct(p);
                               const productImageUrl = p.imageUrl;
-                              const fullImageUrl = productImageUrl?.startsWith('http') 
-                                ? productImageUrl 
-                                : productImageUrl 
+                              const fullImageUrl = productImageUrl?.startsWith(
+                                "http"
+                              )
+                                ? productImageUrl
+                                : productImageUrl
                                 ? `http://localhost:10000/${productImageUrl}`
-                                : '';
+                                : "";
                               setImagePreview(fullImageUrl);
                               setNewProduct({
                                 name: p.name,
@@ -717,7 +774,8 @@ export function Inventory() {
                         setImagePreview("");
                         toast({
                           title: "Error",
-                          description: "Failed to load image. Please check the URL.",
+                          description:
+                            "Failed to load image. Please check the URL.",
                           variant: "destructive",
                         });
                       }}
@@ -850,7 +908,9 @@ export function Inventory() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-[#1F3368]">Xác nhận xóa sản phẩm</DialogTitle>
+            <DialogTitle className="text-[#1F3368]">
+              Xác nhận xóa sản phẩm
+            </DialogTitle>
             <DialogDescription className="text-[#1F3368]/70">
               Bạn có chắc chắn muốn xóa sản phẩm <b>{productToDelete?.name}</b>{" "}
               không?
