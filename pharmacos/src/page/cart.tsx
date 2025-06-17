@@ -50,7 +50,7 @@ const Cart = () => {
     phone: "",
     shippingAddress: "",
     note: "",
-    paymentMethod: "cod",
+    // paymentMethod: "cod",
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -242,7 +242,9 @@ const Cart = () => {
             <Separator className="my-2" />
             <div className="grid grid-cols-4 items-start gap-4">
               <Label className="text-right pt-2">Payment</Label>
-              <RadioGroup value={checkoutInfo.paymentMethod} onValueChange={handlePaymentChange} className="col-span-3 space-y-2">
+              <RadioGroup
+                // value={checkoutInfo.paymentMethod}
+                onValueChange={handlePaymentChange} className="col-span-3 space-y-2">
                 <div className="flex items-center space-x-2"><RadioGroupItem value="cod" id="cod" /><Label htmlFor="cod">Cash on Delivery (COD)</Label></div>
                 <div className="flex items-center space-x-2"><RadioGroupItem value="online" id="online" disabled /><Label htmlFor="online" className="text-muted-foreground">Online Payment (Coming soon)</Label></div>
               </RadioGroup>

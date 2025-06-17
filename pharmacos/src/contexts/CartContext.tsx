@@ -1,114 +1,204 @@
 // src/contexts/CartContext.tsx
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { apiFetch } from '@/lib/api'; // Assuming you have a centralized api helper
+import { useToast } from '@/components/ui/use-toast';
+import { apiFetch } from '@/lib/api';
 
-// Define a clear interface for what an item in the cart looks like
-// Exporting it allows other components to use this type
+// --- Interfaces ---
+
+// Represents an item within the cart state
 export interface CartItem {
-    id: string;       // Product ID
+    id: string;          // The ID of the cart item itself (from the cart collection)
+    productId: string;   // The ID of the product
     name: string;
     price: number;
     image: string;
     quantity: number;
 }
 
-// Define an interface for the details needed to submit an order
+// Represents the details needed to create an order
 export interface OrderDetails {
     recipientName: string;
     phone: string;
     shippingAddress: string;
     note: string;
-    paymentMethod: string;
+    // paymentMethod: string;
 }
 
-// Define the shape of the context's value
+// Defines the shape of the context's value, available to consumers
 interface CartContextType {
     cartItems: CartItem[];
-    addToCart: (item: Omit<CartItem, 'quantity'>, quantity?: number) => void;
-    updateQuantity: (id: string, change: number) => void;
-    removeItem: (id: string) => void;
-    clearCart: () => void;
+    addToCart: (product: { id: string; name: string; price: number; image: string; }, quantity?: number) => Promise<void>;
+    updateQuantity: (itemId: string, change: number) => Promise<void>;
+    removeItem: (itemId: string) => Promise<void>;
+    clearCart: () => Promise<void>;
     subtotal: number;
     itemCount: number;
-    submitOrder: (details: OrderDetails) => Promise<void>;
+    isCartLoading: boolean;
     isSubmitting: boolean;
+    submitOrder: (details: OrderDetails) => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// A key for storing the cart in localStorage
-const CART_STORAGE_KEY = 'pharmacos_cart';
+// Define API endpoints for easy management
+const API = {
+    getCart: 'http://localhost:10000/api/cart',
+    addItem: 'http://localhost:10000/api/cart/items',
+    updateItem: (id: string) => `http://localhost:10000/api/cart/items/${id}`,
+    deleteItem: (id: string) => `http://localhost:10000/api/cart/items/${id}`,
+    createOrder: 'http://localhost:10000/api/orders',
+};
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [cartItems, setCartItems] = useState<CartItem[]>(() => {
-        // Load cart from localStorage on initial render
-        try {
-            const savedCart = localStorage.getItem(CART_STORAGE_KEY);
-            return savedCart ? JSON.parse(savedCart) : [];
-        } catch (error) {
-            console.error('Failed to parse cart from localStorage', error);
-            return [];
-        }
-    });
-
+    const { toast } = useToast();
+    const [cartItems, setCartItems] = useState<CartItem[]>([]);
+    const [isCartLoading, setIsCartLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Save cart to localStorage whenever it changes
+    // Fetch initial cart data from the server when the component mounts
     useEffect(() => {
-        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
-    }, [cartItems]);
-
-    const addToCart = (item: Omit<CartItem, 'quantity'>, quantity: number = 1) => {
-        setCartItems(prevItems => {
-            const existingItem = prevItems.find(cartItem => cartItem.id === item.id);
-
-            if (existingItem) {
-                // If item exists, increase its quantity
-                return prevItems.map(cartItem =>
-                    cartItem.id === item.id
-                        ? { ...cartItem, quantity: cartItem.quantity + quantity }
-                        : cartItem
-                );
-            } else {
-                // If item doesn't exist, add it to the cart
-                return [...prevItems, { ...item, quantity }];
+        const fetchCart = async () => {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                setIsCartLoading(false);
+                return; // Don't fetch if user is not logged in
             }
-        });
+
+            try {
+                setIsCartLoading(true);
+                const cartData = await apiFetch(API.getCart);
+
+                // Map the backend response to the CartItem interface
+                const mappedItems = (cartData.items || []).map((item: any) => ({
+                    id: item._id, // This is the cart item's unique ID
+                    productId: item.product._id,
+                    name: item.product.name,
+                    price: item.product.price,
+                    image: item.product.images?.[0]?.url || '/placeholder.png',
+                    quantity: item.quantity,
+                }));
+                setCartItems(mappedItems);
+            } catch (error) {
+                console.error("Failed to fetch cart:", error);
+            } finally {
+                setIsCartLoading(false);
+            }
+        };
+
+        fetchCart();
+    }, []);
+
+    const addToCart = async (product: { id: string; name: string; price: number; image: string; }, quantity: number = 1) => {
+        const existingItem = cartItems.find(item => item.productId === product.id);
+
+        // If item already exists, just update its quantity by calling updateQuantity with the CHANGE in quantity
+        if (existingItem) {
+            const newQuantity = existingItem.quantity + quantity;
+            await updateQuantity(existingItem.id, newQuantity - existingItem.quantity); // Pass the change, not the new total
+            return;
+        }
+
+        // Optimistic UI: Add a temporary item to the cart immediately
+        const tempId = `temp-${Date.now()}`;
+        const newItem: CartItem = {
+            id: tempId,
+            productId: product.id,
+            name: product.name,
+            price: product.price,
+            image: product.image,
+            quantity,
+        };
+        const previousCart = [...cartItems];
+        setCartItems(prev => [...prev, newItem]);
+        toast({ title: "Added to cart", description: `${product.name} has been added.` });
+
+        // Call API in the background
+        try {
+            const addedItemData = await apiFetch(API.addItem, {
+                method: 'POST',
+                body: JSON.stringify({ productId: product.id, quantity }),
+            });
+            // Replace the temporary item with the real one from the server
+            setCartItems(prev => prev.map(item =>
+                item.id === tempId ? { ...newItem, id: addedItemData.item._id } : item
+            ));
+        } catch (error) {
+            toast({ title: "Error", description: "Could not add item to cart.", variant: "destructive" });
+            setCartItems(previousCart); // Revert on failure
+        }
     };
 
-    const updateQuantity = (id: string, change: number) => {
-        setCartItems(prevItems =>
-            prevItems.map(item => {
-                if (item.id === id) {
-                    const newQuantity = Math.max(1, item.quantity + change); // Quantity cannot be less than 1
-                    return { ...item, quantity: newQuantity };
-                }
-                return item;
-            }).filter(item => item.quantity > 0) // Ensure items with 0 quantity are removed
-        );
+    const updateQuantity = async (itemId: string, change: number) => {
+        const previousCart = [...cartItems];
+        let newQuantity = 0;
+
+        const updatedCart = previousCart.map(item => {
+            if (item.id === itemId) {
+                newQuantity = item.quantity + change;
+                return { ...item, quantity: newQuantity };
+            }
+            return item;
+        }).filter(item => item.quantity > 0); // Filter out items with quantity 0 or less
+
+        // Optimistic UI Update
+        setCartItems(updatedCart);
+
+        if (newQuantity < 1) {
+            // If item is removed, call DELETE API
+            try {
+                await apiFetch(API.deleteItem(itemId), { method: 'DELETE' });
+                toast({ title: "Item removed", variant: 'destructive' });
+            } catch (error) {
+                toast({ title: "Error", description: "Could not remove item from cart.", variant: "destructive" });
+                setCartItems(previousCart); // Revert on failure
+            }
+        } else {
+            // If quantity is updated, call PATCH API
+            try {
+                await apiFetch(API.updateItem(itemId), {
+                    method: 'PUT',
+                    body: JSON.stringify({ quantity: newQuantity }),
+                });
+            } catch (error) {
+                toast({ title: "Error", description: "Could not update item quantity.", variant: "destructive" });
+                setCartItems(previousCart); // Revert on failure
+            }
+        }
     };
 
-    const removeItem = (id: string) => {
-        setCartItems(prevItems => prevItems.filter(item => item.id !== id));
+    const removeItem = async (itemId: string) => {
+        const previousCart = [...cartItems];
+        // Optimistic UI: Remove item immediately
+        setCartItems(prev => prev.filter(item => item.id !== itemId));
+        toast({ title: "Item removed", variant: 'destructive' });
+
+        try {
+            await apiFetch(API.deleteItem(itemId), { method: 'DELETE' });
+        } catch (error) {
+            toast({ title: "Error", description: "Could not remove item from cart.", variant: "destructive" });
+            setCartItems(previousCart); // Revert on failure
+        }
     };
 
-    const clearCart = () => {
-        setCartItems([]);
+    const clearCart = async () => {
+        const previousCart = [...cartItems];
+        setCartItems([]); // Optimistic update
+        try {
+            // Note: A single API endpoint `DELETE /api/cart` would be more efficient
+            const deletePromises = previousCart.map(item =>
+                apiFetch(API.deleteItem(item.id), { method: 'DELETE' })
+            );
+            await Promise.all(deletePromises);
+        } catch (error) {
+            toast({ title: "Error", description: "Could not clear the cart.", variant: "destructive" });
+            setCartItems(previousCart); // Revert on failure
+        }
     };
-
-    // Calculate subtotal
-    const subtotal = cartItems.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0
-    );
-
-    // Calculate total number of items
-    const itemCount = cartItems.reduce((count, item) => count + item.quantity, 0);
 
     const submitOrder = async (details: OrderDetails) => {
         if (cartItems.length === 0) {
-            throw new Error("Cart is empty.");
+            throw new Error("Cannot submit order with an empty cart.");
         }
 
         const userString = localStorage.getItem('user');
@@ -119,30 +209,35 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const customerId = user.id;
 
         setIsSubmitting(true);
-
         try {
+            // Create the complete order payload
             const orderData = {
                 customerId,
+                ...details, // Spread the recipient's details (name, phone, address, etc.)
+
+                // Map the cart items to the format required by the backend API
                 items: cartItems.map(item => ({
-                    productId: item.id,
+                    productId: item.productId,
                     quantity: item.quantity,
                     unitPrice: item.price
                 })),
-                ...details
             };
 
-            // Using the centralized apiFetch function for consistency
-            await apiFetch('http://localhost:10000/api/orders', {
+            await apiFetch(API.createOrder, {
                 method: 'POST',
-                body: JSON.stringify(orderData)
+                body: JSON.stringify(orderData),
             });
 
-            // Clear cart after successful order submission
-            clearCart();
+            // After successful order, clear the cart
+            await clearCart();
         } finally {
             setIsSubmitting(false);
         }
     };
+
+    // Calculated values derived from state
+    const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const itemCount = cartItems.reduce((count, item) => count + item.quantity, 0);
 
     // The value provided to consumers of the context
     const contextValue: CartContextType = {
@@ -152,9 +247,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         removeItem,
         clearCart,
         subtotal,
-        itemCount, // Provide itemCount
-        submitOrder,
-        isSubmitting
+        itemCount,
+        isCartLoading,
+        isSubmitting,
+        submitOrder
     };
 
     return (

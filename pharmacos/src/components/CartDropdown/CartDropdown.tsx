@@ -1,8 +1,9 @@
-// MODIFIED: Added useState and AlertDialog components
+// src/components/CartDropdown/CartDropdown.tsx
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Trash2, Plus, Minus, X } from 'lucide-react';
-import { useCart } from '@/contexts/CartContext';
+import { useCart, CartItem } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -16,18 +17,13 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { CartItem } from '@/contexts/CartContext';
 
 const CartDropdown: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
-    // State to hold the item that is pending deletion
     const [itemToDelete, setItemToDelete] = useState<CartItem | null>(null);
-
     const dropdownRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
-    const { cartItems, updateQuantity, removeItem, subtotal } = useCart();
-
-    const itemCount = cartItems.reduce((count, item) => count + item.quantity, 0);
+    const { cartItems, updateQuantity, removeItem, subtotal, itemCount } = useCart();
 
     // Effect to close the dropdown when clicking outside of it
     useEffect(() => {
@@ -51,12 +47,16 @@ const CartDropdown: React.FC = () => {
         navigate('/cart');
     };
 
-    // Handler for when the user confirms the deletion
     const handleConfirmDelete = () => {
         if (itemToDelete) {
             removeItem(itemToDelete.id);
             setItemToDelete(null); // Close the dialog after deletion
         }
+    };
+
+    // Handler for quantity change buttons
+    const handleQuantityChange = (itemId: string, change: number) => {
+        updateQuantity(itemId, change);
     };
 
     return (
@@ -114,7 +114,7 @@ const CartDropdown: React.FC = () => {
                                                 <div className="flex items-center border rounded-md">
                                                     <button
                                                         className="px-1 py-0.5"
-                                                        onClick={() => updateQuantity(item.id, -1)}
+                                                        onClick={() => handleQuantityChange(item.id, -1)}
                                                         aria-label="Decrease quantity"
                                                     >
                                                         <Minus className="h-3 w-3" />
@@ -122,18 +122,14 @@ const CartDropdown: React.FC = () => {
                                                     <span className="px-2 text-sm">{item.quantity}</span>
                                                     <button
                                                         className="px-1 py-0.5"
-                                                        onClick={() => updateQuantity(item.id, 1)}
+                                                        onClick={() => handleQuantityChange(item.id, 1)}
                                                         aria-label="Increase quantity"
                                                     >
                                                         <Plus className="h-3 w-3" />
                                                     </button>
                                                 </div>
-                                                {/* MODIFIED: The delete button now opens the dialog instead of deleting directly */}
                                                 <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setItemToDelete(item);
-                                                    }}
+                                                    onClick={() => setItemToDelete(item)}
                                                     className="text-gray-400 hover:text-red-500"
                                                     aria-label="Remove item"
                                                 >
@@ -176,7 +172,6 @@ const CartDropdown: React.FC = () => {
                 </div>
             </div>
 
-            {/* AlertDialog component for deletion confirmation */}
             <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
