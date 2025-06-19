@@ -129,7 +129,7 @@ const MyOrders: React.FC = () => {
             title={<span className="user-profile-section-title">My Orders</span>}
             className="user-profile-section-card"
             bodyStyle={{ padding: 0 }}
-            style={{ maxWidth: 720, margin: "0 auto" }}
+            style={{ maxWidth: 1000, margin: "0 auto" }}
         >
             <div className="user-profile-section-content">
                 {/* Tổng số tiền */}
@@ -170,14 +170,30 @@ const MyOrders: React.FC = () => {
                                             </span>
                                         </b>
                                     </div>
-                                    <Tag color={ORDER_STATUS_MAP[order.status || "processing"]?.color || "orange"}>
-                                        {ORDER_STATUS_MAP[order.status || "processing"]?.label || "Processing"}
+                                    <Tag color={ORDER_STATUS_MAP[normalizeStatus(order.status)]?.color || "orange"}>
+                                        {ORDER_STATUS_MAP[normalizeStatus(order.status)]?.label || "Processing"}
                                     </Tag>
                                 </div>
                                 <div className="user-profile-order-items">
                                     {(order.items || []).map((item: any, i: number) => (
                                         <div key={i} className="user-profile-order-item">
-                                            <div className="user-profile-order-item-name">
+                                            <div
+                                                className="user-profile-order-item-name"
+                                                style={{
+                                                    fontWeight: 700,
+                                                    fontSize: 16,
+                                                    color: "#1976d2",
+                                                    background: "linear-gradient(90deg,#e3f0ff 60%,#f7f9fb 100%)",
+                                                    padding: "3px 10px",
+                                                    borderRadius: 7,
+                                                    marginBottom: 2,
+                                                    maxWidth: 320,
+                                                    whiteSpace: "nowrap",
+                                                    overflow: "hidden",
+                                                    textOverflow: "ellipsis",
+                                                    display: "inline-block"
+                                                }}
+                                            >
                                                 {(item.productId && item.productId.name) ||
                                                     item.name ||
                                                     "No product name"}

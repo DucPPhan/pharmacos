@@ -25,12 +25,11 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useParams, useNavigate } from "react-router-dom";
-import { useCart } from "../../contexts/CartContext"; // Sửa lại đường dẫn import cho đúng với cấu trúc dự án của bạn
+import { useCart } from "../../contexts/CartContext";
 
 const ORDER_STATUS_MAP = {
     pending: { label: "Pending", color: "orange" },
     processing: { label: "Processing", color: "blue" },
-    delivering: { label: "Delivering", color: "cyan" },
     completed: { label: "Completed", color: "green" },
     cancelled: { label: "Cancelled", color: "red" },
 };
@@ -43,14 +42,7 @@ const ORDER_STEPS = [
 
 ];
 
-const getStepIndex = (status) => {
-    const s = status?.toLowerCase();
-    if (s === "pending") return 0;
-    if (s === "processing") return 1;
-    if (s === "cancelled" || s === "canceled") return 2;
-    if (s === "completed") return 3;
-    return 0;
-};
+
 
 const getOrderTotal = (items = []) => {
     return items.reduce(
@@ -105,7 +97,6 @@ const OrderDetail = () => {
     }
 
     const status = order.status?.toLowerCase() || "pending";
-    const stepIndex = getStepIndex(status);
 
     // Sửa lại hàm reorderFromOrderDetail để cập nhật context
     const reorderFromOrderDetail = async (orderItems: any[], navigate: any) => {
@@ -213,34 +204,36 @@ const OrderDetail = () => {
                                 {ORDER_STATUS_MAP[status]?.label || status}
                             </Tag>
                         </div>
-                        <Steps
-                            current={stepIndex}
-                            items={ORDER_STEPS.map((step, idx) => ({
-                                title: (
-                                    <span>
-                                        {step.title}
-                                        <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-                                            {idx <= stepIndex ? dayjs(order.orderDate).format("HH:mm, DD/MM/YYYY") : ""}
-                                        </div>
-                                    </span>
-                                ),
-                                status: idx < stepIndex ? "finish" : idx === stepIndex ? "process" : "wait",
-                            }))}
-                            style={{ marginBottom: 28, marginTop: 8 }}
-                        />
-                        <div style={{ display: "flex", alignItems: "center", marginBottom: 20, background: "#f5faff", borderRadius: 10, padding: 16 }}>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4, color: "#1976d2" }}>
-                                    Estimated delivery
-                                </div>
-                                <div style={{ fontSize: 15, marginBottom: 2 }}>
-                                    From <b>11:00 - 12:00</b> on {dayjs(order.orderDate).format("DD/MM/YYYY")}
-                                </div>
-                                <div style={{ color: "#888", fontSize: 14 }}>
-                                    Your order is being processed at <b>PharmaCos</b>.
+
+                        {/* Chỉ hiển thị Estimated delivery nếu không bị hủy */}
+                        {status !== "cancelled" && (
+                            <div style={{ display: "flex", alignItems: "center", marginBottom: 20, background: "#f5faff", borderRadius: 10, padding: 16 }}>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4, color: "#1976d2" }}>
+                                        Estimated delivery
+                                    </div>
+                                    <div style={{ fontSize: 15, marginBottom: 2 }}>
+                                        From <b>11:00 - 12:00</b> on {dayjs(order.orderDate).format("DD/MM/YYYY")}
+                                    </div>
+                                    <div style={{ color: "#888", fontSize: 14 }}>
+                                        Your order is being processed at <b>PharmaCos</b>.
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
+                        {/* Thêm thông báo nếu đơn hàng bị hủy */}
+                        {status === "cancelled" && (
+                            <div style={{ display: "flex", alignItems: "center", marginBottom: 20, background: "#f5faff", borderRadius: 10, padding: 16 }}>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: 15, marginBottom: 2 }}>
+                                        Order cancelled at {dayjs(order.updatedAt || order.orderDate).format("HH:mm")} on {dayjs(order.updatedAt || order.orderDate).format("DD/MM/YYYY")}
+                                    </div>
+                                    <div style={{ color: "#888", fontSize: 14 }}>
+                                        We hope to serve you again next time.
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         <Divider style={{ margin: "18px 0" }} />
                         <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
                             <CarOutlined style={{ fontSize: 22, color: "#ff9800", marginRight: 10 }} />
