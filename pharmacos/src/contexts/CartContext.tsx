@@ -35,7 +35,7 @@ interface CartContextType {
     clearCart: () => void;
     subtotal: number;
     itemCount: number;
-    isCartLoading: boolean;
+    isCartLoading: boolean; // <-- thêm dòng này
     isSubmitting: boolean;
     submitOrder: (details: OrderDetails) => Promise<void>;
 }
@@ -54,7 +54,7 @@ const API = {
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { toast } = useToast();
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
-    const [isCartLoading, setIsCartLoading] = useState(true);
+    const [isCartLoading, setIsCartLoading] = useState(false); // <-- thêm state này
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Fetch initial cart data from the server when the component mounts
@@ -251,7 +251,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         subtotal,
         itemCount, // Provide itemCount
         submitOrder,
-        isSubmitting
+        isSubmitting,
+        isCartLoading, // <-- thêm dòng này
     };
 
     return (
