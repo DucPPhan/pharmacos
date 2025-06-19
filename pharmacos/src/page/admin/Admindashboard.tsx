@@ -4,12 +4,13 @@ import {
   Bell,
   Settings,
   Upload,
-  Users,
+  Users as UsersIcon,
   LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import UserManagement from "./UserManagement";
+import Users from "./Users";
+import Overview from "./Overview";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -45,7 +46,7 @@ const Dashboard = () => {
             className="w-full justify-start"
             onClick={() => setActiveTab("users")}
           >
-            <Users className="mr-2 h-4 w-4" />
+            <UsersIcon className="mr-2 h-4 w-4" />
             Users
           </Button>
         </nav>
@@ -69,13 +70,8 @@ const Dashboard = () => {
         </header>
 
         <main className="flex-1 overflow-y-auto p-6">
-          {activeTab === "overview" && (
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Welcome back!</h3>
-              <p>This is your dashboard overview.</p>
-            </div>
-          )}
-          {activeTab === "users" && <UserManagement />}
+          {activeTab === "overview" && <Overview />}
+          {activeTab === "users" && <Users />}
         </main>
       </div>
     </div>

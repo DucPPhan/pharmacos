@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import { Input } from './ui/input';
 import { Menu, Search, ShoppingCart, User, X, Camera } from 'lucide-react';
@@ -18,12 +18,27 @@ export default function Header() {
     const [isAISearchOpen, setIsAISearchOpen] = useState(false);
     const navigate = useNavigate();
     const isLoggedIn = !!localStorage.getItem("user");
-    const [isUser, setIsUser] = useState(true);
+    const [isUser, setIsUser] = useState(true); // true if regular user or not logged in, false if staff
 
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    if ( user && user.role === "staff") {
-        setIsUser(false);
-    }
+    useEffect(() => {
+        const userString = localStorage.getItem("user");
+        if (userString) {
+            try {
+                const user = JSON.parse(userString);
+                if (user && user.role === "staff") {
+                    setIsUser(false);
+                } else {
+                    setIsUser(true);
+                }
+            } catch (e) {
+                console.error("Error parsing user from localStorage:", e);
+                setIsUser(true); // Default to regular user on error
+            }
+        } else {
+            setIsUser(true); // Default to regular user if not logged in
+        }
+    }, []); // Run once on component mount
+
     const handleAISearchComplete = (results) => {
         // Handle search results, perhaps navigate to search results page
         console.log('Search completed with results:', results);
@@ -91,12 +106,11 @@ export default function Header() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => {
-                                    if (!isUser) {
-                                        navigate("/staff");
-                                    }
-                                    if (!isLoggedIn) {
+                                    if (!isUser) { // User is staff
+                                        navigate("/staff/dashboard");
+                                    } else if (!isLoggedIn) { // User is not staff AND not logged in
                                         navigate("/login");
-                                    } else {
+                                    } else { // User is not staff AND is logged in
                                         navigate("/profile");
                                     }
                                 }}
