@@ -213,6 +213,8 @@ export function Orders() {
   const [dateFilter, setDateFilter] = useState('');
   const [pendingStatusChange, setPendingStatusChange] = useState<{ orderId: string; status: OrderStatus } | null>(null);
   const [cancelReason, setCancelReason] = useState("");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 5;
 
   // Load orders
   useEffect(() => {
@@ -284,6 +286,10 @@ export function Orders() {
     
     return matchesSearch && matchesStatus && matchesDate;
   });
+
+  const paginatedOrders = filteredOrders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // Reset page về 1 khi filter/search thay đổi
+  useEffect(() => { setPage(1); }, [searchTerm, statusFilter, dateFilter, orders]);
 
   const orderStats = {
     total: orders.length,
@@ -434,13 +440,13 @@ export function Orders() {
           <div className="text-center py-12">
             <div className="text-gray-400 text-lg">Loading...</div>
           </div>
-        ) : filteredOrders.length === 0 ? (
+        ) : paginatedOrders.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-gray-400 text-lg mb-4">No orders found</div>
             <p className="text-gray-500">Try adjusting your search or filter criteria</p>
           </div>
         ) : (
-          filteredOrders.map(order => (
+          paginatedOrders.map(order => (
             <OrderCard
               key={order.id}
               order={order}
@@ -449,6 +455,34 @@ export function Orders() {
           ))
         )}
       </div>
+      {/* Pagination */}
+      {filteredOrders.length > PAGE_SIZE && (
+        <div className="flex justify-center items-center gap-2 mt-6">
+          <button
+            className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+          >
+            Previous
+          </button>
+          {Array.from({ length: Math.ceil(filteredOrders.length / PAGE_SIZE) }).map((_, i) => (
+            <button
+              key={i}
+              className={`px-3 py-1 rounded ${page === i + 1 ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+              onClick={() => setPage(i + 1)}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button
+            className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+            onClick={() => setPage((p) => Math.min(Math.ceil(filteredOrders.length / PAGE_SIZE), p + 1))}
+            disabled={page === Math.ceil(filteredOrders.length / PAGE_SIZE)}
+          >
+            Next
+          </button>
+        </div>
+      )}
 
       {/* Status Change Confirmation Dialog */}
       <AlertDialog 
