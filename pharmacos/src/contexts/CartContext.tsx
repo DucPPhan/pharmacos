@@ -25,6 +25,7 @@ export interface OrderDetails {
 // Define the shape of the context's value
 interface CartContextType {
     cartItems: CartItem[];
+    setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>; // ✅ Thêm dòng này
     addToCart: (item: Omit<CartItem, 'quantity'>, quantity?: number) => void;
     updateQuantity: (id: string, change: number) => void;
     removeItem: (id: string) => void;
@@ -147,12 +148,13 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // The value provided to consumers of the context
     const contextValue: CartContextType = {
         cartItems,
+        setCartItems, // ✅ Thêm dòng này
         addToCart,
         updateQuantity,
         removeItem,
         clearCart,
         subtotal,
-        itemCount, // Provide itemCount
+        itemCount,
         submitOrder,
         isSubmitting
     };

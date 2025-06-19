@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Card, Form, Input, Button, Spin, message, Select, Switch, Radio, Modal, Tooltip } from "antd";
-import { EditOutlined, SaveOutlined, HomeOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import { Card, Form, Input, Button, Spin, message, Select, Switch, Radio, Modal } from "antd";
+import { HomeOutlined, PlusOutlined, DeleteOutlined, SaveOutlined } from "@ant-design/icons";
 import "./UserProfile.css";
 
 const { Option } = Select;
@@ -241,8 +241,7 @@ const AddressBook: React.FC = () => {
     const handleAddNew = () => {
         setShowForm(true);
         setEditing(null);
-        form.resetFields(); // Xóa toàn bộ thông tin cũ trên form
-        // Đặt lại giá trị mặc định cho các trường cần thiết
+        form.resetFields();
         form.setFieldsValue({
             name: "",
             phone: "",
@@ -310,285 +309,294 @@ const AddressBook: React.FC = () => {
 
     if (loading || !user) {
         return (
-            <div className="user-profile-loading">
-                <Spin size="large" />
-            </div>
+            <Spin size="large" style={{ display: "block", margin: "64px auto" }} />
         );
     }
 
     return (
         <Card
             title={
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span className="user-profile-section-title">
-                        <HomeOutlined style={{ marginRight: 8 }} />Address Book
-                    </span>
-                    <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        onClick={handleAddNew}
-                        style={{ marginLeft: 12, display: "flex", alignItems: "center" }}
-                    >
-                        Add Address
-                    </Button>
-                </div>
+                <span className="user-profile-section-title">
+                    <HomeOutlined style={{ marginRight: 8 }} />
+                    Address Book
+                </span>
             }
             className="user-profile-section-card"
             bodyStyle={{ padding: 0 }}
-            style={{ maxWidth: 480, margin: "0 auto" }}
+            style={{ maxWidth: 720, margin: "0 auto" }}
         >
-            <div className="user-profile-section-content" style={{ maxWidth: 420, margin: "0 auto" }}>
-                {showForm ? (
-                    // Chỉ hiển thị form khi showForm = true, KHÔNG hiển thị danh sách addresses
-                    <Form
-                        form={form}
-                        layout="vertical"
-                        initialValues={editing || { addressType: "Home", isDefault: false }}
-                        className="user-profile-form"
-                        onFinish={handleSave}
-                        style={{ background: "#fff", borderRadius: 8, padding: 24, marginBottom: 24 }}
-                    >
-                        <div style={{ fontWeight: 600, marginBottom: 8, color: "#666" }}>
-                            {editing ? "Edit Address" : "Add New Address"}
-                        </div>
-                        <Form.Item
-                            label="Full Name"
-                            name="name"
-                            rules={[{ required: true, message: "Please enter your full name!" }]}
+            <div className="user-profile-section-content">
+                <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+                    {!showForm && (
+                        <Button
+                            icon={<PlusOutlined />}
+                            onClick={handleAddNew}
+                            style={{ fontWeight: 600, background: "#1677ff", color: "#fff" }}
                         >
-                            <Input size="large" placeholder="Full Name" />
-                        </Form.Item>
-                        <Form.Item
-                            label="Phone Number"
-                            name="phone"
-                            rules={[
-                                { required: true, message: "Please enter your phone number!" },
-                                { pattern: phoneRegex, message: "Invalid phone number!" },
-                            ]}
-                        >
-                            <Input size="large" maxLength={10} placeholder="Phone Number" />
-                        </Form.Item>
-                        <div style={{ fontWeight: 600, margin: "24px 0 8px 0", color: "#666" }}>Shipping Address</div>
-                        <Form.Item
-                            name="city"
-                            rules={[{ required: true, message: "Please select a city/province!" }]}
-                            style={{ marginBottom: 12 }}
-                        >
-                            <Select
-                                size="large"
-                                placeholder="City/Province"
-                                showSearch
-                                onChange={handleCityChange}
-                                filterOption={(input, option) =>
-                                    typeof option?.children === "string" &&
-                                    (option.children as string).toLowerCase().includes(input.toLowerCase())
-                                }
-                                value={form.getFieldValue("city")}
-                            >
-                                {provinces.map((p) => (
-                                    <Option key={p.code} value={p.name}>{p.name}</Option>
-                                ))}
-                            </Select>
-                        </Form.Item>
-                        <Form.Item
-                            name="district"
-                            rules={[{ required: true, message: "Please select a district!" }]}
-                            style={{ marginBottom: 12 }}
-                        >
-                            <Select
-                                size="large"
-                                placeholder="District"
-                                showSearch
-                                onChange={handleDistrictChange}
-                                disabled={districts.length === 0}
-                                filterOption={(input, option) =>
-                                    typeof option?.children === "string" &&
-                                    (option.children as string).toLowerCase().includes(input.toLowerCase())
-                                }
-                                value={form.getFieldValue("district")}
-                            >
-                                {districts.length > 0 ? (
-                                    districts.map((d) => (
-                                        <Option key={d.code} value={d.name}>{d.name}</Option>
-                                    ))
-                                ) : (
-                                    <Option value="" disabled>
-                                        {form.getFieldValue("city") && !districts.length ? "No data" : "Select city/province first"}
-                                    </Option>
-                                )}
-                            </Select>
-                        </Form.Item>
-                        <Form.Item
-                            name="ward"
-                            rules={[{ required: true, message: "Please select a ward/commune!" }]}
-                            style={{ marginBottom: 12 }}
-                        >
-                            <Select
-                                size="large"
-                                placeholder="Ward/Commune"
-                                showSearch
-                                disabled={wards.length === 0}
-                                filterOption={(input, option) =>
-                                    typeof option?.children === "string" &&
-                                    (option.children as string).toLowerCase().includes(input.toLowerCase())
-                                }
-                                value={form.getFieldValue("ward")}
-                            >
-                                {wards.length > 0 ? (
-                                    wards.map((w) => (
-                                        <Option key={w.code} value={w.name}>{w.name}</Option>
-                                    ))
-                                ) : (
-                                    <Option value="" disabled>
-                                        {form.getFieldValue("district") && !wards.length ? "No data" : "Select district first"}
-                                    </Option>
-                                )}
-                            </Select>
-                        </Form.Item>
-                        <Form.Item
-                            name="address"
-                            rules={[
-                                { required: true, message: "Please enter the detailed address!" },
-                                { min: 5, message: "Address must be at least 5 characters!" },
-                            ]}
-                        >
-                            <Input.TextArea
-                                rows={3}
-                                size="large"
-                                placeholder="Detailed Address"
-                                className="user-profile-textarea"
-                            />
-                        </Form.Item>
-                        <div style={{ fontWeight: 600, margin: "24px 0 8px 0", color: "#666" }}>Address Type</div>
-                        <Form.Item name="addressType" initialValue="Home" style={{ marginBottom: 16 }}>
-                            <Radio.Group>
-                                <Radio.Button value="Home">Home</Radio.Button>
-                                <Radio.Button value="Office">Office</Radio.Button>
-                            </Radio.Group>
-                        </Form.Item>
-                        <Form.Item
+                            Add Address
+                        </Button>
+                    )}
+                </div>
+                <div style={{ maxWidth: 520, margin: "0 auto" }}>
+                    {showForm ? (
+                        <Card
                             style={{
-                                marginBottom: 24,
-                                background: "#f0f2f5",
-                                borderRadius: 8,
-                                padding: "12px 16px",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                                borderRadius: 12,
+                                border: "1px solid #f0f0f0",
+                                marginBottom: 16,
                             }}
+                            bodyStyle={{ padding: 24 }}
                         >
-                            <span
-                                style={{
-                                    color: "#000",
-                                    fontWeight: 600,
-                                    fontSize: 16,
-                                    flex: 1,
-                                }}
+                            <Form
+                                form={form}
+                                layout="vertical"
+                                initialValues={editing || { addressType: "Home", isDefault: false }}
+                                className="user-profile-form"
+                                onFinish={handleSave}
                             >
-                                Set as default address
-                            </span>
-
-                            <Form.Item name="isDefault" valuePropName="checked" noStyle>
-                                <Switch
-                                    checked={form.getFieldValue("isDefault")}
-                                    onChange={(checked) => form.setFieldValue("isDefault", checked)}
-                                    style={{
-                                        marginLeft: 12,
-                                        backgroundColor: form.getFieldValue("isDefault") ? "#1890ff" : "#blue",
-                                        transition: "all 0.3s ease",
-                                    }}
-                                />
-                            </Form.Item>
-                        </Form.Item>
-
-                        <Form.Item style={{ marginTop: 24 }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                                <Button
-                                    type="primary"
-                                    htmlType="submit"
-                                    icon={<SaveOutlined />}
-                                    className="user-profile-section-btn"
-                                    size="large"
-                                    style={{ flex: 1.2, fontWeight: 600, height: 40 }}
-                                    loading={loading}
-                                >
-                                    {editing ? "Save Changes" : "Add Address"}
-                                </Button>
-                                <Button
-                                    size="large"
-                                    style={{ flex: 0.8, height: 40 }}
-                                    onClick={() => {
-                                        setShowForm(false);
-                                        setEditing(null);
-                                    }}
-                                >
-                                    Cancel
-                                </Button>
-                            </div>
-                        </Form.Item>
-
-
-                    </Form>
-                ) : (
-                    loading ? (
-                        <Spin size="large" />
-                    ) : (
-                        <div>
-                            {addresses.map(addr => (
-                                <div key={addr._id} style={{
-                                    background: "#fff",
-                                    borderRadius: 12,
-                                    marginBottom: 16,
-                                    padding: 20,
-                                    boxShadow: "0 1px 4px #eee",
-                                    display: "flex",
-                                    flexDirection: "column"
-                                }}>
-                                    <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>
-                                        {addr.name} <span style={{ fontWeight: 400, color: "#888" }}>| {addr.phone}</span>
-                                    </div>
-                                    <div style={{ marginBottom: 8 }}>
-                                        {getFullAddress(addr)}
-                                    </div>
-                                    <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
-                                        <span style={{ background: "#f5f5f5", borderRadius: 4, padding: "2px 8px", marginRight: 8 }}>
-                                            <HomeOutlined style={{ marginRight: 4 }} />
-                                            {addr.addressType}
-                                        </span>
-                                        {addr.isDefault && (
-                                            <span style={{ background: "#1890ff", color: "#fff", borderRadius: 4, padding: "2px 8px", marginRight: 8 }}>
-                                                Default
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <Button type="link" onClick={() => handleEdit(addr)} style={{ padding: 0, marginRight: 8 }}>Edit</Button>
-                                        <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDelete(addr._id!)} style={{ padding: 0, marginRight: 8 }}>Delete</Button>
-                                    </div>
+                                <div style={{ fontWeight: 600, marginBottom: 8, color: "#222", fontSize: 18 }}>
+                                    {editing ? "Edit Address" : "Add New Address"}
                                 </div>
-                            ))}
-                            <Button
-                                type="primary"
-                                icon={<PlusOutlined />}
-                                onClick={handleAddNew}
-                                style={{
-                                    margin: "16px 0",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    opacity: 1,
-                                    transition: "opacity 0.2s",
-                                    color: "#fff",
-                                    backgroundColor: "#1890ff",
-                                    borderColor: "#1890ff",
-                                }}
+                                <Form.Item
+                                    label="Full Name"
+                                    name="name"
+                                    rules={[{ required: true, message: "Please enter your full name!" }]}
+                                >
+                                    <Input size="large" placeholder="Full Name" />
+                                </Form.Item>
+                                <Form.Item
+                                    label="Phone Number"
+                                    name="phone"
+                                    rules={[
+                                        { required: true, message: "Please enter your phone number!" },
+                                        { pattern: phoneRegex, message: "Invalid phone number!" },
+                                    ]}
+                                >
+                                    <Input size="large" maxLength={10} placeholder="Phone Number" />
+                                </Form.Item>
+                                <Form.Item
+                                    label="City/Province"
+                                    name="city"
+                                    rules={[{ required: true, message: "Please select a city/province!" }]}
+                                >
+                                    <Select
+                                        size="large"
+                                        placeholder="City/Province"
+                                        showSearch
+                                        onChange={handleCityChange}
+                                        filterOption={(input, option) =>
+                                            typeof option?.children === "string" &&
+                                            (option.children as string).toLowerCase().includes(input.toLowerCase())
+                                        }
+                                        value={form.getFieldValue("city")}
+                                    >
+                                        {provinces.map((p) => (
+                                            <Select.Option key={p.code} value={p.name}>{p.name}</Select.Option>
+                                        ))}
+                                    </Select>
+                                </Form.Item>
+                                <Form.Item
+                                    label="District"
+                                    name="district"
+                                    rules={[{ required: true, message: "Please select a district!" }]}
+                                >
+                                    <Select
+                                        size="large"
+                                        placeholder="District"
+                                        showSearch
+                                        onChange={handleDistrictChange}
+                                        disabled={districts.length === 0}
+                                        filterOption={(input, option) =>
+                                            typeof option?.children === "string" &&
+                                            (option.children as string).toLowerCase().includes(input.toLowerCase())
+                                        }
+                                        value={form.getFieldValue("district")}
+                                    >
+                                        {districts.length > 0 ? (
+                                            districts.map((d) => (
+                                                <Select.Option key={d.code} value={d.name}>{d.name}</Select.Option>
+                                            ))
+                                        ) : (
+                                            <Select.Option value="" disabled>
+                                                {form.getFieldValue("city") && !districts.length ? "No data" : "Select city/province first"}
+                                            </Select.Option>
+                                        )}
+                                    </Select>
+                                </Form.Item>
+                                <Form.Item
+                                    label="Ward/Commune"
+                                    name="ward"
+                                    rules={[{ required: true, message: "Please select a ward/commune!" }]}
+                                >
+                                    <Select
+                                        size="large"
+                                        placeholder="Ward/Commune"
+                                        showSearch
+                                        disabled={wards.length === 0}
+                                        filterOption={(input, option) =>
+                                            typeof option?.children === "string" &&
+                                            (option.children as string).toLowerCase().includes(input.toLowerCase())
+                                        }
+                                        value={form.getFieldValue("ward")}
+                                    >
+                                        {wards.length > 0 ? (
+                                            wards.map((w) => (
+                                                <Select.Option key={w.code} value={w.name}>{w.name}</Select.Option>
+                                            ))
+                                        ) : (
+                                            <Select.Option value="" disabled>
+                                                {form.getFieldValue("district") && !wards.length ? "No data" : "Select district first"}
+                                            </Select.Option>
+                                        )}
+                                    </Select>
+                                </Form.Item>
+                                <Form.Item
+                                    label="Detailed Address"
+                                    name="address"
+                                    rules={[
+                                        { required: true, message: "Please enter the detailed address!" },
+                                        { min: 5, message: "Address must be at least 5 characters!" },
+                                    ]}
+                                >
+                                    <Input.TextArea
+                                        rows={2}
+                                        size="large"
+                                        placeholder="Detailed Address"
+                                        className="user-profile-textarea"
+                                    />
+                                </Form.Item>
+                                <Form.Item label="Address Type" name="addressType" initialValue="Home">
+                                    <Radio.Group>
+                                        <Radio.Button value="Home">Home</Radio.Button>
+                                        <Radio.Button value="Office">Office</Radio.Button>
+                                    </Radio.Group>
+                                </Form.Item>
+                                <Form.Item
+                                    label="Set as default address"
+                                    name="isDefault"
+                                    valuePropName="checked"
+                                    style={{ marginBottom: 16 }}
+                                >
+                                    <Switch
+                                        checked={form.getFieldValue("isDefault")}
+                                        onChange={(checked) => form.setFieldValue("isDefault", checked)}
+                                    />
+                                </Form.Item>
+                                <Form.Item style={{ marginTop: 24 }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                                        <Button
+                                            type="primary"
+                                            htmlType="submit"
+                                            icon={<SaveOutlined />}
+                                            className="user-profile-section-btn"
+                                            size="large"
+                                            style={{ flex: 1.2, fontWeight: 600, height: 40 }}
+                                            loading={loading}
+                                        >
+                                            {editing ? "Save Changes" : "Add Address"}
+                                        </Button>
+                                        <Button
+                                            size="large"
+                                            style={{ flex: 0.8, height: 40 }}
+                                            onClick={() => {
+                                                setShowForm(false);
+                                                setEditing(null);
+                                            }}
+                                        >
+                                            Cancel
+                                        </Button>
+                                    </div>
+                                </Form.Item>
+                            </Form>
+                        </Card>
+                    ) : (
+                        addresses.length === 0 ? (
+                            <div style={{ textAlign: "center", padding: "48px 0" }}>
+                                <div
+                                    style={{
+                                        width: 140,
+                                        height: 140,
+                                        margin: "0 auto 24px auto",
+                                        borderRadius: "50%",
+                                        background: "#f5f8ff",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        boxShadow: "0 0 32px 0 #e6f0ff",
+                                    }}
+                                >
+                                    <HomeOutlined style={{ fontSize: 64, color: "#7494ec" }} />
+                                </div>
+                                <div style={{ fontWeight: 600, fontSize: 22, marginBottom: 8, color: "#222" }}>
+                                    You have no saved addresses.
+                                </div>
+                                <div style={{ color: "#888", marginBottom: 24 }}>
+                                    Add a new address to use for shipping.
+                                </div>
+                            </div>
+                        ) : (
+                            //scroll nếu > 2
+                            <div
+                                style={
+                                    addresses.length > 2
+                                        ? { maxHeight: 400, overflowY: "auto" }
+                                        : undefined
+                                }
                             >
-                                Add Address
-                            </Button>
-
-                        </div>
-                    )
-                )}
+                                {addresses.map((addr, idx) => (
+                                    <Card
+                                        key={addr._id || idx}
+                                        style={{
+                                            marginBottom: 16,
+                                            borderRadius: 12,
+                                            border: "1px solid #f0f0f0",
+                                        }}
+                                        bodyStyle={{ padding: 16 }}
+                                    >
+                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                            <div>
+                                                <b>
+                                                    Address
+                                                    <span style={{ marginLeft: 8, color: "#aaa" }}>
+                                                        #{idx + 1}
+                                                    </span>
+                                                </b>
+                                            </div>
+                                            {addr.isDefault && (
+                                                <span style={{
+                                                    background: "#1677ff",
+                                                    color: "#fff",
+                                                    borderRadius: 4,
+                                                    padding: "2px 10px",
+                                                    fontWeight: 500,
+                                                    fontSize: 13,
+                                                }}>
+                                                    Default
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div style={{ margin: "8px 0 4px 0", color: "#222", fontWeight: 500 }}>
+                                            {addr.name} <span style={{ color: "#888", fontWeight: 400 }}>| {addr.phone}</span>
+                                        </div>
+                                        <div style={{ marginBottom: 8, color: "#444" }}>
+                                            {getFullAddress(addr)}
+                                        </div>
+                                        <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+                                            <span style={{ background: "#f5f5f5", borderRadius: 4, padding: "2px 8px", marginRight: 8 }}>
+                                                <HomeOutlined style={{ marginRight: 4 }} />
+                                                {addr.addressType}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <Button type="link" onClick={() => handleEdit(addr)} style={{ padding: 0, marginRight: 8 }}>Edit</Button>
+                                            <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDelete(addr._id!)} style={{ padding: 0, marginRight: 8 }}>Delete</Button>
+                                        </div>
+                                    </Card>
+                                ))}
+                            </div>
+                        )
+                    )}
+                </div>
             </div>
         </Card>
     );

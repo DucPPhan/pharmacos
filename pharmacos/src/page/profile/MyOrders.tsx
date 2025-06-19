@@ -32,6 +32,7 @@ const fetchOrders = async () => {
     return await res.json();
 };
 
+
 const MyOrders: React.FC = () => {
     const [orders, setOrders] = useState<any[]>([]);
     const [orderTab, setOrderTab] = useState<string>("all");
@@ -97,10 +98,31 @@ const MyOrders: React.FC = () => {
         return s;
     };
 
+    // Hàm tính tổng tiền cho 1 đơn hàng
+    const getOrderTotal = (order: any) => {
+        if (order.totalAmount && order.totalAmount > 0) return order.totalAmount;
+        if (order.total && order.total > 0) return order.total;
+        if (Array.isArray(order.items)) {
+            return order.items.reduce(
+                (sum, item) =>
+                    sum + ((item.unitPrice ?? item.price ?? 0) * (item.quantity ?? 1)),
+                0
+            );
+        }
+        return 0;
+    };
+
     const filteredOrders =
         orderTab === "all"
             ? orders
             : orders.filter((o) => normalizeStatus(o.status) === orderTab);
+
+    // Tổng số tiền đã chi cho filteredOrders
+    const totalSpent = filteredOrders.reduce(
+        (sum, order) => sum + getOrderTotal(order),
+        0
+    );
+
 
     return (
         <Card
@@ -110,6 +132,10 @@ const MyOrders: React.FC = () => {
             style={{ maxWidth: 720, margin: "0 auto" }}
         >
             <div className="user-profile-section-content">
+                {/* Tổng số tiền */}
+                <div style={{ marginBottom: 12, textAlign: "right", fontWeight: 600, color: "#1677ff" }}>
+                    Total spent: {totalSpent.toLocaleString()}₫
+                </div>
                 <Tabs
                     activeKey={orderTab}
                     onChange={setOrderTab}
@@ -174,7 +200,7 @@ const MyOrders: React.FC = () => {
                                     <div>
                                         <span style={{ color: "#888", marginRight: 8 }}>Total:</span>
                                         <span style={{ color: "#1677ff", fontWeight: 600, fontSize: 16 }}>
-                                            {(order.totalAmount ?? order.total ?? 0).toLocaleString() + "₫"}
+                                            {getOrderTotal(order).toLocaleString() + "₫"}
                                         </span>
                                     </div>
                                 </div>

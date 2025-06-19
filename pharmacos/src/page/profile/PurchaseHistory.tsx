@@ -104,10 +104,30 @@ const PurchaseHistory: React.FC = () => {
         return s;
     };
 
+    // Hàm tính tổng tiền cho 1 đơn hàng
+    const getOrderTotal = (order: any) => {
+        if (order.totalAmount && order.totalAmount > 0) return order.totalAmount;
+        if (order.total && order.total > 0) return order.total;
+        if (Array.isArray(order.items)) {
+            return order.items.reduce(
+                (sum, item) =>
+                    sum + ((item.unitPrice ?? item.price ?? 0) * (item.quantity ?? 1)),
+                0
+            );
+        }
+        return 0;
+    };
+
     const filteredHistory =
         orderTab === "all"
             ? normalizedHistory
             : normalizedHistory.filter((o) => normalizeStatus(o.status) === orderTab);
+
+    // Tính tổng số tiền đã mua cho filteredHistory
+    const totalSpent = filteredHistory.reduce(
+        (sum, item) => sum + getOrderTotal(item),
+        0
+    );
 
     return (
         <Card
@@ -117,6 +137,10 @@ const PurchaseHistory: React.FC = () => {
             style={{ maxWidth: 720, margin: "0 auto" }}
         >
             <div className="user-profile-section-content">
+                {/* Tổng số tiền đã mua */}
+                <div style={{ marginBottom: 12, textAlign: "right", fontWeight: 600, color: "#1677ff" }}>
+                    Total spent: {totalSpent.toLocaleString()}₫
+                </div>
                 <Tabs
                     activeKey={orderTab}
                     onChange={setOrderTab}
@@ -179,7 +203,7 @@ const PurchaseHistory: React.FC = () => {
                                         <div>
                                             <span style={{ color: "#888", marginRight: 8 }}>Total:</span>
                                             <span style={{ color: "#1677ff", fontWeight: 600, fontSize: 16 }}>
-                                                {(item.totalAmount ?? item.total ?? 0).toLocaleString() + "₫"}
+                                                {getOrderTotal(item).toLocaleString() + "₫"}
                                             </span>
                                         </div>
                                     </div>

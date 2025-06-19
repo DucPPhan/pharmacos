@@ -251,8 +251,8 @@ const ProductsPage: React.FC = () => {
         : product.price,
       image: product.image,
     },
-    quantity
-  );
+      quantity
+    );
 
     // Show a toast notification
     toast({
