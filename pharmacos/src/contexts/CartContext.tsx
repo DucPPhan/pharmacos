@@ -57,30 +57,49 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [isCartLoading, setIsCartLoading] = useState(false); // <-- thêm state này
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Fetch initial cart data from the server when the component mounts
+
     useEffect(() => {
+        //lưu token vào localStorage , khi login nó sẽ tự động lấy ra cho đúng với user , không có thì nó rỗng , sao m non v ĐứcPhan
         const fetchCart = async () => {
             const token = localStorage.getItem("token");
             if (!token) {
-                setIsCartLoading(false);
-                return; // Don't fetch if user is not logged in
+                setCartItems([]);
+                localStorage.removeItem("cart");
+                return;
             }
 
             try {
                 setIsCartLoading(true);
-                const cartData = await apiFetch(API.getCart);
-
-                // Map the backend response to the CartItem interface
+                const cartData = await apiFetch(API.getCart, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                // Map đúng với mọi trường hợp productId là object hoặc string, ưu tiên lấy image từ productId nếu có
                 const mappedItems = (cartData.items || []).map((item: any) => ({
-                    id: item._id, // This is the cart item's unique ID
-                    productId: item.product._id,
-                    name: item.product.name,
-                    price: item.product.price,
-                    image: item.product.images?.[0]?.url || '/placeholder.png',
+                    id: item._id,
+                    productId: item.product?._id
+                        || (typeof item.productId === "object" ? item.productId._id : item.productId),
+                    name: item.product?.name
+                        || item.productId?.name
+                        || item.name
+                        || "",
+                    price: item.product?.price
+                        || item.productId?.price
+                        || item.unitPrice
+                        || item.price
+                        || 0,
+                    image:
+                        (item.productId?.images?.[0]?.url) ||
+                        (item.product?.images?.[0]?.url) ||
+                        '/placeholder.png',
                     quantity: item.quantity,
                 }));
                 setCartItems(mappedItems);
+                localStorage.setItem("cart", JSON.stringify(mappedItems));
             } catch (error) {
+                setCartItems([]);
+                localStorage.removeItem("cart");
                 console.error("Failed to fetch cart:", error);
             } finally {
                 setIsCartLoading(false);
@@ -88,7 +107,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
 
         fetchCart();
-    }, []);
+    }, [localStorage.getItem("token")]);
 
     const addToCart = async (product: { id: string; name: string; price: number; image: string; }, quantity: number = 1) => {
         const existingItem = cartItems.find(item => item.productId === product.id);

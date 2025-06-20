@@ -104,6 +104,9 @@ const Cart = () => {
     try {
       await submitOrder(checkoutInfo);
 
+      // Xóa cart khỏi localStorage sau khi đặt hàng thành công
+      localStorage.removeItem("cart");
+
       setIsCheckoutDialogOpen(false);
 
       toast({
