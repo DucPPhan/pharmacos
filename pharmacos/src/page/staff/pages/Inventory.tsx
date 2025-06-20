@@ -67,7 +67,7 @@ export function Inventory() {
     benefits: [""],
     subcategory: "",
     instructions: "",
-    lowStockThreshold: 5,
+    lowStockThreshold: 50,
     images: [{ url: "", alt: "", isPrimary: true }],
     manufacturingDate: "",
     expiryDate: "",
@@ -100,7 +100,7 @@ export function Inventory() {
           ...product,
           imageUrl,
           stock: product.stockQuantity,
-          lowStockThreshold: product.lowStockThreshold || 5,
+          lowStockThreshold: product.lowStockThreshold || 50,
         };
       });
       setProducts(transformedProducts);
@@ -225,7 +225,7 @@ export function Inventory() {
       benefits: [""],
       subcategory: "",
       instructions: "",
-      lowStockThreshold: 5,
+      lowStockThreshold: 50,
       images: [{ url: "", alt: "", isPrimary: true }],
       manufacturingDate: "",
       expiryDate: "",
@@ -236,6 +236,21 @@ export function Inventory() {
 
   const handleEdit = (product: any) => {
     setEditingProduct(product);
+    // Đảm bảo manufacturingDate và expiryDate là yyyy-MM-dd để Input type='date' nhận đúng
+    const formatDate = (dateStr: string) => {
+      if (!dateStr) return "";
+      // Nếu đã đúng định dạng yyyy-MM-dd thì trả về luôn
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+      // Nếu là ISO string thì cắt lấy phần ngày
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      }
+      return "";
+    };
     setFormData({
       name: product.name,
       description: product.description,
@@ -248,10 +263,10 @@ export function Inventory() {
       benefits: Array.isArray(product.benefits) ? product.benefits : product.benefits ? [product.benefits] : [""],
       subcategory: product.subcategory || "",
       instructions: product.instructions || "",
-      lowStockThreshold: product.lowStockThreshold || 5,
+      lowStockThreshold: product.lowStockThreshold || 50,
       images: Array.isArray(product.images) && product.images.length > 0 ? product.images : [{ url: "", alt: "", isPrimary: true }],
-      manufacturingDate: product.manufacturingDate || "",
-      expiryDate: product.expiryDate || "",
+      manufacturingDate: formatDate(product.manufacturingDate || ""),
+      expiryDate: formatDate(product.expiryDate || ""),
     });
     // Show preview of primary or first image
     let preview = "";
@@ -274,7 +289,12 @@ export function Inventory() {
     }
     try {
       const token = localStorage.getItem("token");
-      const submitData = { ...formData, price: Number(formData.price), stockQuantity: Number(formData.stockQuantity) };
+      const submitData = { 
+        ...formData, 
+        price: Number(formData.price), 
+        stockQuantity: Number(formData.stockQuantity),
+        lowStockThreshold: Number(formData.lowStockThreshold)
+      };
       // Ensure only one isPrimary
       if (Array.isArray(submitData.images)) {
         let foundPrimary = false;
@@ -626,18 +646,12 @@ export function Inventory() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1 text-[#1F3368]">Category *</label>
-                <select
+                <Input
                   name="category"
                   value={formData.category}
                   onChange={e => setFormData({ ...formData, category: e.target.value })}
                   required
-                  className="w-full px-3 py-2 border border-[#1F3368] rounded-lg focus:ring-2 focus:ring-[#1F3368] focus:border-[#1F3368]"
-                >
-                  <option value="">Select category</option>
-                  {categoryOptions.map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1 text-[#1F3368]">Brand *</label>

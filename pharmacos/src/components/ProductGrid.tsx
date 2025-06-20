@@ -314,7 +314,9 @@ const ProductGrid = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {currentProducts.map((product) => {
             // Calculate discounted price if applicable
-            const discountedPrice = product.discount
+            const hasValidPrice = typeof product.price === "number" && !isNaN(product.price);
+            const hasValidDiscount = typeof product.discount === "number" && !isNaN(product.discount);
+            const discountedPrice = hasValidPrice && hasValidDiscount && product.discount
               ? (product.price * (1 - product.discount / 100)).toFixed(2)
               : null;
 
@@ -382,12 +384,12 @@ const ProductGrid = ({
                       <div className="flex items-baseline gap-2">
                         <span className="font-bold">${discountedPrice}</span>
                         <span className="text-sm text-gray-500 line-through">
-                          ${product.price.toFixed(2)}
+                          {hasValidPrice ? `$${product.price.toFixed(2)}` : "N/A"}
                         </span>
                       </div>
                     ) : (
                       <span className="font-bold">
-                        ${product.price.toFixed(2)}
+                        {hasValidPrice ? `$${product.price.toFixed(2)}` : "N/A"}
                       </span>
                     )}
                   </div>
