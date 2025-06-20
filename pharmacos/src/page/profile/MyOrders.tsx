@@ -132,10 +132,6 @@ const MyOrders: React.FC = () => {
             style={{ maxWidth: 1000, margin: "0 auto" }}
         >
             <div className="user-profile-section-content">
-                {/* Tổng số tiền */}
-                <div style={{ marginBottom: 12, textAlign: "right", fontWeight: 600, color: "#1677ff" }}>
-                    Total spent: {totalSpent.toLocaleString()}₫
-                </div>
                 <Tabs
                     activeKey={orderTab}
                     onChange={setOrderTab}

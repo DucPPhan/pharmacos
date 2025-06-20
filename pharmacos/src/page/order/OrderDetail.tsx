@@ -117,8 +117,8 @@ const OrderDetail = () => {
             }
 
             const updatedItems = orderItems.map((item: any) => {
-                const id = item.productId?._id || item.productId || item.id;
-                const product = products.find((p: any) => p._id === id);
+                const productId = item.productId?._id || item.productId || item.id;
+                const product = products.find((p: any) => p._id === productId);
                 let image = "";
                 if (product?.images && Array.isArray(product.images) && product.images.length > 0) {
                     image = product.images[0].url;
@@ -129,10 +129,9 @@ const OrderDetail = () => {
                 } else {
                     image = "https://via.placeholder.com/80x80?text=No+Image";
                 }
-                // Lấy tên ưu tiên từ product, nếu không có thì lấy từ item.productId?.name, nếu không có thì lấy từ item.name
                 let name = product?.name || item.productId?.name || item.name || "Sản phẩm";
                 return {
-                    id,
+                    productId, // Đảm bảo gửi đúng key productId cho API
                     name,
                     image,
                     price: product?.price || item.unitPrice || item.price || 0,
@@ -142,7 +141,23 @@ const OrderDetail = () => {
 
             cart = [...updatedItems];
 
-            localStorage.setItem("cart", JSON.stringify(cart));
+            // Gửi cart lên API thay vì lưu vào localStorage
+            try {
+                const token = localStorage.getItem("token");
+                await fetch("http://localhost:10000/api/cart/items", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    },
+                    body: JSON.stringify(cart),
+                });
+            } catch (apiErr) {
+                console.error("API cart update error:", apiErr);
+                message.error("Không thể cập nhật giỏ hàng lên server.");
+                return;
+            }
+
             setCartItems(cart);
 
             message.success("Đã thêm sản phẩm vào giỏ hàng!");

@@ -182,34 +182,65 @@ const PurchaseHistory: React.FC = () => {
                                         </Tag>
                                     </div>
                                     <div className="user-profile-order-items">
-                                        {(item.items || []).map((prod: any, i: number) => (
-                                            <div key={i} className="user-profile-order-item">
-                                                <div
-                                                    className="user-profile-order-item-name"
-                                                    style={{
-                                                        fontWeight: 700,
-                                                        fontSize: 16,
-                                                        color: "#1976d2",
-                                                        background: "linear-gradient(90deg,#e3f0ff 60%,#f7f9fb 100%)",
-                                                        padding: "3px 10px",
-                                                        borderRadius: 7,
-                                                        marginBottom: 2,
-                                                        maxWidth: 320,
-                                                        whiteSpace: "nowrap",
-                                                        overflow: "hidden",
-                                                        textOverflow: "ellipsis",
-                                                        display: "inline-block"
-                                                    }}
-                                                >
-                                                    {(prod.productId && prod.productId.name) ||
-                                                        prod.name ||
-                                                        "No product name"}
+                                        {(item.items || []).map((prod: any, i: number) => {
+                                            // Nếu sản phẩm đã bị xóa (prod.productId không còn), hiển thị thông báo
+                                            if (!prod.productId) {
+                                                return (
+                                                    <div key={i} className="user-profile-order-item" style={{ opacity: 0.6 }}>
+                                                        <div
+                                                            className="user-profile-order-item-name"
+                                                            style={{
+                                                                fontWeight: 700,
+                                                                fontSize: 16,
+                                                                color: "#d32f2f",
+                                                                background: "#fff0f0",
+                                                                padding: "3px 10px",
+                                                                borderRadius: 7,
+                                                                marginBottom: 2,
+                                                                maxWidth: 320,
+                                                                whiteSpace: "nowrap",
+                                                                overflow: "hidden",
+                                                                textOverflow: "ellipsis",
+                                                                display: "inline-block"
+                                                            }}
+                                                        >
+                                                            [Product deleted]
+                                                        </div>
+                                                        <div className="user-profile-order-item-price">
+                                                            {(prod.unitPrice ?? prod.price ?? 0).toLocaleString()}₫ x{prod.quantity ?? 1}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+                                            return (
+                                                <div key={i} className="user-profile-order-item">
+                                                    <div
+                                                        className="user-profile-order-item-name"
+                                                        style={{
+                                                            fontWeight: 700,
+                                                            fontSize: 16,
+                                                            color: "#1976d2",
+                                                            background: "linear-gradient(90deg,#e3f0ff 60%,#f7f9fb 100%)",
+                                                            padding: "3px 10px",
+                                                            borderRadius: 7,
+                                                            marginBottom: 2,
+                                                            maxWidth: 320,
+                                                            whiteSpace: "nowrap",
+                                                            overflow: "hidden",
+                                                            textOverflow: "ellipsis",
+                                                            display: "inline-block"
+                                                        }}
+                                                    >
+                                                        {(prod.productId && prod.productId.name) ||
+                                                            prod.name ||
+                                                            "No product name"}
+                                                    </div>
+                                                    <div className="user-profile-order-item-price">
+                                                        {(prod.unitPrice ?? prod.price ?? 0).toLocaleString()}₫ x{prod.quantity ?? 1}
+                                                    </div>
                                                 </div>
-                                                <div className="user-profile-order-item-price">
-                                                    {(prod.unitPrice ?? prod.price ?? 0).toLocaleString()}₫ x{prod.quantity ?? 1}
-                                                </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                         <div>
