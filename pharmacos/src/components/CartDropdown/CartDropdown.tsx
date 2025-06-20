@@ -21,13 +21,9 @@ import {
 const CartDropdown: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<CartItem | null>(null);
-    const [orderSuccess, setOrderSuccess] = useState(false);
-    const prevItemCount = useRef(0);
-
     const dropdownRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
-    const { cartItems, updateQuantity, removeItem, subtotal } = useCart();
-    const itemCount = cartItems.reduce((count, item) => count + item.quantity, 0);
+    const { cartItems, updateQuantity, removeItem, subtotal, itemCount } = useCart();
 
     // Effect to close the dropdown when clicking outside of it
     useEffect(() => {
@@ -46,21 +42,8 @@ const CartDropdown: React.FC = () => {
         };
     }, [isOpen]);
 
-    // Auto open dropdown when itemCount increases (add to cart)
-    useEffect(() => {
-        if (itemCount > prevItemCount.current) {
-            setIsOpen(true);
-            // Tự động đóng sau 3 giây nếu mở tự động
-            const timeout = setTimeout(() => setIsOpen(false), 3000);
-            return () => clearTimeout(timeout);
-        }
-        prevItemCount.current = itemCount;
-    }, [itemCount]);
-
     const handleCheckout = () => {
         setIsOpen(false);
-        setOrderSuccess(true);
-        setTimeout(() => setOrderSuccess(false), 3000);
         navigate('/cart');
     };
 
@@ -208,27 +191,6 @@ const CartDropdown: React.FC = () => {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-
-            {/* Success notification */}
-            {orderSuccess && (
-                <div
-                    style={{
-                        position: "fixed",
-                        top: 24,
-                        right: 24,
-                        zIndex: 9999,
-                        background: "#52c41a",
-                        color: "#fff",
-                        padding: "16px 32px",
-                        borderRadius: 8,
-                        fontWeight: 600,
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                        transition: "opacity 0.3s",
-                    }}
-                >
-                    Order placed successfully!
-                </div>
-            )}
         </div>
     );
 };

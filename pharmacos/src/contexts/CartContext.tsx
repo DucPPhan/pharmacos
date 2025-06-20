@@ -187,8 +187,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setCartItems([]); // Optimistic update
         try {
             // Note: A single API endpoint `DELETE /api/cart` would be more efficient
-            const deletePromises = previousCart.map(item =>
-                apiFetch(API.deleteItem(item.id), { method: 'DELETE' })
+            const deletePromises = previousCart.map(async item =>
+                await apiFetch(API.deleteItem(item.id), { method: 'DELETE' })
             );
             await Promise.all(deletePromises);
         } catch (error) {
