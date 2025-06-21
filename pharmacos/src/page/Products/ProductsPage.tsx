@@ -1,5 +1,5 @@
 // src/page/products/ProductsPage.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -30,6 +30,7 @@ const ProductsPage: React.FC = () => {
   const location = useLocation();
   const { toast } = useToast();
   const { addToCart } = useCart();
+  const isInitialMount = useRef(true);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,6 +60,7 @@ const ProductsPage: React.FC = () => {
     if (savedFilterState) {
       if (savedFilterState.category) {
         setSelectedCategory(savedFilterState.category);
+        
       }
       if (savedFilterState.subcategory) {
         setSelectedSubcategory(savedFilterState.subcategory);
@@ -83,6 +85,11 @@ const ProductsPage: React.FC = () => {
 
   // Save filter state when any filter changes
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
     const filterState: FilterState = {
       category: selectedCategory !== "all" ? selectedCategory : undefined,
       subcategory: selectedSubcategory || undefined,
@@ -192,6 +199,7 @@ const ProductsPage: React.FC = () => {
     const categoryProducts = apiProducts.filter(
       (p) => p.category === selectedCategory
     );
+    
     return [
       ...new Set(
         categoryProducts
@@ -264,8 +272,8 @@ const ProductsPage: React.FC = () => {
 
   // Get category name for display
   const getCategoryName = (id: string): string => {
-    const category = allCategories.find((c) => c.id === id);
-    return category ? category.name : "All Products";
+    
+    return id ? id : "All Products";
   };
 
   useEffect(() => {
@@ -331,6 +339,11 @@ const ProductsPage: React.FC = () => {
     }));
     setAllCategories([{ id: "all", name: "All Products" }, ...categories]);
   }, [apiProducts]);
+
+  useMemo(() => {
+    console.log("selectedCategory:", selectedCategory);
+    console.log("selectedSubcategory:", selectedSubcategory);
+  },[ selectedCategory, selectedSubcategory ]);
 
   return (
     <div className="container mx-auto px-4 py-8">

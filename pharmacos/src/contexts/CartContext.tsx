@@ -28,14 +28,14 @@ export interface OrderDetails {
 // Defines the shape of the context's value, available to consumers
 interface CartContextType {
     cartItems: CartItem[];
-    setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>; // ✅ Thêm dòng này
-    addToCart: (item: Omit<CartItem, 'quantity'>, quantity?: number) => void;
+    setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
+    addToCart: (item: { id: string; name: string; price: number; image: string; }, quantity?: number) => void;
     updateQuantity: (id: string, change: number) => void;
     removeItem: (id: string) => void;
     clearCart: () => void;
     subtotal: number;
     itemCount: number;
-    isCartLoading: boolean; // <-- thêm dòng này
+    isCartLoading: boolean;
     isSubmitting: boolean;
     submitOrder: (details: OrderDetails) => Promise<void>;
 }
@@ -54,7 +54,7 @@ const API = {
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { toast } = useToast();
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
-    const [isCartLoading, setIsCartLoading] = useState(false); // <-- thêm state này
+    const [isCartLoading, setIsCartLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
 
@@ -262,7 +262,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // The value provided to consumers of the context
     const contextValue: CartContextType = {
         cartItems,
-        setCartItems, // ✅ Thêm dòng này
+        setCartItems,
         addToCart,
         updateQuantity,
         removeItem,
@@ -271,7 +271,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         itemCount, // Provide itemCount
         submitOrder,
         isSubmitting,
-        isCartLoading, // <-- thêm dòng này
+        isCartLoading,
     };
 
     return (
