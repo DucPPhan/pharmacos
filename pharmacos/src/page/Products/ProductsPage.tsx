@@ -1,6 +1,6 @@
 // src/page/products/ProductsPage.tsx
-import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -20,237 +20,213 @@ import {
   getFilterState,
   saveFilterState,
   FilterState,
+  clearFilterState,
 } from "../../utils/homeSessionStorage";
 import { useToast } from "@/components/ui/use-toast";
 import { staffApi } from "../staff/services/api";
 import { useCart } from "@/contexts/CartContext";
 
 const ProductsPage: React.FC = () => {
-  const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
   const { addToCart } = useCart();
+  const isInitialMount = useRef(true);
 
-  // Filter states
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(
-    null
-  );
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100]);
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<string>("featured");
-  const [filtersVisible, setFiltersVisible] = useState<boolean>(true);
+  // Filter states from URL or session storage
+  const [filters, setFilters] = useState<FilterState>(() => {
+    const savedFilterState = getFilterState();
+    return (
+      savedFilterState || {
+        category: "all",
+        subcategory: null,
+        priceRange: [0, 100],
+        selectedBrands: [],
+        selectedTags: [],
+        sortBy: "featured",
+        searchQuery: "",
+      }
+    );
+  });
 
   const [apiProducts, setApiProducts] = useState<any[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
   const [allBrands, setAllBrands] = useState<string[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
-
   const [allCategories, setAllCategories] = useState<
     { id: string; name: string }[]
   >([{ id: "all", name: "All Products" }]);
+  const [priceConfig, setPriceConfig] = useState({ min: 0, max: 1000 });
+  const [filtersVisible, setFiltersVisible] = useState<boolean>(true);
 
-  // Load filter state from session storage on component mount
+  // Single effect to update filters and save to session storage
+  const updateFilters = (newFilters: Partial<FilterState>) => {
+    const updated = { ...filters, ...newFilters };
+    setFilters(updated);
+    saveFilterState(updated);
+  };
+
+  // Fetch products and populate filter options
   useEffect(() => {
-    const savedFilterState = getFilterState();
+    const fetchAndSetup = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("http://localhost:10000/api/products", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const data = await res.json();
+        const products = Array.isArray(data?.data?.products)
+          ? data.data.products
+          : [];
+        setApiProducts(products);
 
-    if (savedFilterState) {
-      if (savedFilterState.category) {
-        setSelectedCategory(savedFilterState.category);
-      }
-      if (savedFilterState.subcategory) {
-        setSelectedSubcategory(savedFilterState.subcategory);
-      }
-      if (savedFilterState.searchQuery) {
-        setSearchQuery(savedFilterState.searchQuery);
-      }
-      if (savedFilterState.sortBy) {
-        setSortBy(savedFilterState.sortBy);
-      }
-      if (savedFilterState.priceRange) {
-        setPriceRange(savedFilterState.priceRange);
-      }
-      if (savedFilterState.brands && savedFilterState.brands.length > 0) {
-        setSelectedBrands(savedFilterState.brands);
-      }
-      if (savedFilterState.tags && savedFilterState.tags.length > 0) {
-        setSelectedTags(savedFilterState.tags);
-      }
-    }
-  }, []);
+        if (products.length > 0) {
+          // Setup filter options once
+          const min = Math.min(...products.map((p) => p.price));
+          const max = Math.max(...products.map((p) => p.price));
+          setPriceConfig({ min, max });
 
-  // Save filter state when any filter changes
-  useEffect(() => {
-    const filterState: FilterState = {
-      category: selectedCategory !== "all" ? selectedCategory : undefined,
-      subcategory: selectedSubcategory || undefined,
-      searchQuery: searchQuery || undefined,
-      sortBy: sortBy !== "featured" ? sortBy : undefined,
-      priceRange: priceRange,
-      brands: selectedBrands.length > 0 ? selectedBrands : undefined,
-      tags: selectedTags.length > 0 ? selectedTags : undefined,
+          // If no price range is set in filters, set it from products
+          if (
+            !filters.priceRange ||
+            (filters.priceRange[0] === 0 && filters.priceRange[1] === 100)
+          ) {
+            updateFilters({ priceRange: [min, max] });
+          }
+
+          const brands = Array.from(
+            new Set(products.flatMap((p) => p.brand || []).filter(Boolean))
+          ) as string[];
+          setAllBrands(brands);
+
+          const features = Array.from(
+            new Set(products.flatMap((p) => p.features || []).filter(Boolean))
+          ) as string[];
+          setAllTags(features);
+
+          const categories = Array.from(
+            new Set(products.map((p) => p.category).filter(Boolean))
+          ).map((cat) => ({ id: cat as string, name: cat as string }));
+          setAllCategories([
+            { id: "all", name: "All Products" },
+            ...categories,
+          ]);
+        }
+      } catch {
+        setApiProducts([]);
+      }
     };
+    fetchAndSetup();
+  }, []); // Runs only once on mount
 
-    saveFilterState(filterState);
-  }, [
-    selectedCategory,
-    selectedSubcategory,
-    searchQuery,
-    sortBy,
-    priceRange,
-    selectedBrands,
-    selectedTags,
-  ]);
-
-  // Apply filters when any filter changes
+  // Main filtering logic
   useEffect(() => {
     let filtered = [...apiProducts];
+    const {
+      category,
+      subcategory,
+      searchQuery,
+      priceRange,
+      brands,
+      tags,
+      sortBy,
+    } = filters;
 
-    // Apply category filter
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter((p) => p.category === selectedCategory);
+    if (category && category !== "all") {
+      filtered = filtered.filter((p) => p.category === category);
     }
-
-    // Apply subcategory filter
-    if (selectedSubcategory) {
-      filtered = filtered.filter((p) => p.subcategory === selectedSubcategory);
+    if (subcategory) {
+      filtered = filtered.filter((p) => p.subcategory === subcategory);
     }
-
-    // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (p) =>
           p.name.toLowerCase().includes(query) ||
-          p.brand?.toLowerCase().includes(query) ||
+          p.brand?.some((b: string) => b.toLowerCase().includes(query)) ||
           p.category.toLowerCase().includes(query) ||
-          (p.tags && p.tags.some((tag) => tag.toLowerCase().includes(query)))
+          p.tags?.some((tag: string) => tag.toLowerCase().includes(query))
       );
     }
-
-    // Apply price filter
-    filtered = filtered.filter(
-      (p) => p.price >= priceRange[0] && p.price <= priceRange[1]
-    );
-
-    // Apply brand filter
-    if (selectedBrands.length > 0) {
+    if (priceRange) {
       filtered = filtered.filter(
-        (p) =>
-          Array.isArray(p.brand) &&
-          p.brand.some((b) => selectedBrands.includes(b))
+        (p) => p.price >= priceRange[0] && p.price <= priceRange[1]
+      );
+    }
+    if (brands && brands.length > 0) {
+      filtered = filtered.filter((p) =>
+        p.brand?.some((b: string) => brands.includes(b))
+      );
+    }
+    if (tags && tags.length > 0) {
+      filtered = filtered.filter((p) =>
+        p.features?.some((f: string) => tags.includes(f))
       );
     }
 
-    // Apply tag filter (Product Features)
-    if (selectedTags.length > 0) {
-      filtered = filtered.filter(
-        (p) =>
-          Array.isArray(p.features) &&
-          p.features.some((f) => selectedTags.includes(f))
-      );
-    }
-
-    // Apply sorting
     switch (sortBy) {
       case "price-low-high":
-        filtered = filtered.sort((a, b) => a.price - b.price);
+        filtered.sort((a, b) => a.price - b.price);
         break;
       case "price-high-low":
-        filtered = filtered.sort((a, b) => b.price - a.price);
+        filtered.sort((a, b) => b.price - a.price);
         break;
       case "rating":
-        filtered = filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
       case "newest":
-        // In a real app, you would sort by date added
-        // For now, we'll just use the reversed array
-        filtered = [...filtered].reverse();
+        filtered.reverse();
         break;
-      // Default "featured" uses original order
     }
 
     setFilteredProducts(filtered);
-  }, [
-    selectedCategory,
-    selectedSubcategory,
-    searchQuery,
-    priceRange,
-    selectedBrands,
-    selectedTags,
-    sortBy,
-    apiProducts,
-  ]);
+
+    // This is to clear the session storage once navigation is complete and filters applied
+    if (isInitialMount.current) {
+      clearFilterState();
+      isInitialMount.current = false;
+    }
+  }, [filters, apiProducts]);
 
   // Get subcategories based on selected category
   const getSubcategories = (): string[] => {
-    if (selectedCategory === "all") return [];
-
-    // Filter out any empty subcategories
+    if (!filters.category || filters.category === "all") return [];
     const categoryProducts = apiProducts.filter(
-      (p) => p.category === selectedCategory
+      (p) => p.category === filters.category
     );
     return [
-      ...new Set(
-        categoryProducts
-          .map((p) => p.subcategory)
-          .filter((subcategory) => subcategory && subcategory.trim() !== "")
-      ),
+      ...new Set(categoryProducts.map((p) => p.subcategory).filter(Boolean)),
     ];
-  };
-
-  // Handle search
-  const handleSearch = () => {
-    // This function is called when the search button is clicked
-    // We're already updating the filteredProducts in the useEffect
-    toast({
-      title: "Search results",
-      description: `Found ${filteredProducts.length} products matching your criteria`,
-      duration: 3000,
-    });
-  };
-
-  // Handle brand selection
-  const handleBrandChange = (brand: string, checked: boolean) => {
-    if (checked) {
-      setSelectedBrands([...selectedBrands, brand]);
-    } else {
-      setSelectedBrands(selectedBrands.filter((b) => b !== brand));
-    }
-  };
-
-  // Handle tag selection
-  const handleTagChange = (tag: string, checked: boolean) => {
-    if (checked) {
-      setSelectedTags([...selectedTags, tag]);
-    } else {
-      setSelectedTags(selectedTags.filter((t) => t !== tag));
-    }
   };
 
   // Reset all filters
   const resetFilters = () => {
-    setSelectedCategory("all");
-    setSelectedSubcategory(null);
-    setSearchQuery("");
-    setPriceRange([priceRange[0], priceRange[1]]);
-    setSelectedBrands([]);
-    setSelectedTags([]);
-    setSortBy("featured");
+    const newFilters: FilterState = {
+      category: "all",
+      subcategory: null,
+      searchQuery: "",
+      priceRange: [priceConfig.min, priceConfig.max],
+      brands: [],
+      tags: [],
+      sortBy: "featured",
+    };
+    updateFilters(newFilters);
   };
 
+  // ... (handleAddToCart and getCategoryName functions remain the same)
+  const getCategoryName = (id: string): string => {
+    return id ? id : "All Products";
+  };
   const handleAddToCart = (product, quantity) => {
     // Add the product to the cart context
-    addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.discount
-        ? product.price * (1 - product.discount / 100)
-        : product.price,
-      image: product.image,
-    },
+    addToCart(
+      {
+        id: product.id,
+        name: product.name,
+        price: product.discount
+          ? product.price * (1 - product.discount / 100)
+          : product.price,
+        image: product.image,
+      },
       quantity
     );
 
@@ -262,92 +238,22 @@ const ProductsPage: React.FC = () => {
     });
   };
 
-  // Get category name for display
-  const getCategoryName = (id: string): string => {
-    const category = allCategories.find((c) => c.id === id);
-    return category ? category.name : "All Products";
-  };
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:10000/api/products", {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        const data = await res.json();
-        setApiProducts(
-          Array.isArray(data?.data?.products) ? data.data.products : []
-        );
-      } catch {
-        setApiProducts([]);
-      }
-    };
-    fetchProducts();
-  }, []);
-
-  // After fetching products, set priceRange, filteredProducts, allBrands, and allTags
-  useEffect(() => {
-    if (apiProducts.length > 0) {
-      const min = Math.min(...apiProducts.map((p) => p.price));
-      const max = Math.max(...apiProducts.map((p) => p.price));
-      setPriceRange([min, max]);
-      setFilteredProducts(apiProducts);
-      // Lấy tất cả brand duy nhất từ mảng brand
-      const brands = Array.from(
-        new Set(
-          apiProducts.flatMap((p) =>
-            Array.isArray(p.brand)
-              ? p.brand
-                .map((b) => (typeof b === "string" ? b.trim() : ""))
-                .filter(Boolean)
-              : []
-          )
-        )
-      );
-      setAllBrands(brands);
-      // Lấy tất cả feature duy nhất từ mảng features
-      const features = Array.from(
-        new Set(
-          apiProducts.flatMap((p) =>
-            Array.isArray(p.features)
-              ? p.features
-                .map((f) => (typeof f === "string" ? f.trim() : ""))
-                .filter(Boolean)
-              : []
-          )
-        )
-      );
-      setAllTags(features);
-    }
-  }, [apiProducts]);
-
-  useEffect(() => {
-    const categories = Array.from(
-      new Set(apiProducts.map((p) => p.category).filter(Boolean))
-    ).map((cat) => ({
-      id: cat,
-      name: cat,
-    }));
-    setAllCategories([{ id: "all", name: "All Products" }, ...categories]);
-  }, [apiProducts]);
-
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold">
-          {getCategoryName(selectedCategory)}
+          {getCategoryName(filters.category || "all")}
         </h1>
         <p className="text-gray-600 mt-2">{filteredProducts.length} products</p>
       </div>
 
-      {/* Search and Filters */}
       <div className="flex flex-col md:flex-row gap-6">
         {/* Filters Sidebar */}
         <div
-          className={`md:w-1/4 space-y-6 ${filtersVisible ? "block" : "hidden md:block"
-            }`}
+          className={`md:w-1/4 space-y-6 ${
+            filtersVisible ? "block" : "hidden md:block"
+          }`}
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold">Filters</h2>
@@ -369,11 +275,11 @@ const ProductsPage: React.FC = () => {
               <Input
                 type="text"
                 placeholder="Search products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={filters.searchQuery || ""}
+                onChange={(e) => updateFilters({ searchQuery: e.target.value })}
                 className="flex-grow"
               />
-              <Button size="icon" onClick={handleSearch}>
+              <Button size="icon" onClick={() => updateFilters({})}>
                 <Search className="h-4 w-4" />
               </Button>
             </div>
@@ -383,81 +289,73 @@ const ProductsPage: React.FC = () => {
           <div className="space-y-2">
             <h3 className="font-medium">Category</h3>
             <Select
-              value={selectedCategory}
-              onValueChange={setSelectedCategory}
+              value={filters.category || "all"}
+              onValueChange={(value) =>
+                updateFilters({ category: value, subcategory: null })
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select Category" />
               </SelectTrigger>
               <SelectContent>
-                {allCategories.map((category) =>
-                  category && category.id && category.name ? (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ) : null
-                )}
+                {allCategories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Subcategory Filter (only show if a category is selected) */}
-          {selectedCategory !== "all" && getSubcategories().length > 0 && (
-            <div className="space-y-2">
-              <h3 className="font-medium">Subcategory</h3>
-              <Select
-                value={selectedSubcategory || "all-subcategories"}
-                onValueChange={(value) =>
-                  setSelectedSubcategory(
-                    value === "all-subcategories" ? null : value
-                  )
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Subcategory" />
-                </SelectTrigger>
-                <SelectContent>
-                  {/* Use a non-empty default value */}
-                  <SelectItem value="all-subcategories">
-                    All Subcategories
-                  </SelectItem>
-                  {getSubcategories().map((subcategory) =>
-                    // Make sure each subcategory is not an empty string
-                    subcategory && subcategory.trim() !== "" ? (
-                      <SelectItem key={subcategory} value={subcategory}>
-                        {subcategory
+          {/* Subcategory Filter */}
+          {filters.category &&
+            filters.category !== "all" &&
+            getSubcategories().length > 0 && (
+              <div className="space-y-2">
+                <h3 className="font-medium">Subcategory</h3>
+                <Select
+                  value={filters.subcategory || "all-subcategories"}
+                  onValueChange={(value) =>
+                    updateFilters({
+                      subcategory: value === "all-subcategories" ? null : value,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Subcategory" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all-subcategories">
+                      All Subcategories
+                    </SelectItem>
+                    {getSubcategories().map((sub) => (
+                      <SelectItem key={sub} value={sub}>
+                        {sub
                           .replace(/-/g, " ")
-                          .split(" ")
-                          .map(
-                            (word) =>
-                              word.charAt(0).toUpperCase() + word.slice(1)
-                          )
-                          .join(" ")}
+                          .replace(/\b\w/g, (l) => l.toUpperCase())}
                       </SelectItem>
-                    ) : null
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
           {/* Price Range Filter */}
           <div className="space-y-2">
             <h3 className="font-medium">Price Range</h3>
             <Slider
-              defaultValue={[priceRange[0], priceRange[1]]}
-              min={priceRange[0]}
-              max={priceRange[1]}
+              min={priceConfig.min}
+              max={priceConfig.max}
               step={1}
-              value={priceRange}
+              value={filters.priceRange || [priceConfig.min, priceConfig.max]}
               onValueChange={(value) =>
-                setPriceRange(value as [number, number])
+                updateFilters({ priceRange: value as [number, number] })
               }
               className="my-6"
             />
             <div className="flex justify-between text-sm">
-              <span>${priceRange[0].toFixed(2)}</span>
-              <span>${priceRange[1].toFixed(2)}</span>
+              <span>${(filters.priceRange || [0])[0].toFixed(2)}</span>
+              <span>${(filters.priceRange || [0, 0])[1].toFixed(2)}</span>
             </div>
           </div>
 
@@ -469,10 +367,13 @@ const ProductsPage: React.FC = () => {
                 <div className="flex items-center space-x-2" key={brand}>
                   <Checkbox
                     id={`brand-${brand}`}
-                    checked={selectedBrands.includes(brand)}
-                    onCheckedChange={(checked) =>
-                      handleBrandChange(brand, checked as boolean)
-                    }
+                    checked={filters.brands?.includes(brand)}
+                    onCheckedChange={(checked) => {
+                      const newBrands = checked
+                        ? [...(filters.brands || []), brand]
+                        : (filters.brands || []).filter((b) => b !== brand);
+                      updateFilters({ brands: newBrands });
+                    }}
                   />
                   <Label
                     htmlFor={`brand-${brand}`}
@@ -493,10 +394,13 @@ const ProductsPage: React.FC = () => {
                 <div className="flex items-center space-x-2" key={tag}>
                   <Checkbox
                     id={`tag-${tag}`}
-                    checked={selectedTags.includes(tag)}
-                    onCheckedChange={(checked) =>
-                      handleTagChange(tag, checked as boolean)
-                    }
+                    checked={filters.tags?.includes(tag)}
+                    onCheckedChange={(checked) => {
+                      const newTags = checked
+                        ? [...(filters.tags || []), tag]
+                        : (filters.tags || []).filter((t) => t !== tag);
+                      updateFilters({ tags: newTags });
+                    }}
                   />
                   <Label
                     htmlFor={`tag-${tag}`}
@@ -524,9 +428,8 @@ const ProductsPage: React.FC = () => {
             </Button>
 
             <Select
-              value={sortBy}
-              onValueChange={setSortBy}
-              defaultValue="featured"
+              value={filters.sortBy}
+              onValueChange={(value) => updateFilters({ sortBy: value })}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Sort by" />
@@ -550,7 +453,7 @@ const ProductsPage: React.FC = () => {
               products={filteredProducts.map((p) => {
                 let image = "";
                 if (Array.isArray(p.images) && p.images.length > 0) {
-                  const primary = p.images.find((img) => img.isPrimary);
+                  const primary = p.images.find((img: any) => img.isPrimary);
                   image = primary ? primary.url : p.images[0].url;
                 }
                 return {
@@ -561,10 +464,10 @@ const ProductsPage: React.FC = () => {
                   category: p.category,
                   inStock: p.stockQuantity > 0,
                   rating:
-                    p.reviews && p.reviews.length > 0
-                      ? p.reviews.reduce((acc, r) => acc + (r.rating || 0), 0) /
-                      p.reviews.length
-                      : undefined,
+                    p.reviews?.reduce(
+                      (acc: number, r: any) => acc + (r.rating || 0),
+                      0
+                    ) / (p.reviews?.length || 1),
                   brand: p.brand,
                 };
               })}

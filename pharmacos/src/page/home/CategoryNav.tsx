@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { saveFilterState } from "@/utils/homeSessionStorage";
 
 type CategoryItem = {
-  id: string;
+  id: string; // Keep id for keys, can be same as name
   name: string;
   subcategories: {
     title: string;
@@ -19,193 +19,88 @@ type CategoryItem = {
   }[];
 };
 
-const categories: CategoryItem[] = [
-  {
-    id: "pharmaceuticals",
-    name: "Pharmaceuticals",
-    subcategories: [
-      {
-        title: "By Type",
-        items: [
-          "Supplements",
-          "Pain Relief",
-          "Cold & Flu",
-          "Allergy",
-          "Digestive Health",
-        ],
-      },
-      {
-        title: "By Use",
-        items: [
-          "Immunity",
-          "Heart Health",
-          "Joint Support",
-          "Sleep Aid",
-          "Energy",
-        ],
-      },
-    ],
-    popularProducts: [
-      {
-        id: "p1",
-        name: "Vitamin D Supplement",
-        image: "/images/products/vitamin-d.jpg",
-      },
-      {
-        id: "p2",
-        name: "Pain Relief Tablets",
-        image: "/images/products/pain-relief.jpg",
-      },
-    ],
-  },
-  {
-    id: "skincare",
-    name: "Skincare",
-    subcategories: [
-      {
-        title: "By Product Type",
-        items: ["Cleanser", "Toner", "Serum", "Moisturizer", "Face Mask"],
-      },
-      {
-        title: "By Skin Concern",
-        items: ["Acne", "Dark Spots", "Aging", "Sensitive Skin", "Oily Skin"],
-      },
-    ],
-    popularProducts: [
-      {
-        id: "s1",
-        name: "Vitamin C Serum",
-        image: "/images/products/serum-c.jpg",
-      },
-      {
-        id: "s2",
-        name: "Cerave Facial Cleanser",
-        image: "/images/products/cerave-cleanser.jpg",
-      },
-    ],
-  },
-  {
-    id: "haircare",
-    name: "Haircare",
-    subcategories: [
-      {
-        title: "Product Types",
-        items: ["Shampoo", "Conditioner", "Hair Mask", "Hair Serum"],
-      },
-      {
-        title: "Hair Concerns",
-        items: ["Dry Hair", "Oily Hair", "Dandruff", "Hair Loss"],
-      },
-    ],
-    popularProducts: [
-      {
-        id: "h1",
-        name: "Anti-Dandruff Shampoo",
-        image: "/images/products/anti-dandruff.jpg",
-      },
-      {
-        id: "h2",
-        name: "Hair Oil Treatment",
-        image: "/images/products/hair-oil.jpg",
-      },
-    ],
-  },
-  {
-    id: "makeup",
-    name: "Makeup",
-    subcategories: [
-      {
-        title: "Face",
-        items: ["Foundation", "Powder", "Concealer", "Blush"],
-      },
-      {
-        title: "Eyes",
-        items: ["Mascara", "Eyeshadow", "Eyeliner", "Eyebrow Pencil"],
-      },
-      {
-        title: "Lips",
-        items: ["Lipstick", "Lip Cream", "Lip Gloss", "Lip Balm"],
-      },
-    ],
-    popularProducts: [
-      {
-        id: "m1",
-        name: "Long-lasting Foundation",
-        image: "/images/products/foundation.jpg",
-      },
-      {
-        id: "m2",
-        name: "Matte Lipstick",
-        image: "/images/products/lipstick.jpg",
-      },
-    ],
-  },
-  {
-    id: "fragrances",
-    name: "Fragrances",
-    subcategories: [
-      {
-        title: "Types",
-        items: ["Perfume", "Body Mist", "Eau de Toilette", "Roll-On"],
-      },
-      {
-        title: "For",
-        items: ["Men", "Women", "Unisex"],
-      },
-    ],
-    popularProducts: [
-      {
-        id: "f1",
-        name: "Floral Eau de Parfum",
-        image: "/images/products/perfume.jpg",
-      },
-      {
-        id: "f2",
-        name: "Citrus Body Mist",
-        image: "/images/products/body-mist.jpg",
-      },
-    ],
-  },
-  {
-    id: "natural-products",
-    name: "Natural Products",
-    subcategories: [
-      {
-        title: "Ingredients",
-        items: [
-          "Green Tea",
-          "Aloe Vera",
-          "Essential Oils",
-          "Honey",
-          "Coconut Oil",
-        ],
-      },
-      {
-        title: "Benefits",
-        items: ["Hydration", "Anti-inflammatory", "Soothing", "Restoration"],
-      },
-    ],
-    popularProducts: [
-      {
-        id: "n1",
-        name: "Aloe Vera Gel",
-        image: "/images/products/aloe-vera.jpg",
-      },
-      {
-        id: "n2",
-        name: "Pure Coconut Oil",
-        image: "/images/products/coconut-oil.jpg",
-      },
-    ],
-  },
-];
-
 export default function CategoryNav() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch("http://localhost:10000/api/products");
+        if (!res.ok) {
+          throw new Error("Failed to fetch products");
+        }
+        const data = await res.json();
+        const products = Array.isArray(data?.data?.products)
+          ? data.data.products
+          : [];
+
+        if (products.length > 0) {
+          const categoryMap = new Map<
+            string,
+            { subcategories: Set<string>; popularProducts: any[] }
+          >();
+
+          for (const product of products) {
+            const { category, subcategory, isPopular, name, images, _id } =
+              product;
+
+            if (!category) continue;
+
+            if (!categoryMap.has(category)) {
+              categoryMap.set(category, {
+                subcategories: new Set(),
+                popularProducts: [],
+              });
+            }
+
+            const categoryData = categoryMap.get(category)!;
+
+            if (subcategory && subcategory.trim() !== "") {
+              categoryData.subcategories.add(subcategory.trim());
+            }
+
+            if (isPopular && categoryData.popularProducts.length < 2) {
+              const primaryImage =
+                images.find((img: any) => img.isPrimary) || images[0];
+              categoryData.popularProducts.push({
+                id: _id,
+                name: name,
+                image: primaryImage?.url || "", // Provide a fallback
+              });
+            }
+          }
+
+          const formattedCategories: CategoryItem[] = Array.from(
+            categoryMap.entries()
+          ).map(([name, data]) => ({
+            id: name, // Use name as ID for simplicity
+            name: name,
+            subcategories:
+              data.subcategories.size > 0
+                ? [
+                    {
+                      title: "Types", // Generic title
+                      items: Array.from(data.subcategories),
+                    },
+                  ]
+                : [],
+            popularProducts: data.popularProducts,
+          }));
+
+          setCategories(formattedCategories);
+        }
+      } catch (error) {
+        console.error("Failed to fetch dynamic categories:", error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     if (navRef.current) {
@@ -232,32 +127,17 @@ export default function CategoryNav() {
     };
   }, [activeCategory]);
 
-  const handleCategoryClick = (categoryId: string, subcategory?: string) => {
-    console.log("handleCategoryClick called with:", {
-      categoryId,
-      subcategory,
-    });
-    const filteredSubcategory =
-      subcategory && subcategory.trim() !== "" ? subcategory : undefined;
-
-    // Save filter state to session storage
+  const handleCategoryClick = (category: string, subcategory?: string) => {
     saveFilterState({
-      category: categoryId,
-      subcategory: filteredSubcategory,
+      category: category,
+      subcategory: subcategory,
     });
-
-    console.log(
-      "Session storage after save:",
-      sessionStorage.getItem("pharmacos_filter_state")
-    );
-
-    // Navigate to products page
     navigate("/products");
   };
 
-  const handleMouseEnter = (categoryId: string) => {
+  const handleMouseEnter = (categoryName: string) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setActiveCategory(categoryId);
+    setActiveCategory(categoryName);
     setDropdownVisible(true);
   };
 
@@ -287,7 +167,7 @@ export default function CategoryNav() {
               <div
                 key={category.id}
                 className="relative"
-                onMouseEnter={() => handleMouseEnter(category.id)}
+                onMouseEnter={() => handleMouseEnter(category.name)}
                 onMouseLeave={handleMouseLeave}
               >
                 <li className="relative flex-shrink-0">
@@ -295,7 +175,7 @@ export default function CategoryNav() {
                     <div className="flex items-center gap-1 whitespace-nowrap group">
                       <span
                         className={`transition-colors ${
-                          activeCategory === category.id
+                          activeCategory === category.name
                             ? "text-[#7494ec]"
                             : "hover:text-[#7494ec]"
                         }`}
@@ -304,14 +184,14 @@ export default function CategoryNav() {
                       </span>
                       <ChevronDown
                         className={`h-4 w-4 transition-transform duration-300 ${
-                          activeCategory === category.id
+                          activeCategory === category.name
                             ? "text-[#7494ec] rotate-180"
                             : "group-hover:text-[#7494ec]"
                         }`}
                       />
                       <div
                         className={`absolute bottom-1 left-3 right-3 h-0.5 bg-[#7494ec] transform transition-transform duration-300 ${
-                          activeCategory === category.id
+                          activeCategory === category.name
                             ? "scale-x-100"
                             : "scale-x-0 group-hover:scale-x-100"
                         }`}
@@ -322,7 +202,7 @@ export default function CategoryNav() {
 
                 {/* Dropdown */}
                 <AnimatePresence>
-                  {activeCategory === category.id && dropdownVisible && (
+                  {activeCategory === category.name && dropdownVisible && (
                     <motion.div
                       key={activeCategory}
                       initial={{ opacity: 0, y: -10 }}
@@ -339,7 +219,7 @@ export default function CategoryNav() {
                       <div className="container mx-auto px-4 py-6">
                         {(() => {
                           const cat = categories.find(
-                            (c) => c.id === activeCategory
+                            (c) => c.name === activeCategory
                           );
                           if (!cat) return null;
 
@@ -359,10 +239,8 @@ export default function CategoryNav() {
                                               to="/products"
                                               onClick={() =>
                                                 handleCategoryClick(
-                                                  cat.id,
+                                                  cat.name,
                                                   item
-                                                    .toLowerCase()
-                                                    .replace(/\s+/g, "-")
                                                 )
                                               }
                                               className="text-gray-600 hover:text-primary hover:underline"
@@ -378,31 +256,33 @@ export default function CategoryNav() {
                               </div>
 
                               {/* Popular Products */}
-                              <div className="md:col-span-1">
-                                <h3 className="font-medium text-gray-900 text-lg border-b pb-2 mb-3">
-                                  Best seller
-                                </h3>
-                                <div className="space-y-4">
-                                  {cat.popularProducts.map((product) => (
-                                    <Link
-                                      to={`/product/${product.id}`}
-                                      key={product.id}
-                                      className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded transition-colors"
-                                    >
-                                      <div className="w-16 h-16 bg-gray-200 rounded overflow-hidden flex-shrink-0">
-                                        <img
-                                          src={product.image}
-                                          alt={product.name}
-                                          className="w-full h-full object-cover"
-                                        />
-                                      </div>
-                                      <span className="text-sm font-medium">
-                                        {product.name}
-                                      </span>
-                                    </Link>
-                                  ))}
+                              {cat.popularProducts.length > 0 && (
+                                <div className="md:col-span-1">
+                                  <h3 className="font-medium text-gray-900 text-lg border-b pb-2 mb-3">
+                                    Best seller
+                                  </h3>
+                                  <div className="space-y-4">
+                                    {cat.popularProducts.map((product) => (
+                                      <Link
+                                        to={`/product/${product.id}`}
+                                        key={product.id}
+                                        className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded transition-colors"
+                                      >
+                                        <div className="w-16 h-16 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+                                          <img
+                                            src={product.image}
+                                            alt={product.name}
+                                            className="w-full h-full object-cover"
+                                          />
+                                        </div>
+                                        <span className="text-sm font-medium">
+                                          {product.name}
+                                        </span>
+                                      </Link>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
+                              )}
                             </div>
                           );
                         })()}

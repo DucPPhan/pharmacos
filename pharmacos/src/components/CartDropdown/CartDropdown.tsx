@@ -105,7 +105,7 @@ const CartDropdown: React.FC = () => {
                                                 className="h-full w-full object-cover"
                                             />
                                         </div>
-                                        <div className="flex-1 flex flex-col justify-between">
+                                        <div className="flex-1 flex flex-col justify-between" style={{ maxWidth: '78%'}}>
                                             <div>
                                                 <h4 className="text-sm font-medium line-clamp-1">{item.name}</h4>
                                                 <p className="text-sm text-gray-500">${item.price.toFixed(2)}</p>

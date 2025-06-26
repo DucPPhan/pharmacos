@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, lazy } from "react";
 import ReactDOM from "react-dom/client";
 import {
   useLocation,
@@ -8,25 +8,29 @@ import {
   Route,
 } from "react-router-dom";
 import LoginPage from "./page/login/LoginPage";
-import Home from "./page/home/home";
 import routes from "tempo-routes";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Dashboard from "./page/admin/Admindashboard";
 import VerifyEmailPage from "./page/login/VerifyEmailPage";
 import Staffdashboard from "./page/staff/Staffdashboard";
-import CategoryPage from "./page/Category/CategoryPage";
-import ProductDetailPage from "./page/ProductDetail/ProductDetailPage";
-import ProductsPage from "./page/Products/ProductsPage";
-import UserProfile from "./page/profile/UserProfile";
-import Cart from "./page/cart";
 import { CartProvider } from "./contexts/CartContext";
 import OrderConfirmation from "./page/OrderConfirmation/OrderConfirmation";
-import OrderDetail from "./page/order/OrderDetail";
 import ScrollToTop from "./components/ui/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { Toaster } from "./components/ui/toaster";
 import AboutPage from "./page/About/AboutPage";
+import FullScreenLoader from "./components/FullScreenLoader/FullScreenLoader";
+
+// Lazy load a apges for better transition experience
+const Home = lazy(() => import("./page/home/home"));
+const ProductsPage = lazy(() => import("./page/Products/ProductsPage"));
+const ProductDetailPage = lazy(() => import("./page/ProductDetail/ProductDetailPage"));
+const CategoryPage = lazy(() => import("./page/Category/CategoryPage"));
+const UserProfile = lazy(() => import("./page/profile/UserProfile"));
+const Cart = lazy(() => import("./page/cart"));
+const OrderDetail = lazy(() => import("./page/order/OrderDetail"));
+
 
 function App() {
   const [visible, setVisible] = useState(true);
@@ -50,7 +54,7 @@ function App() {
   }
   return (
     <CartProvider>
-      <Suspense fallback={<p>Loading...</p>}>
+      <Suspense fallback={<FullScreenLoader />}>
         <ScrollToTop />
         <div className="min-h-screen bg-background">
           {visible && (
