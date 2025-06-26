@@ -59,7 +59,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 
     useEffect(() => {
-        //lưu token vào localStorage , khi login nó sẽ tự động lấy ra cho đúng với user , không có thì nó rỗng , sao m non v ĐứcPhan
+        // Đảm bảo luôn lấy đúng hình ảnh sản phẩm khi reload
         const fetchCart = async () => {
             const token = localStorage.getItem("token");
             if (!token) {
@@ -75,26 +75,30 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         Authorization: `Bearer ${token}`,
                     },
                 });
-                // Map đúng với mọi trường hợp productId là object hoặc string, ưu tiên lấy image từ productId nếu có
-                const mappedItems = (cartData.items || []).map((item: any) => ({
-                    id: item._id,
-                    productId: item.product?._id
-                        || (typeof item.productId === "object" ? item.productId._id : item.productId),
-                    name: item.product?.name
-                        || item.productId?.name
-                        || item.name
-                        || "",
-                    price: item.product?.price
-                        || item.productId?.price
-                        || item.unitPrice
-                        || item.price
-                        || 0,
-                    image:
-                        (item.productId?.images?.[0]?.url) ||
-                        (item.product?.images?.[0]?.url) ||
-                        '/placeholder.png',
-                    quantity: item.quantity,
-                }));
+                const mappedItems = (cartData.items || []).map((item: any) => {
+                    // Ưu tiên lấy hình ảnh từ product.images, nếu không có thì lấy từ productId.images, nếu không có thì lấy từ item.image
+                    let image =
+                        (item.product?.images?.length && item.product.images[0]?.url)
+                        || (item.productId?.images?.length && item.productId.images[0]?.url)
+                        || item.image
+                        || '/placeholder.png';
+                    return {
+                        id: item._id,
+                        productId: item.product?._id
+                            || (typeof item.productId === "object" ? item.productId._id : item.productId),
+                        name: item.product?.name
+                            || item.productId?.name
+                            || item.name
+                            || "",
+                        price: item.product?.price
+                            || item.productId?.price
+                            || item.unitPrice
+                            || item.price
+                            || 0,
+                        image,
+                        quantity: item.quantity,
+                    };
+                });
                 setCartItems(mappedItems);
                 localStorage.setItem("cart", JSON.stringify(mappedItems));
             } catch (error) {
@@ -289,3 +293,9 @@ export const useCart = () => {
     }
     return context;
 };
+
+// Lưu ý bảo mật:
+// Nếu bạn lưu token vào localStorage, token có thể bị truy cập bởi bất kỳ JavaScript nào chạy trên trang web của bạn (bao gồm cả các script của bên thứ ba nếu bị chèn vào).
+// Điều này có thể dẫn đến nguy cơ bị đánh cắp token nếu website bị XSS (Cross-Site Scripting).
+// Để bảo mật tốt hơn, nên lưu token ở httpOnly cookie phía server (token sẽ không bị truy cập bởi JavaScript).
+// Tuy nhiên, nếu bạn chỉ làm ứng dụng client-side và không kiểm soát backend, việc lưu token ở localStorage là chấp nhận được nhưng phải đảm bảo không có lỗ hổng XSS trên trang web của bạn.

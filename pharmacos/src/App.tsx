@@ -26,6 +26,7 @@ import OrderDetail from "./page/order/OrderDetail";
 import ScrollToTop from "./components/ui/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { Toaster } from "./components/ui/toaster";
+import AboutPage from "./page/About/AboutPage";
 
 function App() {
   const [visible, setVisible] = useState(true);
@@ -61,6 +62,7 @@ function App() {
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<Home />} />
+              <Route path="/about" element={<AboutPage />} />
               <Route path="/profile/*" element={<UserProfile />} />
               {/* 
               <Route path="/profile/personal-info" element={<PersonalInfo />} />
