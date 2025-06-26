@@ -67,7 +67,6 @@ function App() {
               {/* Public routes */}
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<AboutPage />} />
-              <Route path="/profile/*" element={<UserProfile />} />
               {/* 
               <Route path="/profile/personal-info" element={<PersonalInfo />} />
               <Route path="/profile/change-password" element={<ChangePassword />} />
