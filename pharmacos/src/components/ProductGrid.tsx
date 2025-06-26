@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +30,7 @@ interface Product {
   inStock: boolean;
   rating?: number;
   discount?: number;
+  isFavorite?: boolean;
 }
 
 interface ProductGridProps {
@@ -37,6 +38,7 @@ interface ProductGridProps {
   title?: string;
   showFilters?: boolean;
   onAddToCart?: (product: Product, quantity: number) => void;
+  onFavoriteToggle?: (productId: string, isFavorite: boolean) => void;
 }
 
 const ProductGrid = ({
@@ -104,9 +106,10 @@ const ProductGrid = ({
       discount: 15,
     },
   ],
-  title = "Featured Products",
+  title = "",
   showFilters = true,
   onAddToCart,
+  onFavoriteToggle,
 }: ProductGridProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -114,19 +117,25 @@ const ProductGrid = ({
   // Keep track of quantity for each product
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [hoverStates, setHoverStates] = useState<Record<string, boolean>>({});
+  const [localProducts, setLocalProducts] = useState<Product[]>([]);
+
+  // Initialize local products from props
+  useEffect(() => {
+    setLocalProducts(products);
+  }, [products]);
 
   const navigate = useNavigate();
   const { toast } = useToast();
-  const isLoggedIn = !!localStorage.getItem("user");
+  const isLoggedIn = !!localStorage.getItem("token");
 
   // Filter products by category
   const filteredProducts =
     selectedCategory === "all"
-      ? products
-      : products.filter(
-        (product) =>
-          product.category.toLowerCase() === selectedCategory.toLowerCase()
-      );
+      ? localProducts
+      : localProducts.filter(
+          (product) =>
+            product.category.toLowerCase() === selectedCategory.toLowerCase()
+        );
 
   // Sort products
   const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -140,7 +149,7 @@ const ProductGrid = ({
   // Get unique categories
   const categories = [
     "all",
-    ...new Set(products.map((product) => product.category)),
+    ...new Set(localProducts.map((product) => product.category)),
   ];
 
   // Pagination logic
@@ -194,9 +203,6 @@ const ProductGrid = ({
         description: `${quantity} × ${product.name} added to your cart`,
         duration: 3000,
       });
-
-      // Remove this line to prevent automatic navigation
-      // navigate("/cart");
     } else {
       // Default implementation if no onAddToCart is provided
       toast({
@@ -204,9 +210,6 @@ const ProductGrid = ({
         description: `${quantity} × ${product.name} added to your cart`,
         duration: 3000,
       });
-
-      // Remove this line to prevent automatic navigation
-      // navigate("/cart");
     }
 
     // Reset quantity after adding to cart
@@ -216,7 +219,7 @@ const ProductGrid = ({
     });
   };
 
-  const handleWishlist = (e: React.MouseEvent, productId: string) => {
+  const handleWishlist = async (e: React.MouseEvent, productId: string) => {
     e.stopPropagation(); // Prevent navigation to product page
 
     if (!isLoggedIn) {
@@ -224,12 +227,58 @@ const ProductGrid = ({
       return;
     }
 
-    // Placeholder for wishlist functionality
-    toast({
-      title: "Added to wishlist",
-      description: "Product has been added to your wishlist",
-      duration: 3000,
-    });
+    try {
+      // Find the product in the local state
+      const productIndex = localProducts.findIndex((p) => p.id === productId);
+      if (productIndex === -1) return;
+
+      const product = localProducts[productIndex];
+      const isFavorite = product.isFavorite;
+      const method = isFavorite ? "DELETE" : "POST";
+      const url = `http://localhost:10000/api/favorites/${productId}`;
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (res.ok) {
+        // Update local state immediately
+        const updatedProducts = [...localProducts];
+        updatedProducts[productIndex] = {
+          ...product,
+          isFavorite: !isFavorite,
+        };
+        setLocalProducts(updatedProducts);
+
+        // Call the callback if provided
+        if (onFavoriteToggle) {
+          onFavoriteToggle(productId, !isFavorite);
+        }
+
+        // Show toast notification
+        toast({
+          title: isFavorite ? "Removed from favorites" : "Added to favorites",
+          description: isFavorite
+            ? "Product has been removed from your favorites"
+            : "Product has been added to your favorites",
+          duration: 3000,
+        });
+      } else {
+        throw new Error("Failed to update favorites");
+      }
+    } catch (error) {
+      console.error("Error updating favorites:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update favorites. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
   };
 
   // Set hover state for a product
@@ -249,10 +298,11 @@ const ProductGrid = ({
           <Star
             key={star}
             size={14}
-            className={`${star <= Math.round(rating)
+            className={`${
+              star <= Math.round(rating)
                 ? "text-yellow-400 fill-yellow-400"
                 : "text-gray-300"
-              }`}
+            }`}
           />
         ))}
         <span className="ml-1 text-xs text-gray-500">{rating.toFixed(1)}</span>
@@ -263,32 +313,36 @@ const ProductGrid = ({
   return (
     <div className="w-full bg-white p-4 md:p-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4 md:mb-0">
-          {title}
-        </h2>
+        {title && (
+          <h2 className="text-2xl font-bold text-gray-800 mb-4 md:mb-0">
+            {title}
+          </h2>
+        )}
 
         {showFilters && (
-          <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+          <div className="flex flex-col md:flex-row gap-3">
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-gray-500" />
-              <Select
-                value={selectedCategory}
-                onValueChange={setSelectedCategory}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category && typeof category === "string"
-                        ? category.charAt(0).toUpperCase() + category.slice(1)
-                        : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <span className="text-sm text-gray-500">Filter:</span>
             </div>
+
+            <Select
+              value={selectedCategory}
+              onValueChange={setSelectedCategory}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category === "all"
+                      ? "All Categories"
+                      : category.charAt(0).toUpperCase() + category.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-[180px]">
@@ -314,11 +368,14 @@ const ProductGrid = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {currentProducts.map((product) => {
             // Calculate discounted price if applicable
-            const hasValidPrice = typeof product.price === "number" && !isNaN(product.price);
-            const hasValidDiscount = typeof product.discount === "number" && !isNaN(product.discount);
-            const discountedPrice = hasValidPrice && hasValidDiscount && product.discount
-              ? (product.price * (1 - product.discount / 100)).toFixed(2)
-              : null;
+            const hasValidPrice =
+              typeof product.price === "number" && !isNaN(product.price);
+            const hasValidDiscount =
+              typeof product.discount === "number" && !isNaN(product.discount);
+            const discountedPrice =
+              hasValidPrice && hasValidDiscount && product.discount
+                ? (product.price * (1 - product.discount / 100)).toFixed(2)
+                : null;
 
             const isHovered =
               hoverStates[product.id] || getQuantity(product.id) > 1;
@@ -331,7 +388,7 @@ const ProductGrid = ({
                 onMouseEnter={() => setProductHover(product.id, true)}
                 onMouseLeave={() => setProductHover(product.id, false)}
               >
-                <div className="relative">
+                <div className="relative" style={{ fontSize: 0 }}>
                   <img
                     src={product.image}
                     alt={product.name}
@@ -361,7 +418,13 @@ const ProductGrid = ({
                     className="absolute top-2 left-2 bg-white/80 hover:bg-white rounded-full"
                     onClick={(e) => handleWishlist(e, product.id)}
                   >
-                    <Heart className="h-5 w-5 text-gray-600" />
+                    <Heart
+                      className={`h-5 w-5 ${
+                        product.isFavorite
+                          ? "text-red-500 fill-red-500"
+                          : "text-gray-600"
+                      }`}
+                    />
                   </Button>
                 </div>
 
@@ -384,7 +447,9 @@ const ProductGrid = ({
                       <div className="flex items-baseline gap-2">
                         <span className="font-bold">${discountedPrice}</span>
                         <span className="text-sm text-gray-500 line-through">
-                          {hasValidPrice ? `$${product.price.toFixed(2)}` : "N/A"}
+                          {hasValidPrice
+                            ? `$${product.price.toFixed(2)}`
+                            : "N/A"}
                         </span>
                       </div>
                     ) : (
@@ -396,43 +461,19 @@ const ProductGrid = ({
 
                   {/* Add to cart controls */}
                   <div
-                    className={`flex items-center justify-between mt-2 transition-opacity duration-200 ${isHovered ? "opacity-100" : "opacity-0"
-                      }`}
+                    className={`flex items-center justify-between mt-2 transition-opacity duration-200 ${
+                      isHovered ? "opacity-100" : "opacity-0"
+                    }`}
                   >
-                    <div className="flex items-center border rounded">
-                      <button
-                        className="px-2 py-1 text-gray-500 hover:text-gray-700"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleQuantityChange(product.id, -1);
-                        }}
-                        disabled={!product.inStock}
-                      >
-                        <Minus size={14} />
-                      </button>
-                      <span className="px-2 py-1 text-sm">
-                        {getQuantity(product.id)}
-                      </span>
-                      <button
-                        className="px-2 py-1 text-gray-500 hover:text-gray-700"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleQuantityChange(product.id, 1);
-                        }}
-                        disabled={!product.inStock}
-                      >
-                        <Plus size={14} />
-                      </button>
-                    </div>
-
                     <Button
                       size="sm"
                       disabled={!product.inStock}
                       onClick={(e) => handleAddToCart(e, product)}
                       style={{ backgroundColor: "#7494ec" }}
+                      className="w-full"
                     >
                       <ShoppingCart className="h-4 w-4 mr-2" />
-                      Add
+                      Add to Cart
                     </Button>
                   </div>
                 </CardContent>

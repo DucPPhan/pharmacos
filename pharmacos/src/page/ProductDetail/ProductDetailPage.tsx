@@ -20,7 +20,13 @@ import {
 import { Badge } from "../../components/ui/badge";
 import ProductGrid from "../../components/ProductGrid";
 import { useToast } from "@/components/ui/use-toast";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/contexts/CartContext";
@@ -69,22 +75,19 @@ const StarRating: React.FC<{ rating: number; size?: number }> = ({
       {[1, 2, 3, 4, 5].map((star) => (
         <div key={star} className="relative">
           {/* Empty star (background) */}
-          <Star
-            size={size}
-            className="text-gray-300"
-          />
+          <Star size={size} className="text-gray-300" />
 
           {/* Filled star with clip based on rating */}
           <div
             className="absolute top-0 left-0 overflow-hidden"
             style={{
-              width: `${Math.max(0, Math.min(100, (rating - (star - 1)) * 100))}%`
+              width: `${Math.max(
+                0,
+                Math.min(100, (rating - (star - 1)) * 100)
+              )}%`,
             }}
           >
-            <Star
-              size={size}
-              className="text-yellow-400 fill-yellow-400"
-            />
+            <Star size={size} className="text-yellow-400 fill-yellow-400" />
           </div>
         </div>
       ))}
@@ -102,13 +105,15 @@ const ReviewFormDialog = ({
   setReviewComment,
   isSubmitting,
   onSubmit,
-  userReview
+  userReview,
 }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{userReview ? "Edit Your Review" : "Write a Review"}</DialogTitle>
+          <DialogTitle>
+            {userReview ? "Edit Your Review" : "Write a Review"}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -124,10 +129,11 @@ const ReviewFormDialog = ({
                 >
                   <Star
                     size={24}
-                    className={`${star <= reviewRating
-                      ? "text-yellow-400 fill-yellow-400"
-                      : "text-gray-300"
-                      }`}
+                    className={`${
+                      star <= reviewRating
+                        ? "text-yellow-400 fill-yellow-400"
+                        : "text-gray-300"
+                    }`}
                   />
                 </button>
               ))}
@@ -151,10 +157,7 @@ const ReviewFormDialog = ({
         </div>
 
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button
@@ -181,7 +184,11 @@ const ReviewFormDialog = ({
                   ></path>
                 </svg>
               </>
-            ) : userReview ? "Update Review" : "Submit Review"}
+            ) : userReview ? (
+              "Update Review"
+            ) : (
+              "Submit Review"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -204,6 +211,7 @@ const ProductDetailPage: React.FC = () => {
   const [reviewTitle, setReviewTitle] = useState<string>("");
   const [reviewComment, setReviewComment] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isFavorite, setIsFavorite] = useState<boolean>(false);
   const { addToCart } = useCart();
   const { toast } = useToast();
 
@@ -239,7 +247,7 @@ const ProductDetailPage: React.FC = () => {
             rating:
               p.reviews && p.reviews.length > 0
                 ? p.reviews.reduce((acc, r) => acc + (r.rating || 0), 0) /
-                p.reviews.length
+                  p.reviews.length
                 : undefined,
             reviewCount: p.reviews ? p.reviews.length : 0,
             brand: p.brand,
@@ -247,8 +255,8 @@ const ProductDetailPage: React.FC = () => {
             benefits: p.benefits,
             ingredients: p.ingredients
               ? p.ingredients.map(
-                (i) => `${i.name} (${i.percentage}%) - ${i.purpose}`
-              )
+                  (i) => `${i.name} (${i.percentage}%) - ${i.purpose}`
+                )
               : undefined,
             usage: p.instructions,
             specifications: {
@@ -274,12 +282,15 @@ const ProductDetailPage: React.FC = () => {
             rating:
               p.reviews && p.reviews.length > 0
                 ? p.reviews.reduce((acc, r) => acc + (r.rating || 0), 0) /
-                p.reviews.length
+                  p.reviews.length
                 : undefined,
             brand: p.brand,
           }))
         );
-        if (p.reviews.userId === JSON.parse(localStorage.getItem("user") || "{}").id) {
+        if (
+          p.reviews.userId ===
+          JSON.parse(localStorage.getItem("user") || "{}").id
+        ) {
           setUserReview(p.reviews);
         }
       } catch {
@@ -303,7 +314,7 @@ const ProductDetailPage: React.FC = () => {
 
     if (reviews.length > 0 && userId) {
       // Find the user's review if it exists
-      const foundReview = reviews.find(review => review.userId === userId);
+      const foundReview = reviews.find((review) => review.userId === userId);
       // setUserReview(foundReview || null);
 
       // For debugging
@@ -312,6 +323,35 @@ const ProductDetailPage: React.FC = () => {
       console.log("All reviews:", reviews);
     }
   }, [reviews]);
+
+  // Check if the product is a favorite
+  useEffect(() => {
+    const checkFavoriteStatus = async () => {
+      if (!productId || !isLoggedIn) return;
+
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("http://localhost:10000/api/favorites", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const favorites = data.data || [];
+          // Check if this product is in the favorites list
+          const isFav = favorites.some(
+            (fav) =>
+              fav.product._id === productId || fav.product.id === productId
+          );
+          setIsFavorite(isFav);
+        }
+      } catch (error) {
+        console.error("Error checking favorite status:", error);
+      }
+    };
+
+    checkFavoriteStatus();
+  }, [productId, isLoggedIn]);
 
   if (loading) {
     return (
@@ -344,16 +384,21 @@ const ProductDetailPage: React.FC = () => {
     if (!product) return;
 
     // Add the product with the current quantity
-    addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-    }, quantity); // Pass the quantity here
+    addToCart(
+      {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+      },
+      quantity
+    ); // Pass the quantity here
 
     toast({
       title: "Added to cart",
-      description: `${quantity} ${quantity === 1 ? 'item' : 'items'} of ${product.name} ${quantity === 1 ? 'has' : 'have'} been added to your cart`,
+      description: `${quantity} ${quantity === 1 ? "item" : "items"} of ${
+        product.name
+      } ${quantity === 1 ? "has" : "have"} been added to your cart`,
     });
   };
 
@@ -400,31 +445,34 @@ const ProductDetailPage: React.FC = () => {
       const reviewData = {
         rating: reviewRating,
         comment: reviewComment,
-        subcategory: "temporary" // Add this to prevent validation error
+        subcategory: "temporary", // Add this to prevent validation error
       };
 
       // If updating an existing review
       if (userReview) {
-        const response = await fetch(`http://localhost:10000/api/products/${productId}/reviews/${userReview.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(reviewData)
-        });
+        const response = await fetch(
+          `http://localhost:10000/api/products/${productId}/reviews/${userReview.id}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(reviewData),
+          }
+        );
 
         if (response.ok) {
           // Update the review in the local state
-          const updatedReviews = reviews.map(review =>
+          const updatedReviews = reviews.map((review) =>
             review.id === userReview.id
               ? {
-                ...review,
-                userId: userId || "",
-                rating: reviewRating,
-                comment: reviewComment,
-                date: new Date().toISOString()
-              }
+                  ...review,
+                  userId: userId || "",
+                  rating: reviewRating,
+                  comment: reviewComment,
+                  date: new Date().toISOString(),
+                }
               : review
           );
 
@@ -433,12 +481,22 @@ const ProductDetailPage: React.FC = () => {
             ...userReview,
             rating: reviewRating,
             comment: reviewComment,
-            date: new Date().toISOString()
+            date: new Date().toISOString(),
           });
 
           // Update the product rating
-          const newRating = updatedReviews.reduce((sum, r) => sum + r.rating, 0) / updatedReviews.length;
-          setProduct(prev => prev ? { ...prev, rating: newRating, reviewCount: updatedReviews.length } : null);
+          const newRating =
+            updatedReviews.reduce((sum, r) => sum + r.rating, 0) /
+            updatedReviews.length;
+          setProduct((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  rating: newRating,
+                  reviewCount: updatedReviews.length,
+                }
+              : null
+          );
 
           toast({
             title: "Review Updated",
@@ -452,14 +510,17 @@ const ProductDetailPage: React.FC = () => {
         }
       } else {
         // Creating a new review
-        const response = await fetch(`http://localhost:10000/api/products/${productId}/reviews`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(reviewData)
-        });
+        const response = await fetch(
+          `http://localhost:10000/api/products/${productId}/reviews`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(reviewData),
+          }
+        );
 
         if (response.ok) {
           const result = await response.json();
@@ -472,7 +533,7 @@ const ProductDetailPage: React.FC = () => {
             title: "",
             comment: reviewComment,
             date: new Date().toISOString(),
-            helpful: 0
+            helpful: 0,
           };
 
           // Add the new review to local state
@@ -481,8 +542,18 @@ const ProductDetailPage: React.FC = () => {
           setUserReview(newReview);
 
           // Update the product rating
-          const newRating = updatedReviews.reduce((sum, r) => sum + r.rating, 0) / updatedReviews.length;
-          setProduct(prev => prev ? { ...prev, rating: newRating, reviewCount: updatedReviews.length } : null);
+          const newRating =
+            updatedReviews.reduce((sum, r) => sum + r.rating, 0) /
+            updatedReviews.length;
+          setProduct((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  rating: newRating,
+                  reviewCount: updatedReviews.length,
+                }
+              : null
+          );
 
           toast({
             title: "Review Submitted",
@@ -499,7 +570,8 @@ const ProductDetailPage: React.FC = () => {
       console.error("Review submission error:", error);
       toast({
         title: "Error",
-        description: "There was a problem with your request. Please try again later.",
+        description:
+          "There was a problem with your request. Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -518,7 +590,8 @@ const ProductDetailPage: React.FC = () => {
 
         // Special handling for subcategory error
         if (errorMessage.includes("subcategory")) {
-          errorMessage = "This product is missing required information. Please contact support.";
+          errorMessage =
+            "This product is missing required information. Please contact support.";
 
           // Try an alternative approach - fetch the product first to get subcategory
           tryAlternativeSubmission();
@@ -568,22 +641,22 @@ const ProductDetailPage: React.FC = () => {
       const reviewData = {
         rating: reviewRating,
         comment: reviewComment,
-        subcategory: product.subcategory || "default"
+        subcategory: product.subcategory || "default",
       };
 
       const submitUrl = userReview
         ? `http://localhost:10000/api/products/${productId}/reviews/${userReview.id}`
         : `http://localhost:10000/api/products/${productId}/reviews`;
 
-      const submitMethod = userReview ? 'PUT' : 'POST';
+      const submitMethod = userReview ? "PUT" : "POST";
 
       const response = await fetch(submitUrl, {
         method: submitMethod,
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(reviewData)
+        body: JSON.stringify(reviewData),
       });
 
       if (response.ok) {
@@ -605,7 +678,8 @@ const ProductDetailPage: React.FC = () => {
       console.error("Alternative submission error:", error);
       toast({
         title: "Error",
-        description: "We're experiencing technical difficulties. Please try again later.",
+        description:
+          "We're experiencing technical difficulties. Please try again later.",
         variant: "destructive",
       });
     }
@@ -619,29 +693,40 @@ const ProductDetailPage: React.FC = () => {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await fetch(`http://localhost:10000/api/products/${productId}/reviews/${userReview.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
+      const response = await fetch(
+        `http://localhost:10000/api/products/${productId}/reviews/${userReview.id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-      });
+      );
 
       if (response.ok) {
         // Remove the review from local state
-        const updatedReviews = reviews.filter(review => review.id !== userReview.id);
+        const updatedReviews = reviews.filter(
+          (review) => review.id !== userReview.id
+        );
         setReviews(updatedReviews);
         setUserReview(null);
 
         // Update the product rating
-        const newRating = updatedReviews.length > 0
-          ? updatedReviews.reduce((sum, r) => sum + r.rating, 0) / updatedReviews.length
-          : 0;
+        const newRating =
+          updatedReviews.length > 0
+            ? updatedReviews.reduce((sum, r) => sum + r.rating, 0) /
+              updatedReviews.length
+            : 0;
 
-        setProduct(prev => prev ? {
-          ...prev,
-          rating: newRating,
-          reviewCount: updatedReviews.length
-        } : null);
+        setProduct((prev) =>
+          prev
+            ? {
+                ...prev,
+                rating: newRating,
+                reviewCount: updatedReviews.length,
+              }
+            : null
+        );
 
         toast({
           title: "Review Deleted",
@@ -661,6 +746,63 @@ const ProductDetailPage: React.FC = () => {
   const discountedPrice = product.discount
     ? (product.price * (1 - product.discount / 100)).toFixed(2)
     : null;
+
+  // Toggle favorite status
+  const toggleFavorite = async (e: React.MouseEvent) => {
+    e.preventDefault();
+
+    if (!isLoggedIn) {
+      toast({
+        title: "Login required",
+        description: "Please login to add products to favorites",
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (!productId) return;
+
+    try {
+      // Optimistically update UI immediately
+      setIsFavorite(!isFavorite);
+
+      const token = localStorage.getItem("token");
+      const method = isFavorite ? "DELETE" : "POST";
+      const url = `http://localhost:10000/api/favorites/${productId}`;
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        toast({
+          title: isFavorite ? "Removed from favorites" : "Added to favorites",
+          description: isFavorite
+            ? "Product has been removed from your favorites"
+            : "Product has been added to your favorites",
+          duration: 3000,
+        });
+      } else {
+        // Revert UI if API call failed
+        setIsFavorite(isFavorite);
+        throw new Error("Failed to update favorites");
+      }
+    } catch (error) {
+      console.error("Error updating favorites:", error);
+      // Revert UI if API call failed
+      setIsFavorite(isFavorite);
+      toast({
+        title: "Error",
+        description: "Failed to update favorites. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -700,10 +842,11 @@ const ProductDetailPage: React.FC = () => {
               {product.images.map((img, index) => (
                 <button
                   key={index}
-                  className={`border rounded overflow-hidden w-20 h-20 flex-shrink-0 ${selectedImage === index
-                    ? "border-primary border-2"
-                    : "border-gray-200"
-                    }`}
+                  className={`border rounded overflow-hidden w-20 h-20 flex-shrink-0 ${
+                    selectedImage === index
+                      ? "border-primary border-2"
+                      : "border-gray-200"
+                  }`}
                   onClick={() => setSelectedImage(index)}
                 >
                   <img
@@ -821,8 +964,17 @@ const ProductDetailPage: React.FC = () => {
                 <ShoppingCart className="h-5 w-5" />
                 Add to Cart
               </Button>
-              <Button variant="outline" size="icon" className="rounded-full">
-                <Heart className="h-5 w-5" />
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full"
+                onClick={toggleFavorite}
+              >
+                <Heart
+                  className={`h-5 w-5 ${
+                    isFavorite ? "text-red-500 fill-red-500" : ""
+                  }`}
+                />
               </Button>
             </div>
           </div>
@@ -934,7 +1086,8 @@ const ProductDetailPage: React.FC = () => {
                   </div>
                   <StarRating rating={product.rating || 0} size={20} />
                   <div className="text-sm text-gray-500 mt-1">
-                    {product.reviewCount} {product.reviewCount === 1 ? "review" : "reviews"}
+                    {product.reviewCount}{" "}
+                    {product.reviewCount === 1 ? "review" : "reviews"}
                   </div>
                 </div>
 
@@ -944,7 +1097,9 @@ const ProductDetailPage: React.FC = () => {
                       const count = reviews.filter(
                         (r) => Math.round(r.rating) === star
                       ).length;
-                      const percentage = reviews.length ? (count / reviews.length) * 100 : 0;
+                      const percentage = reviews.length
+                        ? (count / reviews.length) * 100
+                        : 0;
 
                       return (
                         <div key={star} className="flex items-center">
@@ -999,12 +1154,23 @@ const ProductDetailPage: React.FC = () => {
               <div className="space-y-6">
                 {reviews.length > 0 ? (
                   reviews.map((review) => (
-                    <div key={review.id} className={`border-b pb-6 ${review.id === userReview?.id ? 'bg-blue-50 p-4 rounded-lg' : ''}`}>
+                    <div
+                      key={review.id}
+                      className={`border-b pb-6 ${
+                        review.id === userReview?.id
+                          ? "bg-blue-50 p-4 rounded-lg"
+                          : ""
+                      }`}
+                    >
                       <div className="flex justify-between items-start">
                         <div>
                           <div className="font-medium">
                             {review.userName}
-                            {review.id === userReview?.id && <span className="ml-2 text-blue-600 text-sm">(Your review)</span>}
+                            {review.id === userReview?.id && (
+                              <span className="ml-2 text-blue-600 text-sm">
+                                (Your review)
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center mt-1">
                             <StarRating rating={review.rating} />
@@ -1022,8 +1188,10 @@ const ProductDetailPage: React.FC = () => {
                             onClick={() => {
                               // Handle marking review as helpful
                               if (review.id !== userReview?.id) {
-                                const updatedReviews = reviews.map(r =>
-                                  r.id === review.id ? { ...r, helpful: r.helpful + 1 } : r
+                                const updatedReviews = reviews.map((r) =>
+                                  r.id === review.id
+                                    ? { ...r, helpful: r.helpful + 1 }
+                                    : r
                                 );
                                 setReviews(updatedReviews);
                               }
@@ -1041,7 +1209,9 @@ const ProductDetailPage: React.FC = () => {
                 ) : (
                   <div className="text-center py-8 border rounded-lg">
                     <h3 className="text-lg font-medium mb-2">No Reviews Yet</h3>
-                    <p className="text-gray-500 mb-4">Be the first to review this product</p>
+                    <p className="text-gray-500 mb-4">
+                      Be the first to review this product
+                    </p>
                     {!userReview && (
                       <Button
                         style={{ backgroundColor: "#7494ec" }}
@@ -1086,6 +1256,5 @@ const ProductDetailPage: React.FC = () => {
     </div>
   );
 };
-
 
 export default ProductDetailPage;

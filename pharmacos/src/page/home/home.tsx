@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Search,
   ShoppingCart,
@@ -14,6 +14,9 @@ import {
   Clock,
   CreditCard,
   Award,
+  UserCircle2,
+  Quote,
+  Star as StarIcon,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -26,10 +29,10 @@ import {
 } from "../../components/ui/tabs";
 import AIImageSearch from "../../components/AIImageSearch";
 import ProductGrid from "../../components/ProductGrid";
-import { useNavigate } from "react-router-dom";
 import CategoryNav from "./CategoryNav";
-import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/contexts/CartContext";
+import { favoritesApi } from "@/lib/api";
+import { motion, AnimatePresence } from "framer-motion";
 
 const categories = [
   {
@@ -196,11 +199,13 @@ const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentBanner, setCurrentBanner] = useState(0);
   const navigate = useNavigate();
-  const isLoggedIn = !!localStorage.getItem("user");
+  const isLoggedIn = !!localStorage.getItem("token");
   const [showNavButtons, setShowNavButtons] = useState(true);
   const bannerRef = useRef(null);
   const [apiProducts, setApiProducts] = useState([]);
+  const [favoriteProducts, setFavoriteProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingFavorites, setLoadingFavorites] = useState(true);
   const { addToCart } = useCart();
 
   // Auto rotate banners
@@ -252,6 +257,38 @@ const Home = () => {
     fetchProducts();
   }, []);
 
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      if (!isLoggedIn) {
+        setFavoriteProducts([]);
+        setLoadingFavorites(false);
+        return;
+      }
+
+      setLoadingFavorites(true);
+      try {
+        const response = await favoritesApi.getFavorites();
+        if (response && response.data) {
+          // Extract the actual product data from each favorite item
+          const favoriteProductsData = response.data.map((item) => ({
+            ...item.product,
+            isFavorite: true,
+          }));
+          setFavoriteProducts(favoriteProductsData);
+        } else {
+          setFavoriteProducts([]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch favorites:", error);
+        setFavoriteProducts([]);
+      } finally {
+        setLoadingFavorites(false);
+      }
+    };
+
+    fetchFavorites();
+  }, [isLoggedIn]);
+
   const nextBanner = () => {
     setCurrentBanner((prev) => (prev + 1) % banners.length);
   };
@@ -274,8 +311,37 @@ const Home = () => {
     );
   };
 
+  // Handle favorite toggle
+  const handleFavoriteToggle = (productId, isFavorite) => {
+    // Update the apiProducts state
+    setApiProducts((prevProducts) =>
+      prevProducts.map((p) =>
+        p._id === productId || p.id === productId ? { ...p, isFavorite } : p
+      )
+    );
+
+    // Update the favoriteProducts state
+    if (isFavorite) {
+      // Find the product in apiProducts and add it to favorites
+      const productToAdd = apiProducts.find(
+        (p) => p._id === productId || p.id === productId
+      );
+      if (productToAdd) {
+        setFavoriteProducts((prev) => [
+          ...prev,
+          { ...productToAdd, isFavorite: true },
+        ]);
+      }
+    } else {
+      // Remove from favoriteProducts
+      setFavoriteProducts((prev) =>
+        prev.filter((p) => p._id !== productId && p.id !== productId)
+      );
+    }
+  };
+
   return (
-    <div className="bg-background">
+    <div className="min-h-screen bg-white pb-8">
       <CategoryNav />
       <main>
         {/* Banner Slider Section */}
@@ -362,8 +428,9 @@ const Home = () => {
                     <button
                       key={index}
                       onClick={() => setCurrentBanner(index)}
-                      className={`h-2 w-10 rounded-full transition-all ${currentBanner === index ? "bg-white" : "bg-white/50"
-                        }`}
+                      className={`h-2 w-10 rounded-full transition-all ${
+                        currentBanner === index ? "bg-white" : "bg-white/50"
+                      }`}
                       aria-label={`Go to slide ${index + 1}`}
                     />
                   ))}
@@ -397,86 +464,41 @@ const Home = () => {
           </div>
         </section>
 
-        {/* Search Options */}
+        {/* Categories Section */}
         <section className="py-12 bg-white">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold mb-8 text-center">
-              Find Products Your Way
-            </h2>
-
-            <Tabs defaultValue="categories" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-8">
-                <TabsTrigger value="categories">Browse Categories</TabsTrigger>
-                <TabsTrigger value="featured">Featured Products</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="categories" className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                  {categories.map((category) => (
-                    <Link to={`/category/${category.id}`} key={category.id}>
-                      <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
-                        <div className="relative h-48">
-                          <img
-                            src={category.image}
-                            alt={category.name}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-black/10 flex items-end">
-                            <div className="p-4 text-white w-full">
-                              <h3 className="text-xl font-semibold">
-                                {category.name}
-                              </h3>
-                              <p className="text-sm">
-                                {category.count} products
-                              </p>
-                            </div>
-                          </div>
+            <h2 className="text-3xl font-bold mb-8">Browse Categories</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {categories.map((category) => (
+                <Link to={`/category/${category.id}`} key={category.id}>
+                  <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
+                    <div className="relative h-48">
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-black/10 flex items-end">
+                        <div className="p-4 text-white w-full">
+                          <h3 className="text-xl font-semibold">
+                            {category.name}
+                          </h3>
+                          <p className="text-sm">{category.count} products</p>
                         </div>
-                      </Card>
-                    </Link>
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="featured">
-                {loadingProducts ? (
-                  <div className="text-center py-8">Loading...</div>
-                ) : (
-                  <ProductGrid
-                    onAddToCart={handleAddToCart}
-                    products={apiProducts.map((p) => {
-                      let image = "";
-                      if (Array.isArray(p.images) && p.images.length > 0) {
-                        const primary = p.images.find((img) => img.isPrimary);
-                        image = primary ? primary.url : p.images[0].url;
-                      }
-                      const isNew = p.createdAt && (new Date().getTime() - new Date(p.createdAt).getTime() < 14 * 24 * 60 * 60 * 1000);
-                      return {
-                        id: p._id || p.id,
-                        name: p.name,
-                        price: p.price,
-                        image,
-                        category: p.category,
-                        inStock: p.stockQuantity > 0,
-                        rating: p.aiFeatures?.recommendationScore
-                          ? parseFloat(p.aiFeatures.recommendationScore)
-                          : undefined,
-                        isNew: isNew,
-                        discount: p.discount || 0
-                      };
-                    })}
-                  />
-                )}
-              </TabsContent>
-            </Tabs>
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
 
-        {/* Featured Products Section */}
+        {/* Favorite Products Section */}
         <section className="py-12 bg-muted/30">
           <div className="container mx-auto px-4">
             <div className="flex justify-between items-center mb-8">
-              <h2 className="text-3xl font-bold">Featured Products</h2>
+              <h2 className="text-3xl font-bold">Favorite Products</h2>
               <Link
                 to="/products"
                 className="text-primary hover:underline hover:text-blue-400"
@@ -484,17 +506,32 @@ const Home = () => {
                 View All
               </Link>
             </div>
-            {loadingProducts ? (
+            {!isLoggedIn ? (
+              <div className="text-center py-8 bg-white rounded-lg shadow">
+                <p className="text-gray-500 mb-4">
+                  Please log in to view your favorite products
+                </p>
+                <Link to="/login">
+                  <Button style={{ backgroundColor: "#7494ec" }}>Log In</Button>
+                </Link>
+              </div>
+            ) : loadingFavorites ? (
               <div className="text-center py-8">Loading...</div>
-            ) : (
+            ) : favoriteProducts.length > 0 ? (
               <ProductGrid
                 onAddToCart={handleAddToCart}
-                products={apiProducts.map((p) => {
+                onFavoriteToggle={handleFavoriteToggle}
+                title=""
+                products={favoriteProducts.map((p) => {
                   let image = "";
                   if (Array.isArray(p.images) && p.images.length > 0) {
                     const primary = p.images.find((img) => img.isPrimary);
                     image = primary ? primary.url : p.images[0].url;
                   }
+                  const isNew =
+                    p.createdAt &&
+                    new Date().getTime() - new Date(p.createdAt).getTime() <
+                      14 * 24 * 60 * 60 * 1000;
                   return {
                     id: p._id || p.id,
                     name: p.name,
@@ -505,9 +542,23 @@ const Home = () => {
                     rating: p.aiFeatures?.recommendationScore
                       ? parseFloat(p.aiFeatures.recommendationScore)
                       : undefined,
+                    isNew: isNew,
+                    discount: p.discount || 0,
+                    isFavorite: true,
                   };
                 })}
               />
+            ) : (
+              <div className="text-center py-8 bg-white rounded-lg shadow">
+                <p className="text-gray-500 mb-4">
+                  You don't have any favorite products yet.
+                </p>
+                <Link to="/products">
+                  <Button style={{ backgroundColor: "#7494ec" }}>
+                    Browse Products
+                  </Button>
+                </Link>
+              </div>
             )}
           </div>
         </section>
@@ -594,12 +645,13 @@ const Home = () => {
                     {Array(5)
                       .fill(0)
                       .map((_, i) => (
-                        <Star
+                        <StarIcon
                           key={i}
-                          className={`w-4 h-4 ${i < testimonial.rating
-                            ? "text-yellow-400 fill-yellow-400"
-                            : "text-gray-300"
-                            }`}
+                          className={`w-4 h-4 ${
+                            i < testimonial.rating
+                              ? "text-yellow-400 fill-yellow-400"
+                              : "text-gray-300"
+                          }`}
                         />
                       ))}
                   </div>
@@ -613,21 +665,5 @@ const Home = () => {
     </div>
   );
 };
-
-// Star icon for ratings
-const Star = (props) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-  </svg>
-);
 
 export default Home;
