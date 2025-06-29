@@ -76,7 +76,7 @@ export function Inventory() {
   const [productToDelete, setProductToDelete] = useState<any>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [page, setPage] = useState(1);
-  const PAGE_SIZE = 10;
+  const PAGE_SIZE = 9;
 
   const fetchProducts = async () => {
     try {
