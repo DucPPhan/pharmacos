@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Plus, Filter } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import UserTable from './UserTable';
-import AddStaffModal from './AddStaffModal';
+// import AddStaffModal from './AddStaffModal';
 import axios from 'axios';
 
 const API_URL = 'http://localhost:10000/api/admin/accounts';
@@ -128,13 +128,13 @@ const Users: React.FC = () => {
                 <Filter className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
               </div>
             </div>
-            <button
+            {/* <button
               onClick={() => setShowAddModal(true)}
               className="inline-flex items-center space-x-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
             >
               <Plus className="w-5 h-5" />
               <span>Add New Staff</span>
-            </button>
+            </button> */}
           </div>
         </div>
         <UserTable
@@ -145,11 +145,11 @@ const Users: React.FC = () => {
           onDeleteUser={handleDeleteUser}
         />
       </div>
-      <AddStaffModal
+      {/* <AddStaffModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onAddUser={handleAddUser}
-      />
+      /> */}
       {/* Confirm Status Change Dialog */}
       {pendingChange && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
