@@ -144,19 +144,36 @@ export function Inventory() {
   const handleDelete = async (id: string, name: string) => {
     try {
       const token = localStorage.getItem("token");
+      console.log('Deleting product with ID:', id);
+      
       const res = await fetch(`http://localhost:10000/api/products/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      if (!res.ok) throw new Error("Failed to delete");
-      toast({ title: "Product Deleted", description: name });
+      
+      console.log('DELETE response status:', res.status);
+      
+      if (!res.ok) {
+        const errorData = await res.text();
+        console.error('DELETE error response:', errorData);
+        throw new Error(`HTTP ${res.status}: ${errorData}`);
+      }
+      
+      const responseData = await res.json();
+      console.log('DELETE success response:', responseData);
+      
+      toast({ 
+        title: "Product Deleted", 
+        description: `Successfully deleted ${name}` 
+      });
       await fetchProducts();
-    } catch {
+    } catch (error) {
+      console.error('Delete error:', error);
       toast({
         title: "Error",
-        description: "Failed to delete",
+        description: `Failed to delete product: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     }
@@ -177,7 +194,9 @@ export function Inventory() {
       instructions,
       manufacturingDate,
       expiryDate,
+      images,
     } = formData;
+    
     if (
       !name ||
       !category ||
@@ -193,12 +212,33 @@ export function Inventory() {
     ) {
       toast({
         title: "Validation Error",
-        description: "Manufacturing date and expiry date are required",
+        description: "All required fields must be filled",
         variant: "destructive",
       });
       return false;
     }
-    if (Number(price) <= 0 || Number(stockQuantity) < 0) return false;
+    
+    if (Number(price) <= 0 || Number(stockQuantity) < 0) {
+      toast({
+        title: "Validation Error",
+        description: "Price must be greater than 0 and stock quantity must be non-negative",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    // Chỉ validate images khi tạo mới sản phẩm (không phải khi update)
+    if (!editingProduct) {
+      if (!Array.isArray(images) || images.length === 0 || !images.some(img => img.url && img.url.trim() !== "")) {
+        toast({
+          title: "Validation Error",
+          description: "At least one image URL is required for new products",
+          variant: "destructive",
+        });
+        return false;
+      }
+    }
+    
     return true;
   };
 
@@ -289,58 +329,119 @@ export function Inventory() {
     }
     try {
       const token = localStorage.getItem("token");
-      const submitData = { 
-        ...formData, 
-        price: Number(formData.price), 
-        stockQuantity: Number(formData.stockQuantity),
-        lowStockThreshold: Number(formData.lowStockThreshold)
-      };
-      // Ensure only one isPrimary
-      if (Array.isArray(submitData.images)) {
-        let foundPrimary = false;
-        submitData.images = submitData.images.map((img, idx) => {
-          if (img.isPrimary && !foundPrimary) {
-            foundPrimary = true;
-            return { ...img, isPrimary: true };
-          }
-          return { ...img, isPrimary: false };
-        });
-        if (!foundPrimary && submitData.images.length > 0) {
-          submitData.images[0].isPrimary = true;
-        }
-      }
+      
       if (editingProduct) {
-        // Update
+        // Update - PATCH request
+        console.log('Updating product with ID:', editingProduct._id);
+        
+        // Chỉ gửi các field được phép update theo API spec
+        const updateData = {
+          name: formData.name,
+          description: formData.description,
+          benefits: formData.benefits,
+          skinType: formData.skinType,
+          size: formData.size,
+          category: formData.category,
+          brand: formData.brand,
+          subcategory: formData.subcategory,
+          instructions: formData.instructions,
+          price: Number(formData.price),
+          stockQuantity: Number(formData.stockQuantity),
+          manufacturingDate: formData.manufacturingDate,
+          expiryDate: formData.expiryDate,
+          lowStockThreshold: Number(formData.lowStockThreshold),
+        };
+        
+        console.log('Update data:', updateData);
+        
         const res = await fetch(`http://localhost:10000/api/products/${editingProduct._id}`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify(submitData),
+          body: JSON.stringify(updateData),
         });
-        if (!res.ok) throw new Error("Failed");
-        toast({ title: "Product Updated", description: formData.name });
+        
+        console.log('PATCH response status:', res.status);
+        
+        if (!res.ok) {
+          const errorData = await res.text();
+          console.error('PATCH error response:', errorData);
+          throw new Error(`HTTP ${res.status}: ${errorData}`);
+        }
+        
+        const responseData = await res.json();
+        console.log('PATCH success response:', responseData);
+        
+        toast({ 
+          title: "Product Updated", 
+          description: `Successfully updated ${formData.name}` 
+        });
       } else {
-        // Create
+        // Create - POST request
+        console.log('Creating new product');
+        
+        const createData = { 
+          ...formData, 
+          price: Number(formData.price), 
+          stockQuantity: Number(formData.stockQuantity),
+          lowStockThreshold: Number(formData.lowStockThreshold)
+        };
+        
+        // Ensure only one isPrimary for images
+        if (Array.isArray(createData.images)) {
+          let foundPrimary = false;
+          createData.images = createData.images.map((img, idx) => {
+            if (img.isPrimary && !foundPrimary) {
+              foundPrimary = true;
+              return { ...img, isPrimary: true };
+            }
+            return { ...img, isPrimary: false };
+          });
+          if (!foundPrimary && createData.images.length > 0) {
+            createData.images[0].isPrimary = true;
+          }
+        }
+        
+        console.log('Create data:', createData);
+        
         const res = await fetch(`http://localhost:10000/api/products`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify(submitData),
+          body: JSON.stringify(createData),
         });
-        if (!res.ok) throw new Error("Failed");
-        toast({ title: "Product Created", description: formData.name });
+        
+        console.log('POST response status:', res.status);
+        
+        if (!res.ok) {
+          const errorData = await res.text();
+          console.error('POST error response:', errorData);
+          throw new Error(`HTTP ${res.status}: ${errorData}`);
+        }
+        
+        const responseData = await res.json();
+        console.log('POST success response:', responseData);
+        
+        toast({ 
+          title: "Product Created", 
+          description: `Successfully created ${formData.name}` 
+        });
       }
+      
       setShowForm(false);
       resetForm();
       await fetchProducts();
-    } catch {
+    } catch (error) {
+      console.error('Form submission error:', error);
       toast({
         title: "Error",
-        description: editingProduct ? "Failed to update product" : "Failed to create product",
+        description: editingProduct 
+          ? `Failed to update product: ${error instanceof Error ? error.message : 'Unknown error'}` 
+          : `Failed to create product: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     }
@@ -680,59 +781,62 @@ export function Inventory() {
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-[#1F3368]">Images *</label>
-                {formData.images.map((img: any, idx: number) => (
-                  <div key={idx} className="flex gap-2 mb-2 items-center">
-                    <Input
-                      value={img.url}
-                      placeholder="Image URL"
-                      onChange={e => {
-                        const updated = [...formData.images];
-                        updated[idx].url = e.target.value;
-                        setFormData({ ...formData, images: updated });
-                      }}
-                      required
-                    />
-                    <Input
-                      value={img.alt}
-                      placeholder="Alt text"
-                      onChange={e => {
-                        const updated = [...formData.images];
-                        updated[idx].alt = e.target.value;
-                        setFormData({ ...formData, images: updated });
-                      }}
-                    />
-                    <input
-                      type="radio"
-                      checked={!!img.isPrimary}
-                      onChange={() => {
-                        const updated = formData.images.map((im: any, i: number) => ({ ...im, isPrimary: i === idx }));
-                        setFormData({ ...formData, images: updated });
-                      }}
-                      title="Set as primary"
-                    />
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => {
-                        const updated = formData.images.filter((_: any, i: number) => i !== idx);
-                        setFormData({ ...formData, images: updated.length ? updated : [{ url: "", alt: "", isPrimary: true }] });
-                      }}
-                      disabled={formData.images.length === 1}
-                    >
-                      X
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => setFormData({ ...formData, images: [...formData.images, { url: "", alt: "", isPrimary: false }] })}
-                >
-                  + Add Image
-                </Button>
-              </div>
+              {/* Chỉ hiển thị phần Images khi tạo mới sản phẩm */}
+              {!editingProduct && (
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-[#1F3368]">Images *</label>
+                  {formData.images.map((img: any, idx: number) => (
+                    <div key={idx} className="flex gap-2 mb-2 items-center">
+                      <Input
+                        value={img.url}
+                        placeholder="Image URL"
+                        onChange={e => {
+                          const updated = [...formData.images];
+                          updated[idx].url = e.target.value;
+                          setFormData({ ...formData, images: updated });
+                        }}
+                        required
+                      />
+                      <Input
+                        value={img.alt}
+                        placeholder="Alt text"
+                        onChange={e => {
+                          const updated = [...formData.images];
+                          updated[idx].alt = e.target.value;
+                          setFormData({ ...formData, images: updated });
+                        }}
+                      />
+                      <input
+                        type="radio"
+                        checked={!!img.isPrimary}
+                        onChange={() => {
+                          const updated = formData.images.map((im: any, i: number) => ({ ...im, isPrimary: i === idx }));
+                          setFormData({ ...formData, images: updated });
+                        }}
+                        title="Set as primary"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          const updated = formData.images.filter((_: any, i: number) => i !== idx);
+                          setFormData({ ...formData, images: updated.length ? updated : [{ url: "", alt: "", isPrimary: true }] });
+                        }}
+                        disabled={formData.images.length === 1}
+                      >
+                        X
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setFormData({ ...formData, images: [...formData.images, { url: "", alt: "", isPrimary: false }] })}
+                  >
+                    + Add Image
+                  </Button>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium mb-1 text-[#1F3368]">Manufacturing Date *</label>
                 <Input
@@ -789,26 +893,29 @@ export function Inventory() {
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-[#1F3368]">Image Preview</label>
-                {imagePreview && (
-                  <div className="relative w-full h-48 border rounded-md overflow-hidden mt-2">
-                    <img
-                      src={imagePreview}
-                      alt="Product preview"
-                      className="w-full h-full object-contain"
-                      onError={() => {
-                        setImagePreview("");
-                        toast({
-                          title: "Error",
-                          description: "Failed to load image. Please check the URL.",
-                          variant: "destructive",
-                        });
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
+              {/* Chỉ hiển thị Image Preview khi tạo mới sản phẩm */}
+              {!editingProduct && (
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-[#1F3368]">Image Preview</label>
+                  {imagePreview && (
+                    <div className="relative w-full h-48 border rounded-md overflow-hidden mt-2">
+                      <img
+                        src={imagePreview}
+                        alt="Product preview"
+                        className="w-full h-full object-contain"
+                        onError={() => {
+                          setImagePreview("");
+                          toast({
+                            title: "Error",
+                            description: "Failed to load image. Please check the URL.",
+                            variant: "destructive",
+                          });
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="flex space-x-3 pt-4">
                 <Button
                   type="submit"
