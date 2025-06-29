@@ -338,7 +338,9 @@ const ProductGrid = ({
                   <SelectItem key={category} value={category}>
                     {category === "all"
                       ? "All Categories"
-                      : category.charAt(0).toUpperCase() + category.slice(1)}
+                      : category && typeof category === "string"
+                      ? category.charAt(0).toUpperCase() + category.slice(1)
+                      : "Unknown"}
                   </SelectItem>
                 ))}
               </SelectContent>

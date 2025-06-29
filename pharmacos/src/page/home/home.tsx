@@ -203,10 +203,12 @@ const Home = () => {
   const [showNavButtons, setShowNavButtons] = useState(true);
   const bannerRef = useRef(null);
   const [apiProducts, setApiProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [favoriteProducts, setFavoriteProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingFavorites, setLoadingFavorites] = useState(true);
   const { addToCart } = useCart();
+  const [userFavorites, setUserFavorites] = useState<string[]>([]);
 
   // Auto rotate banners
   useEffect(() => {
@@ -245,9 +247,10 @@ const Home = () => {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         const data = await res.json();
-        setApiProducts(
-          Array.isArray(data?.data?.products) ? data.data.products : []
-        );
+        const products = Array.isArray(data?.data?.products)
+          ? data.data.products
+          : [];
+        setApiProducts(products);
       } catch {
         setApiProducts([]);
       } finally {
@@ -257,10 +260,44 @@ const Home = () => {
     fetchProducts();
   }, []);
 
+  // Thêm effect để xử lý filteredProducts từ apiProducts và userFavorites
+  useEffect(() => {
+    // Mark favorite products
+    const filtered = apiProducts.map((product) => {
+      let image = "";
+      if (Array.isArray(product.images) && product.images.length > 0) {
+        const primary = product.images.find((img) => img.isPrimary);
+        image = primary ? primary.url : product.images[0].url;
+      }
+      const isNew =
+        product.createdAt &&
+        new Date().getTime() - new Date(product.createdAt).getTime() <
+          14 * 24 * 60 * 60 * 1000;
+
+      return {
+        id: product._id || product.id,
+        name: product.name,
+        price: product.price,
+        image,
+        category: product.category,
+        inStock: product.stockQuantity > 0,
+        rating: product.aiFeatures?.recommendationScore
+          ? parseFloat(product.aiFeatures.recommendationScore)
+          : undefined,
+        isNew: isNew,
+        discount: product.discount || 0,
+        isFavorite: userFavorites.includes(product._id || product.id),
+      };
+    });
+
+    setFilteredProducts(filtered);
+  }, [apiProducts, userFavorites]);
+
   useEffect(() => {
     const fetchFavorites = async () => {
       if (!isLoggedIn) {
         setFavoriteProducts([]);
+        setUserFavorites([]);
         setLoadingFavorites(false);
         return;
       }
@@ -269,18 +306,50 @@ const Home = () => {
       try {
         const response = await favoritesApi.getFavorites();
         if (response && response.data) {
-          // Extract the actual product data from each favorite item
-          const favoriteProductsData = response.data.map((item) => ({
-            ...item.product,
-            isFavorite: true,
-          }));
-          setFavoriteProducts(favoriteProductsData);
+          // Extract the product IDs for the userFavorites state
+          const favoriteIds = response.data.map(
+            (fav) => fav.product._id || fav.product.id
+          );
+          setUserFavorites(favoriteIds);
+
+          // Format favorite products data for display
+          const formattedFavorites = response.data.map((item) => {
+            const product = item.product;
+            let image = "";
+            if (Array.isArray(product.images) && product.images.length > 0) {
+              const primary = product.images.find((img) => img.isPrimary);
+              image = primary ? primary.url : product.images[0].url;
+            }
+            const isNew =
+              product.createdAt &&
+              new Date().getTime() - new Date(product.createdAt).getTime() <
+                14 * 24 * 60 * 60 * 1000;
+
+            return {
+              id: product._id || product.id,
+              name: product.name,
+              price: product.price,
+              image,
+              category: product.category,
+              inStock: product.stockQuantity > 0,
+              rating: product.aiFeatures?.recommendationScore
+                ? parseFloat(product.aiFeatures.recommendationScore)
+                : undefined,
+              isNew: isNew,
+              discount: product.discount || 0,
+              isFavorite: true,
+            };
+          });
+
+          setFavoriteProducts(formattedFavorites);
         } else {
           setFavoriteProducts([]);
+          setUserFavorites([]);
         }
       } catch (error) {
         console.error("Failed to fetch favorites:", error);
         setFavoriteProducts([]);
+        setUserFavorites([]);
       } finally {
         setLoadingFavorites(false);
       }
@@ -312,31 +381,19 @@ const Home = () => {
   };
 
   // Handle favorite toggle
-  const handleFavoriteToggle = (productId, isFavorite) => {
-    // Update the apiProducts state
-    setApiProducts((prevProducts) =>
-      prevProducts.map((p) =>
-        p._id === productId || p.id === productId ? { ...p, isFavorite } : p
-      )
-    );
+  const handleFavoriteToggle = async (productId, isFavorite) => {
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
 
-    // Update the favoriteProducts state
+    // Đơn giản hóa xử lý giống như trong ProductsPage.tsx
     if (isFavorite) {
-      // Find the product in apiProducts and add it to favorites
-      const productToAdd = apiProducts.find(
-        (p) => p._id === productId || p.id === productId
-      );
-      if (productToAdd) {
-        setFavoriteProducts((prev) => [
-          ...prev,
-          { ...productToAdd, isFavorite: true },
-        ]);
-      }
+      // Add to favorites
+      setUserFavorites((prev) => [...prev, productId]);
     } else {
-      // Remove from favoriteProducts
-      setFavoriteProducts((prev) =>
-        prev.filter((p) => p._id !== productId && p.id !== productId)
-      );
+      // Remove from favorites
+      setUserFavorites((prev) => prev.filter((id) => id !== productId));
     }
   };
 
@@ -464,33 +521,68 @@ const Home = () => {
           </div>
         </section>
 
-        {/* Categories Section */}
+        {/* Find Products Your Way Section */}
         <section className="py-12 bg-white">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold mb-8">Browse Categories</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {categories.map((category) => (
-                <Link to={`/category/${category.id}`} key={category.id}>
-                  <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
-                    <div className="relative h-48">
-                      <img
-                        src={category.image}
-                        alt={category.name}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-black/10 flex items-end">
-                        <div className="p-4 text-white w-full">
-                          <h3 className="text-xl font-semibold">
-                            {category.name}
-                          </h3>
-                          <p className="text-sm">{category.count} products</p>
+            <h2 className="text-3xl font-bold mb-8 text-center">
+              Find Products Your Way
+            </h2>
+            <Tabs defaultValue="browse" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-8">
+                <TabsTrigger value="browse">Browse Categories</TabsTrigger>
+                <TabsTrigger value="featured">Featured Products</TabsTrigger>
+              </TabsList>
+              <TabsContent value="browse">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                  {categories.map((category) => (
+                    <Link to={`/category/${category.id}`} key={category.id}>
+                      <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
+                        <div className="relative h-48">
+                          <img
+                            src={category.image}
+                            alt={category.name}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-black/10 flex items-end">
+                            <div className="p-4 text-white w-full">
+                              <h3 className="text-xl font-semibold">
+                                {category.name}
+                              </h3>
+                              <p className="text-sm">
+                                {category.count} products
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-              ))}
-            </div>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+              </TabsContent>
+              <TabsContent value="featured">
+                {loadingProducts ? (
+                  <div className="text-center py-8">Loading...</div>
+                ) : apiProducts.length > 0 ? (
+                  <ProductGrid
+                    products={filteredProducts.slice(0, 8)}
+                    onAddToCart={handleAddToCart}
+                    onFavoriteToggle={handleFavoriteToggle}
+                    title=""
+                  />
+                ) : (
+                  <div className="text-center py-8 bg-white rounded-lg shadow">
+                    <p className="text-gray-500 mb-4">
+                      No products available at the moment.
+                    </p>
+                    <Link to="/products">
+                      <Button style={{ backgroundColor: "#7494ec" }}>
+                        Browse All Products
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         </section>
 
@@ -522,31 +614,7 @@ const Home = () => {
                 onAddToCart={handleAddToCart}
                 onFavoriteToggle={handleFavoriteToggle}
                 title=""
-                products={favoriteProducts.map((p) => {
-                  let image = "";
-                  if (Array.isArray(p.images) && p.images.length > 0) {
-                    const primary = p.images.find((img) => img.isPrimary);
-                    image = primary ? primary.url : p.images[0].url;
-                  }
-                  const isNew =
-                    p.createdAt &&
-                    new Date().getTime() - new Date(p.createdAt).getTime() <
-                      14 * 24 * 60 * 60 * 1000;
-                  return {
-                    id: p._id || p.id,
-                    name: p.name,
-                    price: p.price,
-                    image,
-                    category: p.category,
-                    inStock: p.stockQuantity > 0,
-                    rating: p.aiFeatures?.recommendationScore
-                      ? parseFloat(p.aiFeatures.recommendationScore)
-                      : undefined,
-                    isNew: isNew,
-                    discount: p.discount || 0,
-                    isFavorite: true,
-                  };
-                })}
+                products={favoriteProducts}
               />
             ) : (
               <div className="text-center py-8 bg-white rounded-lg shadow">
