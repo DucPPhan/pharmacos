@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { Search, Plus, Edit, Trash2, AlertTriangle, Filter } from "lucide-react";
-
+import styles from './Inventory.module.css';
 // Đặt option tĩnh cho dropdown
 const skinTypeOptions = [
   "oily",
@@ -350,6 +350,7 @@ export function Inventory() {
           manufacturingDate: formData.manufacturingDate,
           expiryDate: formData.expiryDate,
           lowStockThreshold: Number(formData.lowStockThreshold),
+          images: formData.images,
         };
         
         console.log('Update data:', updateData);
@@ -781,62 +782,60 @@ export function Inventory() {
                   required
                 />
               </div>
-              {/* Chỉ hiển thị phần Images khi tạo mới sản phẩm */}
-              {!editingProduct && (
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-[#1F3368]">Images *</label>
-                  {formData.images.map((img: any, idx: number) => (
-                    <div key={idx} className="flex gap-2 mb-2 items-center">
-                      <Input
-                        value={img.url}
-                        placeholder="Image URL"
-                        onChange={e => {
-                          const updated = [...formData.images];
-                          updated[idx].url = e.target.value;
-                          setFormData({ ...formData, images: updated });
-                        }}
-                        required
-                      />
-                      <Input
-                        value={img.alt}
-                        placeholder="Alt text"
-                        onChange={e => {
-                          const updated = [...formData.images];
-                          updated[idx].alt = e.target.value;
-                          setFormData({ ...formData, images: updated });
-                        }}
-                      />
-                      <input
-                        type="radio"
-                        checked={!!img.isPrimary}
-                        onChange={() => {
-                          const updated = formData.images.map((im: any, i: number) => ({ ...im, isPrimary: i === idx }));
-                          setFormData({ ...formData, images: updated });
-                        }}
-                        title="Set as primary"
-                      />
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => {
-                          const updated = formData.images.filter((_: any, i: number) => i !== idx);
-                          setFormData({ ...formData, images: updated.length ? updated : [{ url: "", alt: "", isPrimary: true }] });
-                        }}
-                        disabled={formData.images.length === 1}
-                      >
-                        X
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => setFormData({ ...formData, images: [...formData.images, { url: "", alt: "", isPrimary: false }] })}
-                  >
-                    + Add Image
-                  </Button>
-                </div>
-              )}
+              {/* Hiển thị phần Images cho cả tạo mới và chỉnh sửa */}
+              <div>
+                <label className="block text-sm font-medium mb-1 text-[#1F3368]">Images *</label>
+                {formData.images.map((img: any, idx: number) => (
+                  <div key={idx} className="flex gap-2 mb-2 items-center">
+                    <Input
+                      value={img.url}
+                      placeholder="Image URL"
+                      onChange={e => {
+                        const updated = [...formData.images];
+                        updated[idx].url = e.target.value;
+                        setFormData({ ...formData, images: updated });
+                      }}
+                      required
+                    />
+                    <Input
+                      value={img.alt}
+                      placeholder="Alt text"
+                      onChange={e => {
+                        const updated = [...formData.images];
+                        updated[idx].alt = e.target.value;
+                        setFormData({ ...formData, images: updated });
+                      }}
+                    />
+                    <input
+                      type="radio"
+                      checked={!!img.isPrimary}
+                      onChange={() => {
+                        const updated = formData.images.map((im: any, i: number) => ({ ...im, isPrimary: i === idx }));
+                        setFormData({ ...formData, images: updated });
+                      }}
+                      title="Set as primary"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        const updated = formData.images.filter((_: any, i: number) => i !== idx);
+                        setFormData({ ...formData, images: updated.length ? updated : [{ url: "", alt: "", isPrimary: true }] });
+                      }}
+                      disabled={formData.images.length === 1}
+                    >
+                      X
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setFormData({ ...formData, images: [...formData.images, { url: "", alt: "", isPrimary: false }] })}
+                >
+                  + Add Image
+                </Button>
+              </div>
               <div>
                 <label className="block text-sm font-medium mb-1 text-[#1F3368]">Manufacturing Date *</label>
                 <Input
@@ -893,29 +892,27 @@ export function Inventory() {
                   required
                 />
               </div>
-              {/* Chỉ hiển thị Image Preview khi tạo mới sản phẩm */}
-              {!editingProduct && (
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-[#1F3368]">Image Preview</label>
-                  {imagePreview && (
-                    <div className="relative w-full h-48 border rounded-md overflow-hidden mt-2">
-                      <img
-                        src={imagePreview}
-                        alt="Product preview"
-                        className="w-full h-full object-contain"
-                        onError={() => {
-                          setImagePreview("");
-                          toast({
-                            title: "Error",
-                            description: "Failed to load image. Please check the URL.",
-                            variant: "destructive",
-                          });
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Image Preview luôn hiển thị cho cả tạo mới và update sản phẩm */}
+              <div>
+                <label className="block text-sm font-medium mb-1 text-[#1F3368]">Image Preview</label>
+                {imagePreview && (
+                  <div className="relative w-full h-48 border rounded-md overflow-hidden mt-2">
+                    <img
+                      src={imagePreview}
+                      alt="Product preview"
+                      className="w-full h-full object-contain"
+                      onError={() => {
+                        setImagePreview("");
+                        toast({
+                          title: "Error",
+                          description: "Failed to load image. Please check the URL.",
+                          variant: "destructive",
+                        });
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
               <div className="flex space-x-3 pt-4">
                 <Button
                   type="submit"
