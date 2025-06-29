@@ -97,8 +97,9 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
           </nav>
         </ScrollArea>
 
-        <div className="p-4 border-t">
-          <div className="flex items-center justify-between">
+        <div className="px-4">
+          <div className="border-t my-2" />
+          <div className="flex items-center justify-between pt-2">
             <Button
               variant="ghost"
               className="flex items-center gap-2 text-sm"
