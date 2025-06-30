@@ -265,7 +265,12 @@ const OrderDetail = () => {
                                     <div style={{ fontSize: 15, marginBottom: 2 }}>
                                         Order cancelled at {dayjs(order.updatedAt || order.orderDate).format("HH:mm")} on {dayjs(order.updatedAt || order.orderDate).format("DD/MM/YYYY")}
                                     </div>
-                                    <div style={{ color: "#888", fontSize: 14 }}>
+                                    {order.cancelReason && (
+                                        <div style={{ color: "#d32f2f", fontSize: 14, fontWeight: 500, marginTop: 8 }}>
+                                            Reason: {order.cancelReason}
+                                        </div>
+                                    )}
+                                    <div style={{ color: "#888", fontSize: 14, marginTop: 4 }}>
                                         We hope to serve you again next time.
                                     </div>
                                 </div>
