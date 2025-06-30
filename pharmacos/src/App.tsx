@@ -26,7 +26,6 @@ import FullScreenLoader from "./components/FullScreenLoader/FullScreenLoader";
 const Home = lazy(() => import("./page/home/home"));
 const ProductsPage = lazy(() => import("./page/Products/ProductsPage"));
 const ProductDetailPage = lazy(() => import("./page/ProductDetail/ProductDetailPage"));
-const CategoryPage = lazy(() => import("./page/Category/CategoryPage"));
 const UserProfile = lazy(() => import("./page/profile/UserProfile"));
 const Cart = lazy(() => import("./page/cart"));
 const OrderDetail = lazy(() => import("./page/order/OrderDetail"));
@@ -72,7 +71,6 @@ function App() {
               <Route path="/profile/change-password" element={<ChangePassword />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} /> */}
               <Route path="/products" element={<ProductsPage />} />
-              <Route path="/category/:categoryId" element={<CategoryPage />} />
               <Route path="/product/:productId" element={<ProductDetailPage />} />
 
               {/* Protected routes */}
