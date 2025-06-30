@@ -1,0 +1,31 @@
+.new-address-form-container {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+.address-form .ant-select-dropdown {
+  z-index: 1100 !important;
+}
+
+.address-dropdown {
+  z-index: 1100 !important;
+}
+
+.ant-select-dropdown {
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}
+
+.ant-select-item {
+  padding: 8px 12px !important;
+  cursor: pointer !important;
+}
+
+.ant-select-item-option-selected {
+  font-weight: 600 !important;
+  background-color: #e6f7ff !important;
+}
+
+.ant-select-dropdown {
+  position: fixed !important;
+}

@@ -57,7 +57,7 @@ const OrderDetail = () => {
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
-    const { setCartItems } = useCart(); // Lấy hàm setCartItems từ context
+    const { setCartItems } = useCart();
 
     useEffect(() => {
         if (!id) return;
