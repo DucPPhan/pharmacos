@@ -76,7 +76,7 @@ const PersonalInfo: React.FC<{
             <div className="user-profile-row">
                 <span className="user-profile-label">Phone Number</span>
                 <span className="user-profile-value">
-                    {user.phone || "Not updated"}
+                    {user.phone}
                 </span>
             </div>
             <div className="user-profile-row">
@@ -131,8 +131,6 @@ const PersonalInfo: React.FC<{
 );
 
 const nameRegex = /^[a-zA-ZÀ-ỹ\s'.-]+$/u;
-const phoneRegex = /^(0[3|5|7|8|9])+([0-9]{8})$/;
-
 const EditProfileInlineForm: React.FC<{
     user: UserInfo;
     onCancel: () => void;
@@ -226,7 +224,6 @@ const EditProfileInlineForm: React.FC<{
                         rules={[
                             { required: true, message: "Please enter your phone number!" },
                             {
-                                pattern: phoneRegex,
                                 message: "Invalid phone number!",
                             },
                         ]}
@@ -476,9 +473,9 @@ const updateProfileByRole = async (data: UserInfo): Promise<UserInfo> => {
     const token = localStorage.getItem('token');
     const url = "http://localhost:10000/api/customers/profile";
     const body = {
+        name: data.name,
         phone: data.phone,
         address: data.address,
-        name: data.name,
         gender:
             data.gender === "Male"
                 ? "male"
