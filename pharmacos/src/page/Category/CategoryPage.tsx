@@ -15,6 +15,8 @@ import {
 import ProductGrid from "../../components/ProductGrid";
 import { FilterX, SlidersHorizontal } from "lucide-react";
 import { saveFilterState } from "@/utils/homeSessionStorage";
+import { useCart } from "@/contexts/CartContext";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Product {
   id: string;
@@ -84,10 +86,14 @@ const categories: Category[] = [
 const CategoryPage = () => {
   const navigate = useNavigate();
   const { categoryId } = useParams<{ categoryId: string }>();
+  const { addToCart } = useCart();
+  const { toast } = useToast();
   const [category, setCategory] = useState<Category | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [apiProducts, setApiProducts] = useState<any[]>([]);
+  const [userFavorites, setUserFavorites] = useState<string[]>([]);
+  const isLoggedIn = !!localStorage.getItem("token");
 
   // Filter states
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100]);
@@ -103,7 +109,7 @@ const CategoryPage = () => {
 
   // Initialize with the min and max product prices
   useEffect(() => {
-setPriceRange([minProductPrice, maxProductPrice]);
+    setPriceRange([minProductPrice, maxProductPrice]);
   }, [minProductPrice, maxProductPrice]);
 
   // Load category and products when component mounts or categoryId changes
@@ -118,6 +124,7 @@ setPriceRange([minProductPrice, maxProductPrice]);
         setApiProducts(
           Array.isArray(data?.data?.products) ? data.data.products : []
         );
+
       } catch {
         setApiProducts([]);
       }
@@ -153,9 +160,9 @@ setPriceRange([minProductPrice, maxProductPrice]);
             rating:
               p.reviews && p.reviews.length > 0
                 ? p.reviews.reduce(
-                    (acc: number, r: any) => acc + (r.rating || 0),
-                    0
-                  ) / p.reviews.length
+                  (acc: number, r: any) => acc + (r.rating || 0),
+                  0
+                ) / p.reviews.length
                 : undefined,
             brand: p.brand,
           };
@@ -197,7 +204,7 @@ setPriceRange([minProductPrice, maxProductPrice]);
         filtered = filtered.sort((a, b) => b.price - a.price);
         break;
       case "rating":
-filtered = filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        filtered = filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
       // Default "featured" uses original order
     }
@@ -248,6 +255,34 @@ filtered = filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
     navigate("/products");
   };
 
+  // Add cart handler
+  const handleAddToCart = (product, quantity) => {
+    addToCart(
+      {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+      },
+      quantity
+    );
+  };
+
+  // Handle favorite toggle
+  const handleFavoriteToggle = async (productId, isFavorite) => {
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+
+    // Update local state immediately
+    if (isFavorite) {
+      setUserFavorites((prev) => [...prev, productId]);
+    } else {
+      setUserFavorites((prev) => prev.filter((id) => id !== productId));
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Category Header */}
@@ -287,7 +322,7 @@ filtered = filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
               className="md:hidden"
               onClick={() => setFiltersVisible(!filtersVisible)}
             >
-<SlidersHorizontal className="h-4 w-4 mr-2" />
+              <SlidersHorizontal className="h-4 w-4 mr-2" />
               Filters
             </Button>
           </div>
@@ -314,9 +349,8 @@ filtered = filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
       <div className="flex flex-col md:flex-row gap-6">
         {/* Filters Sidebar */}
         <div
-          className={`md:w-1/4 space-y-6 ${
-            filtersVisible ? "block" : "hidden md:block"
-          }`}
+          className={`md:w-1/4 space-y-6 ${filtersVisible ? "block" : "hidden md:block"
+            }`}
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold">Filters</h2>
@@ -371,7 +405,7 @@ filtered = filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
                     >
                       {brand}
                     </Label>
-</div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -407,7 +441,11 @@ filtered = filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         {/* Product Grid */}
         <div className="md:w-3/4">
           {filteredProducts.length > 0 ? (
-            <ProductGrid products={filteredProducts} />
+            <ProductGrid
+              products={filteredProducts}
+              onAddToCart={handleAddToCart}
+              onFavoriteToggle={handleFavoriteToggle}
+            />
           ) : (
             <div className="text-center py-12">
               <h3 className="text-lg font-medium">
