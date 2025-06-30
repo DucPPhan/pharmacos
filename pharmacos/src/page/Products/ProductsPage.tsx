@@ -57,6 +57,7 @@ const ProductsPage: React.FC = () => {
   >([{ id: "all", name: "All Products" }]);
   const [priceConfig, setPriceConfig] = useState({ min: 0, max: 1000 });
   const [filtersVisible, setFiltersVisible] = useState<boolean>(true);
+  const [userFavorites, setUserFavorites] = useState<string[]>([]);
 
   // Single effect to update filters and save to session storage
   const updateFilters = (newFilters: Partial<FilterState>) => {
@@ -78,6 +79,26 @@ const ProductsPage: React.FC = () => {
           ? data.data.products
           : [];
         setApiProducts(products);
+
+        // Fetch favorites if user is logged in
+        if (token) {
+          try {
+            const favRes = await fetch("http://localhost:10000/api/favorites", {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (favRes.ok) {
+              const favData = await favRes.json();
+              // Extract product IDs from favorites data
+              const favoriteIds = favData.data.map(
+                (fav) => fav.product._id || fav.product.id
+              );
+              setUserFavorites(favoriteIds);
+            }
+          } catch (error) {
+            console.error("Error fetching favorites:", error);
+          }
+        }
 
         if (products.length > 0) {
           // Setup filter options once
@@ -121,6 +142,12 @@ const ProductsPage: React.FC = () => {
   // Main filtering logic
   useEffect(() => {
     let filtered = [...apiProducts];
+    // Mark favorite products
+    filtered = filtered.map((product) => ({
+      ...product,
+      isFavorite: userFavorites.includes(product._id),
+    }));
+
     const {
       category,
       subcategory,
@@ -185,7 +212,7 @@ const ProductsPage: React.FC = () => {
       clearFilterState();
       isInitialMount.current = false;
     }
-  }, [filters, apiProducts]);
+  }, [filters, apiProducts, userFavorites]);
 
   // Get subcategories based on selected category
   const getSubcategories = (): string[] => {
@@ -236,6 +263,17 @@ const ProductsPage: React.FC = () => {
       description: `${quantity} × ${product.name} added to your cart`,
       duration: 3000,
     });
+  };
+
+  // Handle favorite toggle
+  const handleFavoriteToggle = (productId: string, isFavorite: boolean) => {
+    if (isFavorite) {
+      // Add to favorites
+      setUserFavorites((prev) => [...prev, productId]);
+    } else {
+      // Remove from favorites
+      setUserFavorites((prev) => prev.filter((id) => id !== productId));
+    }
   };
 
   return (
@@ -469,9 +507,11 @@ const ProductsPage: React.FC = () => {
                       0
                     ) / (p.reviews?.length || 1),
                   brand: p.brand,
+                  isFavorite: userFavorites.includes(p._id),
                 };
               })}
               onAddToCart={handleAddToCart}
+              onFavoriteToggle={handleFavoriteToggle}
               showFilters={false}
             />
           ) : (

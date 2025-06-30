@@ -46,3 +46,60 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
 
     return; // Return undefined if there's no JSON body
 }
+
+// API endpoints for favorites
+const API_URL = 'http://localhost:10000/api';
+export const favoritesApi = {
+    // Get all favorites for the logged-in user
+    getFavorites: async () => {
+        try {
+            const response = await apiFetch(`${API_URL}/favorites`);
+            return response;
+        } catch (error) {
+            console.error("Error fetching favorites:", error);
+            throw error;
+        }
+    },
+
+    // Add a product to favorites
+    addToFavorites: async (productId: string) => {
+        try {
+            const response = await apiFetch(`${API_URL}/favorites/${productId}`, {
+                method: 'POST',
+            });
+            return response;
+        } catch (error) {
+            console.error("Error adding to favorites:", error);
+            throw error;
+        }
+    },
+
+    // Remove a product from favorites
+    removeFromFavorites: async (productId: string) => {
+        try {
+            const response = await apiFetch(`${API_URL}/favorites/${productId}`, {
+                method: 'DELETE',
+            });
+            return response;
+        } catch (error) {
+            console.error("Error removing from favorites:", error);
+            throw error;
+        }
+    },
+
+    // Check if a product is in favorites
+    checkFavoriteStatus: async (productId: string) => {
+        try {
+            const response = await apiFetch(`${API_URL}/favorites`);
+            if (response && response.data) {
+                return response.data.some((fav: any) => 
+                    (fav.product._id === productId) || (fav.product.id === productId)
+                );
+            }
+            return false;
+        } catch (error) {
+            console.error("Error checking favorite status:", error);
+            return false;
+        }
+    }
+};

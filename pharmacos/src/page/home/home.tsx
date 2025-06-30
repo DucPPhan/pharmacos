@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Search,
   ShoppingCart,
@@ -14,6 +14,9 @@ import {
   Clock,
   CreditCard,
   Award,
+  UserCircle2,
+  Quote,
+  Star as StarIcon,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -26,10 +29,10 @@ import {
 } from "../../components/ui/tabs";
 import AIImageSearch from "../../components/AIImageSearch";
 import ProductGrid from "../../components/ProductGrid";
-import { useNavigate } from "react-router-dom";
 import CategoryNav from "./CategoryNav";
-import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/contexts/CartContext";
+import { favoritesApi } from "@/lib/api";
+import { motion, AnimatePresence } from "framer-motion";
 
 const categories = [
   {
@@ -196,12 +199,16 @@ const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentBanner, setCurrentBanner] = useState(0);
   const navigate = useNavigate();
-  const isLoggedIn = !!localStorage.getItem("user");
+  const isLoggedIn = !!localStorage.getItem("token");
   const [showNavButtons, setShowNavButtons] = useState(true);
   const bannerRef = useRef(null);
   const [apiProducts, setApiProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [favoriteProducts, setFavoriteProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingFavorites, setLoadingFavorites] = useState(true);
   const { addToCart } = useCart();
+  const [userFavorites, setUserFavorites] = useState<string[]>([]);
 
   // Auto rotate banners
   useEffect(() => {
@@ -240,9 +247,10 @@ const Home = () => {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         const data = await res.json();
-        setApiProducts(
-          Array.isArray(data?.data?.products) ? data.data.products : []
-        );
+        const products = Array.isArray(data?.data?.products)
+          ? data.data.products
+          : [];
+        setApiProducts(products);
       } catch {
         setApiProducts([]);
       } finally {
@@ -251,6 +259,104 @@ const Home = () => {
     };
     fetchProducts();
   }, []);
+
+  // Thêm effect để xử lý filteredProducts từ apiProducts và userFavorites
+  useEffect(() => {
+    // Mark favorite products
+    const filtered = apiProducts.map((product) => {
+      let image = "";
+      if (Array.isArray(product.images) && product.images.length > 0) {
+        const primary = product.images.find((img) => img.isPrimary);
+        image = primary ? primary.url : product.images[0].url;
+      }
+      const isNew =
+        product.createdAt &&
+        new Date().getTime() - new Date(product.createdAt).getTime() <
+          14 * 24 * 60 * 60 * 1000;
+
+      return {
+        id: product._id || product.id,
+        name: product.name,
+        price: product.price,
+        image,
+        category: product.category,
+        inStock: product.stockQuantity > 0,
+        rating: product.aiFeatures?.recommendationScore
+          ? parseFloat(product.aiFeatures.recommendationScore)
+          : undefined,
+        isNew: isNew,
+        discount: product.discount || 0,
+        isFavorite: userFavorites.includes(product._id || product.id),
+      };
+    });
+
+    setFilteredProducts(filtered);
+  }, [apiProducts, userFavorites]);
+
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      if (!isLoggedIn) {
+        setFavoriteProducts([]);
+        setUserFavorites([]);
+        setLoadingFavorites(false);
+        return;
+      }
+
+      setLoadingFavorites(true);
+      try {
+        const response = await favoritesApi.getFavorites();
+        if (response && response.data) {
+          // Extract the product IDs for the userFavorites state
+          const favoriteIds = response.data.map(
+            (fav) => fav.product._id || fav.product.id
+          );
+          setUserFavorites(favoriteIds);
+
+          // Format favorite products data for display
+          const formattedFavorites = response.data.map((item) => {
+            const product = item.product;
+            let image = "";
+            if (Array.isArray(product.images) && product.images.length > 0) {
+              const primary = product.images.find((img) => img.isPrimary);
+              image = primary ? primary.url : product.images[0].url;
+            }
+            const isNew =
+              product.createdAt &&
+              new Date().getTime() - new Date(product.createdAt).getTime() <
+                14 * 24 * 60 * 60 * 1000;
+
+            return {
+              id: product._id || product.id,
+              name: product.name,
+              price: product.price,
+              image,
+              category: product.category,
+              inStock: product.stockQuantity > 0,
+              rating: product.aiFeatures?.recommendationScore
+                ? parseFloat(product.aiFeatures.recommendationScore)
+                : undefined,
+              isNew: isNew,
+              discount: product.discount || 0,
+              isFavorite: true,
+            };
+          });
+
+          setFavoriteProducts(formattedFavorites);
+        } else {
+          setFavoriteProducts([]);
+          setUserFavorites([]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch favorites:", error);
+        setFavoriteProducts([]);
+        setUserFavorites([]);
+      } finally {
+        setLoadingFavorites(false);
+      }
+    };
+
+    fetchFavorites();
+  }, [isLoggedIn]);
 
   const nextBanner = () => {
     setCurrentBanner((prev) => (prev + 1) % banners.length);
@@ -274,8 +380,25 @@ const Home = () => {
     );
   };
 
+  // Handle favorite toggle
+  const handleFavoriteToggle = async (productId, isFavorite) => {
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+
+    // Đơn giản hóa xử lý giống như trong ProductsPage.tsx
+    if (isFavorite) {
+      // Add to favorites
+      setUserFavorites((prev) => [...prev, productId]);
+    } else {
+      // Remove from favorites
+      setUserFavorites((prev) => prev.filter((id) => id !== productId));
+    }
+  };
+
   return (
-    <div className="bg-background">
+    <div className="min-h-screen bg-white pb-8">
       <CategoryNav />
       <main>
         {/* Banner Slider Section */}
@@ -362,8 +485,9 @@ const Home = () => {
                     <button
                       key={index}
                       onClick={() => setCurrentBanner(index)}
-                      className={`h-2 w-10 rounded-full transition-all ${currentBanner === index ? "bg-white" : "bg-white/50"
-                        }`}
+                      className={`h-2 w-10 rounded-full transition-all ${
+                        currentBanner === index ? "bg-white" : "bg-white/50"
+                      }`}
                       aria-label={`Go to slide ${index + 1}`}
                     />
                   ))}
@@ -397,20 +521,18 @@ const Home = () => {
           </div>
         </section>
 
-        {/* Search Options */}
+        {/* Find Products Your Way Section */}
         <section className="py-12 bg-white">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl font-bold mb-8 text-center">
               Find Products Your Way
             </h2>
-
-            <Tabs defaultValue="categories" className="w-full">
+            <Tabs defaultValue="browse" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-8">
-                <TabsTrigger value="categories">Browse Categories</TabsTrigger>
+                <TabsTrigger value="browse">Browse Categories</TabsTrigger>
                 <TabsTrigger value="featured">Featured Products</TabsTrigger>
               </TabsList>
-
-              <TabsContent value="categories" className="space-y-4">
+              <TabsContent value="browse">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                   {categories.map((category) => (
                     <Link to={`/category/${category.id}`} key={category.id}>
@@ -437,46 +559,38 @@ const Home = () => {
                   ))}
                 </div>
               </TabsContent>
-
               <TabsContent value="featured">
                 {loadingProducts ? (
                   <div className="text-center py-8">Loading...</div>
-                ) : (
+                ) : apiProducts.length > 0 ? (
                   <ProductGrid
+                    products={filteredProducts.slice(0, 8)}
                     onAddToCart={handleAddToCart}
-                    products={apiProducts.map((p) => {
-                      let image = "";
-                      if (Array.isArray(p.images) && p.images.length > 0) {
-                        const primary = p.images.find((img) => img.isPrimary);
-                        image = primary ? primary.url : p.images[0].url;
-                      }
-                      const isNew = p.createdAt && (new Date().getTime() - new Date(p.createdAt).getTime() < 14 * 24 * 60 * 60 * 1000);
-                      return {
-                        id: p._id || p.id,
-                        name: p.name,
-                        price: p.price,
-                        image,
-                        category: p.category,
-                        inStock: p.stockQuantity > 0,
-                        rating: p.aiFeatures?.recommendationScore
-                          ? parseFloat(p.aiFeatures.recommendationScore)
-                          : undefined,
-                        isNew: isNew,
-                        discount: p.discount || 0
-                      };
-                    })}
+                    onFavoriteToggle={handleFavoriteToggle}
+                    title=""
                   />
+                ) : (
+                  <div className="text-center py-8 bg-white rounded-lg shadow">
+                    <p className="text-gray-500 mb-4">
+                      No products available at the moment.
+                    </p>
+                    <Link to="/products">
+                      <Button style={{ backgroundColor: "#7494ec" }}>
+                        Browse All Products
+                      </Button>
+                    </Link>
+                  </div>
                 )}
               </TabsContent>
             </Tabs>
           </div>
         </section>
 
-        {/* Featured Products Section */}
+        {/* Favorite Products Section */}
         <section className="py-12 bg-muted/30">
           <div className="container mx-auto px-4">
             <div className="flex justify-between items-center mb-8">
-              <h2 className="text-3xl font-bold">Featured Products</h2>
+              <h2 className="text-3xl font-bold">Favorite Products</h2>
               <Link
                 to="/products"
                 className="text-primary hover:underline hover:text-blue-400"
@@ -484,30 +598,35 @@ const Home = () => {
                 View All
               </Link>
             </div>
-            {loadingProducts ? (
+            {!isLoggedIn ? (
+              <div className="text-center py-8 bg-white rounded-lg shadow">
+                <p className="text-gray-500 mb-4">
+                  Please log in to view your favorite products
+                </p>
+                <Link to="/login">
+                  <Button style={{ backgroundColor: "#7494ec" }}>Log In</Button>
+                </Link>
+              </div>
+            ) : loadingFavorites ? (
               <div className="text-center py-8">Loading...</div>
-            ) : (
+            ) : favoriteProducts.length > 0 ? (
               <ProductGrid
                 onAddToCart={handleAddToCart}
-                products={apiProducts.map((p) => {
-                  let image = "";
-                  if (Array.isArray(p.images) && p.images.length > 0) {
-                    const primary = p.images.find((img) => img.isPrimary);
-                    image = primary ? primary.url : p.images[0].url;
-                  }
-                  return {
-                    id: p._id || p.id,
-                    name: p.name,
-                    price: p.price,
-                    image,
-                    category: p.category,
-                    inStock: p.stockQuantity > 0,
-                    rating: p.aiFeatures?.recommendationScore
-                      ? parseFloat(p.aiFeatures.recommendationScore)
-                      : undefined,
-                  };
-                })}
+                onFavoriteToggle={handleFavoriteToggle}
+                title=""
+                products={favoriteProducts}
               />
+            ) : (
+              <div className="text-center py-8 bg-white rounded-lg shadow">
+                <p className="text-gray-500 mb-4">
+                  You don't have any favorite products yet.
+                </p>
+                <Link to="/products">
+                  <Button style={{ backgroundColor: "#7494ec" }}>
+                    Browse Products
+                  </Button>
+                </Link>
+              </div>
             )}
           </div>
         </section>
@@ -594,12 +713,13 @@ const Home = () => {
                     {Array(5)
                       .fill(0)
                       .map((_, i) => (
-                        <Star
+                        <StarIcon
                           key={i}
-                          className={`w-4 h-4 ${i < testimonial.rating
-                            ? "text-yellow-400 fill-yellow-400"
-                            : "text-gray-300"
-                            }`}
+                          className={`w-4 h-4 ${
+                            i < testimonial.rating
+                              ? "text-yellow-400 fill-yellow-400"
+                              : "text-gray-300"
+                          }`}
                         />
                       ))}
                   </div>
@@ -613,21 +733,5 @@ const Home = () => {
     </div>
   );
 };
-
-// Star icon for ratings
-const Star = (props) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-  </svg>
-);
 
 export default Home;
