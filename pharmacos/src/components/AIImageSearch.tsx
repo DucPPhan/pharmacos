@@ -11,10 +11,12 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useNavigate } from "react-router-dom";
 
 interface AIImageSearchProps {
   onSearchComplete?: (results: ProductMatch[]) => void;
   isPopup?: boolean; // Optional flag to adjust styling when used in popup
+  onClose?: () => void; // Add onClose prop
 }
 
 interface ProductMatch {
@@ -26,8 +28,9 @@ interface ProductMatch {
 }
 
 const AIImageSearch = ({
-  onSearchComplete = () => { },
-  isPopup = false
+  onSearchComplete = () => {},
+  isPopup = false,
+  onClose,
 }: AIImageSearchProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -35,34 +38,9 @@ const AIImageSearch = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<ProductMatch[]>([]);
-
-  // Mock product matches for demonstration
-  const mockResults: ProductMatch[] = [
-    {
-      id: "1",
-      name: "Vitamin C Serum",
-      image:
-        "https://images.unsplash.com/photo-1620916566886-f294b0d1fc08?w=400&q=80",
-      price: 24.99,
-      confidence: 98,
-    },
-    {
-      id: "2",
-      name: "Hyaluronic Acid Moisturizer",
-      image:
-        "https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?w=400&q=80",
-      price: 19.99,
-      confidence: 85,
-    },
-    {
-      id: "3",
-      name: "Retinol Night Cream",
-      image:
-        "https://images.unsplash.com/photo-1631730359585-5e7ac5a68fb3?w=400&q=80",
-      price: 32.5,
-      confidence: 72,
-    },
-  ];
+  const [geminiAnalysis, setGeminiAnalysis] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -125,28 +103,59 @@ const AIImageSearch = ({
     input.click();
   };
 
-  const processImage = () => {
+  const processImage = async () => {
     if (!file) return;
-
     setIsProcessing(true);
     setProgress(0);
+    setError(null);
+    setGeminiAnalysis(null);
+    setResults([]);
 
-    // Simulate AI processing with progress updates
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        const newProgress = prev + 10;
-        if (newProgress >= 100) {
-          clearInterval(interval);
-          setTimeout(() => {
-            setResults(mockResults);
-            onSearchComplete(mockResults);
-            setIsProcessing(false);
-          }, 500);
-          return 100;
+    try {
+      // Prepare form data
+      const formData = new FormData();
+      formData.append("image", file);
+
+      // Use fetch to POST the image
+      const response = await fetch(
+        "http://localhost:10000/api/ai/search-by-image",
+        {
+          method: "POST",
+          body: formData,
         }
-        return newProgress;
-      });
-    }, 300);
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to search by image");
+      }
+      const data = await response.json();
+      setProgress(100);
+      setIsProcessing(false);
+
+      setGeminiAnalysis(data.geminiAnalysis || null);
+      if (data.success) {
+        // Map API products to ProductMatch type
+        const mappedResults = (data.matchedProducts || []).map((p: any) => ({
+          id: p._id,
+          name: p.name,
+          image:
+            p.images && p.images.length > 0
+              ? p.images.find((img: any) => img.isPrimary)?.url ||
+                p.images[0].url
+              : "",
+          price: p.price,
+          confidence: p.matchScore || 0,
+        }));
+        setResults(mappedResults);
+        onSearchComplete(mappedResults);
+      } else {
+        setError(data.message || "No matching products found.");
+        setResults([]);
+      }
+    } catch (err: any) {
+      setIsProcessing(false);
+      setError(err.message || "An error occurred during search.");
+    }
   };
 
   const resetSearch = () => {
@@ -154,27 +163,26 @@ const AIImageSearch = ({
     setPreview(null);
     setResults([]);
     setProgress(0);
+    setError(null);
+    setGeminiAnalysis(null);
   };
 
   // Handle view product and close popup if needed
   const handleViewProduct = (productId: string) => {
-    // In a real app, navigate to product detail page
-    console.log(`Viewing product ${productId}`);
-
-    // If in popup mode and results are shown, optionally close the popup
-    // if (isPopup && onClose) {
-    //   onClose();
-    // }
+    navigate(`/product/${productId}`);
+    if (onClose) onClose();
   };
 
   return (
     <div className="flex items-center justify-center">
       <Card
-        className={`w-full ${isPopup ? 'border-0 shadow-none' : 'max-w-3xl mx-auto'} bg-white`}
+        className={`w-full ${
+          isPopup ? "border-0 shadow-none" : "max-w-3xl mx-auto"
+        } bg-white`}
         style={{
           maxHeight: "90vh",
           display: "flex",
-          flexDirection: "column"
+          flexDirection: "column",
         }}
       >
         <CardHeader className="relative flex-shrink-0">
@@ -190,7 +198,9 @@ const AIImageSearch = ({
           <CardContent>
             {!preview ? (
               <div
-                className={`border-2 border-dashed rounded-lg p-8 text-center ${isDragging ? "border-primary bg-primary/5" : "border-gray-300"}`}
+                className={`border-2 border-dashed rounded-lg p-8 text-center ${
+                  isDragging ? "border-primary bg-primary/5" : "border-gray-300"
+                }`}
                 onDragEnter={handleDragEnter}
                 onDragLeave={handleDragLeave}
                 onDragOver={handleDragOver}
@@ -250,48 +260,68 @@ const AIImageSearch = ({
                       Our AI is analyzing your image to find matching products
                     </p>
                   </div>
-                ) : results.length > 0 ? (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Matching Products</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {results.map((product) => (
-                        <div
-                          key={product.id}
-                          className="border rounded-lg overflow-hidden"
-                        >
-                          <div className="aspect-square relative">
-                            <img
-                              src={product.image}
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute top-2 right-2 bg-primary text-white text-xs font-bold px-2 py-1 rounded-full">
-                              {product.confidence}% match
-                            </div>
-                          </div>
-                          <div className="p-3">
-                            <h4 className="font-medium truncate">{product.name}</h4>
-                            <div className="flex justify-between items-center mt-1">
-                              <span className="font-bold">
-                                ${product.price.toFixed(2)}
-                              </span>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleViewProduct(product.id)}
-                              >
-                                View
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
                 ) : (
-                  <Button onClick={processImage} className="w-full">
-                    Start Recognition
-                  </Button>
+                  <div className="space-y-4">
+                    {geminiAnalysis && (
+                      <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-2 text-sm text-blue-900 whitespace-pre-line">
+                        <strong>AI Analysis:</strong> <br />
+                        {geminiAnalysis}
+                      </div>
+                    )}
+                    {results.length > 0 ? (
+                      <>
+                        <h3 className="text-lg font-medium">
+                          Matching Products
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {results.map((product) => (
+                            <div
+                              key={product.id}
+                              className="border rounded-lg overflow-hidden"
+                            >
+                              <div className="aspect-square relative">
+                                <img
+                                  src={product.image}
+                                  alt={product.name}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute top-2 right-2 bg-primary text-white text-xs font-bold px-2 py-1 rounded-full">
+                                  {product.confidence}% match
+                                </div>
+                              </div>
+                              <div className="p-3">
+                                <h4 className="font-medium truncate">
+                                  {product.name}
+                                </h4>
+                                <div className="flex justify-between items-center mt-1">
+                                  <span className="font-bold">
+                                    ${product.price.toFixed(2)}
+                                  </span>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      handleViewProduct(product.id)
+                                    }
+                                  >
+                                    View
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : error ? (
+                      <div className="text-red-500 text-center my-4">
+                        {error}
+                      </div>
+                    ) : (
+                      <Button onClick={processImage} className="w-full">
+                        Start Recognition
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
             )}
