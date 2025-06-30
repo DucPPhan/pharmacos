@@ -93,7 +93,7 @@ export default function Header() {
                         <nav className="hidden md:flex space-x-6">
                             <Link to="/" className="hover:text-primary">Home</Link>
                             <Link to="/products" className="hover:text-primary">Products</Link>
-                            <Link to="/categories" className="hover:text-primary">Categories</Link>
+                            {/* <Link to="/categories" className="hover:text-primary">Categories</Link> */}
                             <Link to="/about" className="hover:text-primary">About</Link>
                         </nav>
 
