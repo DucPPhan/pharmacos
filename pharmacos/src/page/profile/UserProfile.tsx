@@ -677,13 +677,14 @@ const UserProfile: React.FC = () => {
     return (
         <>
             <CategoryNav />
+
             <Layout className="user-profile-layout">
                 <Layout className="user-profile-inner-layout">
-                    <Sider width={340} className="user-profile-sider">
+                    <Sider width={320} className="user-profile-sider">
                         <div className="user-profile-sider-header">
                             <Tooltip title="User Information" placement="right">
                                 <Avatar
-                                    size={100}
+                                    size={96}
                                     src={
                                         user?.avatarUrl ||
                                         "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
@@ -692,9 +693,13 @@ const UserProfile: React.FC = () => {
                                     className="user-profile-sider-avatar"
                                 />
                             </Tooltip>
-                            <div className="user-profile-sider-name">{user?.name}</div>
-                            <div className="user-profile-sider-phone">{user?.phone}</div>
+
+                            <div className="user-profile-sider-info">
+                                <div className="user-name">{user?.name}</div>
+                                <div className="user-phone">{user?.phone}</div>
+                            </div>
                         </div>
+
                         <Menu
                             mode="inline"
                             selectedKeys={[activeMenu]}
@@ -703,6 +708,7 @@ const UserProfile: React.FC = () => {
                             items={MENU_CONFIG}
                         />
                     </Sider>
+
                     <Content className="user-profile-content">
                         {(!user || loading) ? (
                             <div className="user-profile-loading">
@@ -721,6 +727,7 @@ const UserProfile: React.FC = () => {
                 </Layout>
             </Layout>
         </>
+
     );
 };
 export default UserProfile;
