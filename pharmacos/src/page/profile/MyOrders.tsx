@@ -32,6 +32,7 @@ const fetchOrders = async () => {
     return await res.json();
 };
 
+const formatVND = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 
 const MyOrders: React.FC = () => {
     const [orders, setOrders] = useState<any[]>([]);
@@ -195,7 +196,7 @@ const MyOrders: React.FC = () => {
                                                     "No product name"}
                                             </div>
                                             <div className="user-profile-order-item-price">
-                                                {(item.unitPrice ?? item.price ?? 0).toLocaleString()}₫ x{item.quantity ?? 1}
+                                                {formatVND(item.unitPrice ?? item.price ?? 0)} x{item.quantity ?? 1}
                                             </div>
                                         </div>
                                     ))}
@@ -212,7 +213,7 @@ const MyOrders: React.FC = () => {
                                     <div>
                                         <span style={{ color: "#888", marginRight: 8 }}>Total:</span>
                                         <span style={{ color: "#1677ff", fontWeight: 600, fontSize: 16 }}>
-                                            {getOrderTotal(order).toLocaleString() + "₫"}
+                                            {formatVND(getOrderTotal(order))}
                                         </span>
                                     </div>
                                 </div>

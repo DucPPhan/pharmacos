@@ -42,7 +42,7 @@ const ORDER_STEPS = [
 
 ];
 
-
+const formatVND = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 
 const getOrderTotal = (items = []) => {
     return items.reduce(
@@ -367,7 +367,7 @@ const OrderDetail = () => {
                                             </div>
                                             <div style={{ textAlign: "right", minWidth: 120 }}>
                                                 <span style={{ color: "#1677ff", fontWeight: 800, fontSize: 18 }}>
-                                                    {(item.unitPrice ?? item.price ?? 0).toLocaleString()}₫
+                                                    {formatVND(item.unitPrice ?? item.price ?? 0)}
                                                 </span>
                                                 <span style={{
                                                     color: "#fff",
@@ -406,7 +406,7 @@ const OrderDetail = () => {
                         <Descriptions column={1} size="small" labelStyle={{ fontWeight: 600, color: "#1a237e" }}>
                             <Descriptions.Item label="Total">
                                 <span style={{ fontWeight: 600 }}>
-                                    {getOrderTotal(order.items).toLocaleString()}đ
+                                    {formatVND(getOrderTotal(order.items))}
                                 </span>
                             </Descriptions.Item>
                             <Descriptions.Item label="Direct discount">
@@ -422,7 +422,7 @@ const OrderDetail = () => {
                             </Descriptions.Item>
                             <Descriptions.Item label="Grand total">
                                 <span style={{ color: "#1677ff", fontWeight: 800, fontSize: 22 }}>
-                                    {(getOrderTotal(order.items) + 25000).toLocaleString()}đ
+                                    {formatVND(getOrderTotal(order.items) + 25000)}
                                 </span>
                             </Descriptions.Item>
                             <Descriptions.Item label="Payment method">

@@ -26,6 +26,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { staffApi } from "../staff/services/api";
 import { useCart } from "@/contexts/CartContext";
 
+const formatVND = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+
 const ProductsPage: React.FC = () => {
   const location = useLocation();
   const { toast } = useToast();
@@ -392,8 +394,8 @@ const ProductsPage: React.FC = () => {
               className="my-6"
             />
             <div className="flex justify-between text-sm">
-              <span>${(filters.priceRange || [0])[0].toFixed(2)}</span>
-              <span>${(filters.priceRange || [0, 0])[1].toFixed(2)}</span>
+              <span>{formatVND((filters.priceRange || [0])[0])}</span>
+              <span>{formatVND((filters.priceRange || [0, 0])[1])}</span>
             </div>
           </div>
 
