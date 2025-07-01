@@ -98,7 +98,7 @@ export default function Header() {
               <Link to="/products" className="hover:text-primary">
                 Products
               </Link>
-              {/* <Link to="/categories" className="hover:text-primary">Categories</Link> */}
+              <Link to="/blog" className="hover:text-primary">Blog</Link>
               <Link to="/about" className="hover:text-primary">
                 About
               </Link>
