@@ -160,7 +160,7 @@ export default function CategoryNav() {
         />
       )}
 
-      <div ref={navRef} className="bg-white border-b">
+      <div ref={navRef} className="bg-white border-b z-[100]">
         <div className="container mx-auto px-4">
           <ul className="flex items-center justify-between text-sm md:text-base overflow-x-auto gap-3 md:gap-4">
             {categories.map((category) => (
@@ -208,7 +208,7 @@ export default function CategoryNav() {
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.3 }}
+                      transition={{ duration: 0.6, ease: "easeInOut" }}
                       className="fixed left-0 right-0 bg-white shadow-xl border-t z-50"
                       style={{
                         top: "calc(9% + var(--category-nav-height))",
