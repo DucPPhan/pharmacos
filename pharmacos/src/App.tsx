@@ -23,17 +23,19 @@ import AboutPage from "./page/About/AboutPage";
 import FullScreenLoader from "./components/FullScreenLoader/FullScreenLoader";
 import { BlogList } from "./page/Blog/BlogList.tsx";
 import { BlogDetail } from "./page/Blog/BlogDetail.tsx";
+import PaymentResult from "./page/OrderConfirmation/PaymentResult";
 
 // Lazy load a apges for better transition experience
 const Home = lazy(() => import("./page/home/home"));
 const ProductsPage = lazy(() => import("./page/Products/ProductsPage"));
-const ProductDetailPage = lazy(() => import("./page/ProductDetail/ProductDetailPage"));
+const ProductDetailPage = lazy(
+  () => import("./page/ProductDetail/ProductDetailPage")
+);
 const CategoryPage = lazy(() => import("./page/Category/CategoryPage.tsx"));
 
 const UserProfile = lazy(() => import("./page/profile/UserProfile"));
 const Cart = lazy(() => import("./page/cart"));
 const OrderDetail = lazy(() => import("./page/order/OrderDetail"));
-
 
 function App() {
   const [visible, setVisible] = useState(true);
@@ -77,9 +79,12 @@ function App() {
               <Route path="/category/:categoryId" element={<CategoryPage />} />
 
               <Route path="/products" element={<ProductsPage />} />
-              <Route path="/product/:productId" element={<ProductDetailPage />} />
+              <Route
+                path="/product/:productId"
+                element={<ProductDetailPage />}
+              />
               <Route path="/blog" element={<BlogList />} />
-              <Route path="/blog/:id" element={<BlogDetail/>} />
+              <Route path="/blog/:id" element={<BlogDetail />} />
 
               {/* Protected routes */}
               <Route
@@ -110,8 +115,13 @@ function App() {
               {/* Your other routes */}
               <Route path="/admin/dashboard" element={<Dashboard />} />
               <Route path="/staff/dashboard/*" element={<Staffdashboard />} />
-              <Route path="/order-confirmation" element={<OrderConfirmation />} />
+              <Route
+                path="/order-confirmation"
+                element={<OrderConfirmation />}
+              />
               <Route path="/order/:id" element={<OrderDetail />} />
+              <Route path="/payment/success" element={<PaymentResult />} />
+              <Route path="/payment/cancel" element={<PaymentResult />} />
             </Routes>
           </>
           {visible && <Footer />}

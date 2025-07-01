@@ -18,7 +18,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const formatVND = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+const formatVND = (value: number) =>
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+    value
+  );
 
 const CartDropdown: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -145,13 +148,13 @@ const CartDropdown: React.FC = () => {
                             <Plus className="h-3 w-3" />
                           </div>
                         </div>
-                        <button
+                        <div
                           onClick={() => setItemToDelete(item)}
-                          className="text-gray-400 hover:text-red-500"
+                          className="text-gray-400 hover:text-red-500 cursor-pointer"
                           aria-label="Remove item"
                         >
                           <Trash2 className="h-4 w-4" />
-                        </button>
+                        </div>
                       </div>
                     </div>
                   </div>
