@@ -16,6 +16,7 @@ type CategoryItem = {
     id: string;
     name: string;
     image: string;
+    price: number;
   }[];
 };
 
@@ -26,6 +27,7 @@ export default function CategoryNav() {
   const navRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
+  const [allProducts, setAllProducts] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -38,6 +40,7 @@ export default function CategoryNav() {
         const products = Array.isArray(data?.data?.products)
           ? data.data.products
           : [];
+        setAllProducts(products);
 
         if (products.length > 0) {
           const categoryMap = new Map<
@@ -70,7 +73,8 @@ export default function CategoryNav() {
               categoryData.popularProducts.push({
                 id: _id,
                 name: name,
-                image: primaryImage?.url || "", // Provide a fallback
+                image: primaryImage?.url || "",
+                price: product.price,
               });
             }
           }
@@ -78,13 +82,13 @@ export default function CategoryNav() {
           const formattedCategories: CategoryItem[] = Array.from(
             categoryMap.entries()
           ).map(([name, data]) => ({
-            id: name, // Use name as ID for simplicity
+            id: name,
             name: name,
             subcategories:
               data.subcategories.size > 0
                 ? [
                     {
-                      title: "Types", // Generic title
+                      title: "Types",
                       items: Array.from(data.subcategories),
                     },
                   ]
@@ -103,13 +107,21 @@ export default function CategoryNav() {
   }, []);
 
   useEffect(() => {
-    if (navRef.current) {
-      const height = navRef.current.offsetHeight;
-      document.documentElement.style.setProperty(
-        "--category-nav-height",
-        `${height}px`
-      );
-    }
+    setTimeout(() => {
+      if (navRef.current) {
+        const navHeight = navRef.current.offsetHeight;
+        const header = document.querySelector(".main-header");
+        const headerHeight = header ? (header as HTMLElement).offsetHeight : 0;
+        document.documentElement.style.setProperty(
+          "--category-nav-height",
+          `${navHeight}px`
+        );
+        document.documentElement.style.setProperty(
+          "--header-height",
+          `${headerHeight}px`
+        );
+      }
+    }, 200);
   }, []);
 
   useEffect(() => {
@@ -209,10 +221,10 @@ export default function CategoryNav() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
                       transition={{ duration: 0.6, ease: "easeInOut" }}
-                      className="fixed left-0 right-0 bg-white shadow-xl border-t z-50"
+                      className="fixed left-0 right-0 bg-white shadow-xl border-t z-[100]"
                       style={{
-                        top: "calc(9% + var(--category-nav-height))",
-                        maxHeight: "calc(100vh - var(--category-nav-height))",
+                        top: `calc(var(--header-height) + var(--category-nav-height))`,
+                        maxHeight: `calc(100vh - var(--header-height) - var(--category-nav-height))`,
                         overflowY: "auto",
                       }}
                     >
@@ -223,66 +235,125 @@ export default function CategoryNav() {
                           );
                           if (!cat) return null;
 
+                          const catProducts = allProducts.filter(
+                            (p) => p.category === cat.name
+                          );
+                          const productCount = catProducts.length;
+                          const minPrice =
+                            catProducts.length > 0
+                              ? Math.min(...catProducts.map((p) => p.price))
+                              : null;
+                          const maxPrice =
+                            catProducts.length > 0
+                              ? Math.max(...catProducts.map((p) => p.price))
+                              : null;
+
+                          let featured =
+                            cat.popularProducts &&
+                            cat.popularProducts.length > 0
+                              ? cat.popularProducts.slice(0, 2)
+                              : catProducts.slice(0, 2).map((p) => ({
+                                  id: p._id,
+                                  name: p.name,
+                                  image:
+                                    p.images && p.images.length > 0
+                                      ? p.images.find(
+                                          (img: any) => img.isPrimary
+                                        )?.url || p.images[0].url
+                                      : "",
+                                  price: p.price,
+                                }));
+
                           return (
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                              <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
-                                {cat.subcategories.map((subcategory, idx) => (
-                                  <div key={idx} className="space-y-3">
-                                    <h3 className="font-medium text-gray-900 text-lg border-b pb-2">
-                                      {subcategory.title}
-                                    </h3>
-                                    <ul className="space-y-2">
-                                      {subcategory.items.map(
-                                        (item, itemIdx) => (
-                                          <li key={itemIdx}>
-                                            <Link
-                                              to="/products"
-                                              onClick={() =>
-                                                handleCategoryClick(
-                                                  cat.name,
-                                                  item
-                                                )
-                                              }
-                                              className="text-gray-600 hover:text-primary hover:underline"
-                                            >
-                                              {item}
-                                            </Link>
-                                          </li>
-                                        )
-                                      )}
-                                    </ul>
+                              <div className="col-span-1 flex flex-col gap-4 p-4 bg-gray-50 rounded-lg border h-full min-w-[220px]">
+                                <div>
+                                  <h2 className="text-xl font-bold text-[#7494ec] flex items-center gap-2">
+                                    {cat.name}
+                                  </h2>
+                                  <div className="text-gray-600 text-sm mt-1">
+                                    {productCount} sản phẩm
                                   </div>
-                                ))}
+                                  {minPrice !== null && maxPrice !== null && (
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      Giá:{" "}
+                                      {minPrice === maxPrice
+                                        ? `${minPrice}₫`
+                                        : `${minPrice}₫ - ${maxPrice}₫`}
+                                    </div>
+                                  )}
+                                </div>
+                                <Link
+                                  to="/products"
+                                  onClick={() => handleCategoryClick(cat.name)}
+                                  className="mt-2 inline-block px-4 py-2 bg-[#7494ec] text-white rounded hover:bg-[#5a7ad1] text-center text-sm font-medium shadow"
+                                >
+                                  Xem tất cả sản phẩm
+                                </Link>
                               </div>
-
-                              {/* Popular Products */}
-                              {cat.popularProducts.length > 0 && (
-                                <div className="md:col-span-1">
-                                  <h3 className="font-medium text-gray-900 text-lg border-b pb-2 mb-3">
-                                    Best seller
+                              {cat.subcategories.length > 0 && (
+                                <div className="col-span-1 flex flex-col gap-2 p-4">
+                                  <h3 className="font-semibold text-gray-900 text-lg mb-2">
+                                    Types
                                   </h3>
-                                  <div className="space-y-4">
-                                    {cat.popularProducts.map((product) => (
+                                  <ul className="space-y-2">
+                                    {cat.subcategories[0].items.map(
+                                      (item, itemIdx) => (
+                                        <li key={itemIdx}>
+                                          <Link
+                                            to="/products"
+                                            onClick={() =>
+                                              handleCategoryClick(
+                                                cat.name,
+                                                item
+                                              )
+                                            }
+                                            className="text-gray-700 hover:text-[#7494ec] hover:underline text-base"
+                                          >
+                                            {item}
+                                          </Link>
+                                        </li>
+                                      )
+                                    )}
+                                  </ul>
+                                </div>
+                              )}
+                              <div className="col-span-2 flex flex-col gap-4 p-4">
+                                <h3 className="font-semibold text-gray-900 text-lg mb-2">
+                                  Sản phẩm nổi bật
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  {featured.length > 0 ? (
+                                    featured.map((product) => (
                                       <Link
                                         to={`/product/${product.id}`}
                                         key={product.id}
-                                        className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded transition-colors"
+                                        className="flex items-center gap-4 bg-white border rounded-lg p-3 hover:shadow-md transition"
                                       >
-                                        <div className="w-16 h-16 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+                                        <div className="w-20 h-20 bg-gray-200 rounded overflow-hidden flex-shrink-0">
                                           <img
                                             src={product.image}
                                             alt={product.name}
                                             className="w-full h-full object-cover"
                                           />
                                         </div>
-                                        <span className="text-sm font-medium">
-                                          {product.name}
-                                        </span>
+                                        <div className="flex-1">
+                                          <div className="font-medium text-base truncate">
+                                            {product.name}
+                                          </div>
+                                          <div className="text-[#7494ec] font-bold mt-1">
+                                            {product.price?.toLocaleString()}₫
+                                          </div>
+                                        </div>
                                       </Link>
-                                    ))}
-                                  </div>
+                                    ))
+                                  ) : (
+                                    <div className="text-gray-400 italic">
+                                      Chưa có sản phẩm nổi bật
+                                    </div>
+                                  )}
                                 </div>
-                              )}
+                              </div>
                             </div>
                           );
                         })()}
