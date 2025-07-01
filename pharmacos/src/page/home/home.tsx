@@ -522,10 +522,7 @@ const Home = () => {
           </div>
         </section>
 
-        {/* Blog Random Section */}
-        <BlogRandomSection />
-
-        {/* Find Products Your Way Section */}
+       
         <section className="py-12 bg-white">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl font-bold mb-8 text-center">
@@ -634,6 +631,10 @@ const Home = () => {
             )}
           </div>
         </section>
+         {/* Blog Random Section */}
+        <BlogRandomSection />
+
+        {/* Find Products Your Way Section */}
 
         {/* Promotion Banner */}
         <section className="py-12 bg-primary/10">
