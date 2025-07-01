@@ -196,6 +196,8 @@ const ReviewFormDialog = ({
   );
 };
 
+const formatVND = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+
 const ProductDetailPage: React.FC = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const { productId } = useParams<{ productId: string }>();
@@ -744,7 +746,7 @@ const ProductDetailPage: React.FC = () => {
 
   // Calculate discounted price if applicable
   const discountedPrice = product.discount
-    ? (product.price * (1 - product.discount / 100)).toFixed(2)
+    ? product.price * (1 - product.discount / 100)
     : null;
 
   // Toggle favorite status
@@ -889,19 +891,19 @@ const ProductDetailPage: React.FC = () => {
 
           {/* Price */}
           <div className="flex items-baseline space-x-3">
-            {discountedPrice ? (
+            {discountedPrice !== null ? (
               <>
                 <span className="text-2xl font-bold text-primary">
-                  ${discountedPrice}
+                  {formatVND(discountedPrice)}
                 </span>
                 <span className="text-lg text-gray-500 line-through">
-                  ${product.price.toFixed(2)}
+                  {formatVND(product.price)}
                 </span>
                 <Badge className="bg-red-500">{product.discount}% OFF</Badge>
               </>
             ) : (
               <span className="text-2xl font-bold">
-                ${product.price.toFixed(2)}
+                {formatVND(product.price)}
               </span>
             )}
           </div>

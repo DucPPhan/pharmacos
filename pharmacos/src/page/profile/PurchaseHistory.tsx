@@ -18,6 +18,8 @@ const ORDER_TABS = [
     { key: "cancelled", label: "Cancelled" },
 ];
 
+const formatVND = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+
 const fetchPurchaseHistory = async () => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role") || "customer";
@@ -139,7 +141,7 @@ const PurchaseHistory: React.FC = () => {
             <div className="user-profile-section-content">
                 {/* Tổng số tiền đã mua */}
                 <div style={{ marginBottom: 12, textAlign: "right", fontWeight: 600, color: "#1677ff" }}>
-                    Total spent: {totalSpent.toLocaleString()}₫
+                    Total spent: {formatVND(totalSpent)}
                 </div>
                 <Tabs
                     activeKey={orderTab}
@@ -207,7 +209,7 @@ const PurchaseHistory: React.FC = () => {
                                                             [Product deleted]
                                                         </div>
                                                         <div className="user-profile-order-item-price">
-                                                            {(prod.unitPrice ?? prod.price ?? 0).toLocaleString()}₫ x{prod.quantity ?? 1}
+                                                            {formatVND(prod.unitPrice ?? prod.price ?? 0)} x{prod.quantity ?? 1}
                                                         </div>
                                                     </div>
                                                 );
@@ -236,7 +238,7 @@ const PurchaseHistory: React.FC = () => {
                                                             "No product name"}
                                                     </div>
                                                     <div className="user-profile-order-item-price">
-                                                        {(prod.unitPrice ?? prod.price ?? 0).toLocaleString()}₫ x{prod.quantity ?? 1}
+                                                        {formatVND(prod.unitPrice ?? prod.price ?? 0)} x{prod.quantity ?? 1}
                                                     </div>
                                                 </div>
                                             );
@@ -250,7 +252,7 @@ const PurchaseHistory: React.FC = () => {
                                         <div>
                                             <span style={{ color: "#888", marginRight: 8 }}>Total:</span>
                                             <span style={{ color: "#1677ff", fontWeight: 600, fontSize: 16 }}>
-                                                {getOrderTotal(item).toLocaleString() + "₫"}
+                                                {formatVND(getOrderTotal(item))}
                                             </span>
                                         </div>
                                     </div>

@@ -21,6 +21,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { Toaster } from "./components/ui/toaster";
 import AboutPage from "./page/About/AboutPage";
 import FullScreenLoader from "./components/FullScreenLoader/FullScreenLoader";
+import { BlogList } from "./page/Blog/BlogList.tsx";
+import { BlogDetail } from "./page/Blog/BlogDetail.tsx";
 
 // Lazy load a apges for better transition experience
 const Home = lazy(() => import("./page/home/home"));
@@ -76,6 +78,8 @@ function App() {
 
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/product/:productId" element={<ProductDetailPage />} />
+              <Route path="/blog" element={<BlogList />} />
+              <Route path="/blog/:id" element={<BlogDetail/>} />
 
               {/* Protected routes */}
               <Route

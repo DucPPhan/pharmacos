@@ -46,6 +46,8 @@ const categoryOptions = [
   "Natural Products",
 ];
 
+const formatVND = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+
 export function Inventory() {
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -568,7 +570,7 @@ export function Inventory() {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-[#1F3368]/70">Price:</span>
-                    <span className="font-semibold text-[#1F3368]">${product.price}</span>
+                    <span className="font-semibold text-[#1F3368]">{formatVND(product.price)}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-[#1F3368]/70">Stock:</span>
@@ -858,7 +860,7 @@ export function Inventory() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-[#1F3368]">Price ($) *</label>
+                  <label className="block text-sm font-medium mb-1 text-[#1F3368]">Price (VND) *</label>
                   <Input
                     type="number"
                     name="price"

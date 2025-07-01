@@ -83,6 +83,8 @@ const categories: Category[] = [
   },
 ];
 
+const formatVND = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+
 const CategoryPage = () => {
   const navigate = useNavigate();
   const { categoryId } = useParams<{ categoryId: string }>();
@@ -380,8 +382,8 @@ const CategoryPage = () => {
               className="my-6"
             />
             <div className="flex justify-between text-sm">
-              <span>${priceRange[0].toFixed(2)}</span>
-              <span>${priceRange[1].toFixed(2)}</span>
+              <span>{formatVND(priceRange[0])}</span>
+              <span>{formatVND(priceRange[1])}</span>
             </div>
           </div>
 

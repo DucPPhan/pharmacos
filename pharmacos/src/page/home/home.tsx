@@ -33,6 +33,7 @@ import CategoryNav from "./CategoryNav";
 import { useCart } from "@/contexts/CartContext";
 import { favoritesApi } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
+import { BlogRandomSection } from '../Blog/BlogRandomSection';
 
 const categories = [
   {
@@ -520,6 +521,9 @@ const Home = () => {
             </div>
           </div>
         </section>
+
+        {/* Blog Random Section */}
+        <BlogRandomSection />
 
         {/* Find Products Your Way Section */}
         <section className="py-12 bg-white">

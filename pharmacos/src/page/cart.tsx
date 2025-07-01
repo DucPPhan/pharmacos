@@ -34,6 +34,8 @@ import NewAddressForm from "./NewAddressForm";
 // Regex để xác thực số điện thoại Việt Nam
 const phoneRegex = /^(0[3|5|7|8|9])+([0-9]{8})$/;
 
+const formatVND = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+
 const Cart = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -289,7 +291,7 @@ const Cart = () => {
                         />
                         <div className="flex-1">
                           <h3 className="font-medium">{item.name}</h3>
-                          <p className="text-sm text-muted-foreground">${item.price.toFixed(2)}</p>
+                          <p className="text-sm text-muted-foreground">{formatVND(item.price)}</p>
                         </div>
                         <div className="flex items-center border rounded-md">
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.id, -1)}>
@@ -314,11 +316,11 @@ const Cart = () => {
               <Card>
                 <CardHeader><CardTitle>Tóm Tắt Đơn Hàng</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex justify-between"><span>Tạm tính</span><span>${subtotal.toFixed(2)}</span></div>
-                  <div className="flex justify-between"><span>Phí vận chuyển</span><span>${shipping.toFixed(2)}</span></div>
-                  <div className="flex justify-between"><span>Thuế</span><span>${tax.toFixed(2)}</span></div>
+                  <div className="flex justify-between"><span>Tạm tính</span><span>{formatVND(subtotal)}</span></div>
+                  <div className="flex justify-between"><span>Phí vận chuyển</span><span>{formatVND(shipping)}</span></div>
+                  <div className="flex justify-between"><span>Thuế</span><span>{formatVND(tax)}</span></div>
                   <Separator />
-                  <div className="flex justify-between font-bold"><span>Tổng cộng</span><span>${total.toFixed(2)}</span></div>
+                  <div className="flex justify-between font-bold"><span>Tổng cộng</span><span>{formatVND(total)}</span></div>
                 </CardContent>
                 <CardFooter>
                   <Button

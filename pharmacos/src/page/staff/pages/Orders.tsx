@@ -75,6 +75,8 @@ interface OrderCardProps {
   onUpdateStatus: (orderId: string, status: OrderStatus) => void;
 }
 
+const formatVND = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+
 const OrderCard: React.FC<OrderCardProps> = ({ order, onUpdateStatus }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -155,7 +157,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onUpdateStatus }) => {
           <div className="flex items-center space-x-4">
             <div className="text-right">
               <div className="text-lg font-bold text-gray-900">
-                ${calculatedTotal.toFixed(2)}
+                {formatVND(calculatedTotal)}
               </div>
               <div className="text-sm text-gray-500">Total</div>
             </div>
@@ -237,12 +239,12 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onUpdateStatus }) => {
                               {item.productId.name}
                             </p>
                             <p className="text-xs text-gray-500">
-                              ${item.unitPrice.toFixed(2)} x {item.quantity}
+                              {formatVND(item.unitPrice)} x {item.quantity}
                             </p>
                           </div>
                           <div className="text-right">
                             <p className="text-sm font-medium text-gray-900">
-                              ${(item.unitPrice * item.quantity).toFixed(2)}
+                              {formatVND(item.unitPrice * item.quantity)}
                             </p>
                           </div>
                         </div>
@@ -251,7 +253,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onUpdateStatus }) => {
                   </div>
                   <div className="mt-3 text-right">
                     <p className="text-sm font-medium text-gray-900">
-                      Total: ${calculatedTotal.toFixed(2)}
+                      Total: {formatVND(calculatedTotal)}
                     </p>
                   </div>
                 </div>

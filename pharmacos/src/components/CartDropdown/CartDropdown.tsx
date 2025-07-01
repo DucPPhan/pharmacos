@@ -18,6 +18,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+const formatVND = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+
 const CartDropdown: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<CartItem | null>(null);
@@ -122,7 +124,7 @@ const CartDropdown: React.FC = () => {
                           {item.name}
                         </h4>
                         <p className="text-sm text-gray-500">
-                          ${item.price.toFixed(2)}
+                          {formatVND(item.price)}
                         </p>
                       </div>
                       <div className="flex items-center justify-between">
@@ -160,7 +162,7 @@ const CartDropdown: React.FC = () => {
 
               <div className="flex justify-between font-medium mb-3">
                 <span>Subtotal:</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>{formatVND(subtotal)}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
