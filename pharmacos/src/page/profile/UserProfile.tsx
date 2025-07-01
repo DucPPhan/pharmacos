@@ -315,8 +315,14 @@ const ChangePasswordForm: React.FC<{
             setLoading(true);
             await changePassword(oldPassword, newPassword);
             setLoading(false);
-            message.success("Password changed successfully!");
-            onSuccess();
+            message.success("Password changed successfully! Please login again.");
+            setTimeout(() => {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                localStorage.removeItem("role");
+                window.location.href = "/login";
+            }, 2000);
+
         } catch (err: any) {
             setLoading(false);
             message.error(err.message || "Password change failed!");
@@ -349,16 +355,15 @@ const ChangePasswordForm: React.FC<{
                     <Form.Item
                         name="newPassword"
                         label="New Password"
+                        dependencies={["oldPassword"]}
                         rules={[
                             { required: true, message: "Please enter your new password!" },
                             { min: 1, message: "Password must be at least 6 characters!" },
                             {
                                 validator: (_, value) => {
                                     if (!value) return Promise.resolve();
-                                    if (
-                                        form.getFieldValue("oldPassword") &&
-                                        value === form.getFieldValue("oldPassword")
-                                    ) {
+                                    const oldPassword = form.getFieldValue("oldPassword");
+                                    if (oldPassword && value === oldPassword) {
                                         return Promise.reject(
                                             "New password must be different from old password!"
                                         );
@@ -412,6 +417,7 @@ const ChangePasswordForm: React.FC<{
                             size="large"
                             className="user-profile-edit-btn"
                             style={{ width: 160, height: 40 }}
+                            loading={loading}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 handleSubmit();
