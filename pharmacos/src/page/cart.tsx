@@ -255,7 +255,8 @@ const Cart = () => {
         title: "Đặt hàng thành công!",
         description: "Đơn hàng của bạn đang được xử lý.",
       });
-      navigate("/order-confirmation");
+      const orderId = orderRes?.order?._id || orderRes?.order?.id;
+      navigate(`/order-confirmation?orderId=${orderId}`);
     } catch (error) {
       toast({
         title: "Lỗi",

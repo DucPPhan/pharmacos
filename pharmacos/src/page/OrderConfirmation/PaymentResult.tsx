@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
+import { orderApi } from "@/lib/api";
 
 function useQuery() {
   return new URLSearchParams(useLocation().search);
@@ -19,14 +20,33 @@ const PaymentResult: React.FC = () => {
   const status = query.get("status");
   const code = query.get("code");
   const cancel = query.get("cancel");
-  const { clearCart } = useCart();
+  const orderId = query.get("orderId");
+  const { clearCart, cartItems, removeItem } = useCart();
 
   useEffect(() => {
-    if ((status === "PAID" || code === "00") && cancel !== "true") {
-      localStorage.removeItem("cart");
-      if (clearCart) clearCart();
-    }
-  }, [status, code, cancel, clearCart]);
+    const removePurchasedItems = async () => {
+      if (
+        (status === "PAID" || code === "00") &&
+        cancel !== "true" &&
+        orderId
+      ) {
+        try {
+          const order = await orderApi.getOrderById(orderId);
+          const purchasedProductIds = (order.items || []).map(
+            (item: any) => item.productId?._id || item.productId
+          );
+          cartItems.forEach((item) => {
+            if (purchasedProductIds.includes(item.productId)) {
+              removeItem(item.id);
+            }
+          });
+        } catch (e) {
+          // fallback: do nothing
+        }
+      }
+    };
+    removePurchasedItems();
+  }, [status, code, cancel, orderId, cartItems, removeItem]);
 
   let title = "";
   let description = "";
