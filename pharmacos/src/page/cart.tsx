@@ -62,6 +62,7 @@ const Cart = () => {
     submitOrder,
     isSubmitting,
     isCartLoading,
+    clearCart, // Add this if it exists in your CartContext
   } = useCart();
 
   const [isCheckoutDialogOpen, setIsCheckoutDialogOpen] = useState(false);
@@ -174,46 +175,85 @@ const Cart = () => {
     setIsEditingAddress(!isEditingAddress);
   };
 
-  const handleOpenCheckout = () => {
-    setIsCheckoutDialogOpen(true);
+  const handleOpenCheckout = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to continue with checkout.",
+        variant: "destructive",
+      });
+      navigate('/login', { state: { from: '/cart' } });
+      return;
+    }
+
+    setIsProfileLoading(true);
+    try {
+      // Fetch user's saved addresses
+      await fetchUserAddresses();
+
+      // Load latest user information to fill the form
+      const profileData = await apiFetch('http://localhost:10000/api/customers/profile');
+
+      // Only set profile data if no address is selected
+      if (!selectedAddressId) {
+        setCheckoutInfo(prev => ({
+          ...prev,
+          recipientName: profileData.name || '',
+          phone: profileData.phone || '',
+          shippingAddress: getFullAddress(profileData)
+        }));
+      }
+
+      setIsCheckoutDialogOpen(true);
+    } catch (error) {
+      console.error("Failed to fetch user profile:", error);
+      toast({
+        title: "Error",
+        description: "Unable to load your personal information. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProfileLoading(false);
+    }
   };
 
   const handleConfirmOrder = async () => {
     // Validation
     if (!checkoutInfo.recipientName.trim()) {
       toast({
-        title: "Lỗi",
-        description: "Vui lòng nhập tên người nhận.",
+        title: "Error",
+        description: "Please enter recipient name.",
         variant: "destructive",
       });
       return;
     }
     if (!checkoutInfo.phone.trim() || !phoneRegex.test(checkoutInfo.phone)) {
       toast({
-        title: "Lỗi",
-        description: "Vui lòng nhập số điện thoại hợp lệ.",
+        title: "Error",
+        description: "Please enter a valid phone number.",
         variant: "destructive",
       });
       return;
     }
     if (!checkoutInfo.shippingAddress.trim()) {
       toast({
-        title: "Lỗi",
-        description: "Vui lòng nhập địa chỉ giao hàng.",
+        title: "Error",
+        description: "Please enter shipping address.",
         variant: "destructive",
       });
       return;
     }
     if (cartItems.length === 0) {
       toast({
-        title: "Lỗi",
-        description: "Giỏ hàng trống.",
+        title: "Error",
+        description: "Cart is empty.",
         variant: "destructive",
       });
       return;
     }
     try {
-      // Chuẩn bị dữ liệu đúng chuẩn API Orders
+      // Prepare order data according to API Orders standard
       const orderData = {
         recipientName: checkoutInfo.recipientName,
         phone: checkoutInfo.phone,
@@ -225,15 +265,18 @@ const Cart = () => {
           unitPrice: item.price,
         })),
       };
-      // 1. Tạo đơn hàng
+
+      // 1. Create order
       const orderRes = await apiFetch("http://localhost:10000/api/orders", {
         method: "POST",
         body: JSON.stringify(orderData),
       });
-      // Nếu chọn online, tạo payment link và redirect
+
+      // If online payment is selected, create payment link and redirect (DO NOT clear cart)
       if (checkoutInfo.paymentMethod === "online") {
         const orderId = orderRes?.order?._id || orderRes?.order?.id;
-        if (!orderId) throw new Error("Không lấy được mã đơn hàng!");
+        if (!orderId) throw new Error("Cannot get order ID!");
+
         const paymentRes = await apiFetch(
           "http://localhost:10000/api/payments/create",
           {
@@ -241,33 +284,111 @@ const Cart = () => {
             body: JSON.stringify({ orderId }),
           }
         );
+
         if (paymentRes.success && paymentRes.data?.paymentUrl) {
+          // Save order info to localStorage for processing after payment
+          localStorage.setItem('pendingOrder', JSON.stringify({
+            orderId,
+            cartItems: cartItems.map(item => ({ ...item }))
+          }));
+
+          setIsCheckoutDialogOpen(false);
+          toast({
+            title: "Redirecting...",
+            description: "Redirecting to payment page.",
+          });
+
+          // Redirect to payment gateway WITHOUT clearing cart
           window.location.href = paymentRes.data.paymentUrl;
           return;
         } else {
-          throw new Error("Tạo link thanh toán thất bại!");
+          throw new Error("Failed to create payment link!");
         }
       }
-      // Nếu COD, flow cũ
+
+      // If COD, clear cart immediately as payment is completed
       localStorage.removeItem("cart");
+      cartItems.forEach(item => removeItem(item.id));
+
       setIsCheckoutDialogOpen(false);
       toast({
-        title: "Đặt hàng thành công!",
-        description: "Đơn hàng của bạn đang được xử lý.",
+        title: "Order placed successfully!",
+        description: "Your order is being processed.",
       });
       const orderId = orderRes?.order?._id || orderRes?.order?.id;
       navigate(`/order-confirmation?orderId=${orderId}`);
     } catch (error) {
       toast({
-        title: "Lỗi",
+        title: "Error",
         description:
           error instanceof Error
             ? error.message
-            : "Không thể đặt hàng. Vui lòng thử lại.",
+            : "Unable to place order. Please try again.",
         variant: "destructive",
       });
     }
   };
+
+  // Handle payment return (success/failure)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    const orderId = urlParams.get('orderId');
+    const vnp_ResponseCode = urlParams.get('vnp_ResponseCode');
+    const paypal_status = urlParams.get('paypal_status');
+
+    if (paymentStatus && orderId) {
+      // Clear URL params first
+      window.history.replaceState({}, document.title, window.location.pathname);
+
+      if (paymentStatus === 'success' || vnp_ResponseCode === '00' || paypal_status === 'success') {
+        // Payment successful - clear cart and pending order
+        const pendingOrder = localStorage.getItem('pendingOrder');
+        if (pendingOrder) {
+          try {
+            const orderData = JSON.parse(pendingOrder);
+            localStorage.removeItem("cart");
+            orderData.cartItems.forEach((item: any) => removeItem(item.id));
+            localStorage.removeItem('pendingOrder');
+          } catch (error) {
+            console.error('Error clearing pending order:', error);
+          }
+        }
+
+        toast({
+          title: "Payment successful!",
+          description: "Your order has been paid and is being processed.",
+        });
+        navigate(`/order-confirmation?orderId=${orderId}`);
+      } else if (paymentStatus === 'failed' || paymentStatus === 'cancel' || vnp_ResponseCode !== '00') {
+        // Payment failed/cancelled - KEEP cart and payment link available for retry
+        const isCancelled = paymentStatus === 'cancel';
+
+        // Restore cart from pending order if needed
+        const pendingOrder = localStorage.getItem('pendingOrder');
+        if (pendingOrder && !localStorage.getItem('cart')) {
+          try {
+            const orderData = JSON.parse(pendingOrder);
+            localStorage.setItem('cart', JSON.stringify(orderData.cartItems));
+            window.dispatchEvent(new Event('cartUpdated'));
+          } catch (error) {
+            console.error('Error restoring cart:', error);
+          }
+        }
+
+        toast({
+          title: isCancelled ? "Payment cancelled" : "Payment failed",
+          description: isCancelled
+            ? "You cancelled the payment. The payment link is still valid. You can retry payment from the order page."
+            : "An error occurred during payment. You can try again from the order page.",
+          variant: "destructive",
+        });
+
+        // Always navigate to orders page so user can retry payment
+        navigate('/profile/orders');
+      }
+    }
+  }, [navigate, toast, removeItem]);
 
   const total = subtotal + 1000;
 
@@ -296,11 +417,11 @@ const Cart = () => {
             className="flex items-center text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Tiếp tục mua sắm
+            Continue Shopping
           </Link>
         </div>
 
-        <h1 className="text-3xl font-bold mb-8">Giỏ Hàng Của Bạn</h1>
+        <h1 className="text-3xl font-bold mb-8">Your Shopping Cart</h1>
 
         {cartItems.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -308,71 +429,71 @@ const Cart = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>
-                    Sản phẩm trong giỏ (
+                    Items in Cart (
                     {cartItems.reduce((acc, item) => acc + item.quantity, 0)})
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {isCartLoading
                     ? Array.from({ length: 2 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center space-x-4 animate-pulse"
-                        >
-                          <div className="h-24 w-24 rounded-md bg-gray-200"></div>
-                          <div className="flex-1 space-y-2">
-                            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                          </div>
-                          <div className="h-8 w-24 bg-gray-200 rounded-md"></div>
+                      <div
+                        key={i}
+                        className="flex items-center space-x-4 animate-pulse"
+                      >
+                        <div className="h-24 w-24 rounded-md bg-gray-200"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
                         </div>
-                      ))
+                        <div className="h-8 w-24 bg-gray-200 rounded-md"></div>
+                      </div>
+                    ))
                     : cartItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center space-x-4"
-                        >
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="h-24 w-24 rounded-md object-cover"
-                          />
-                          <div className="flex-1">
-                            <h3 className="font-medium">{item.name}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {formatVND(item.price)}
-                            </p>
-                          </div>
-                          <div className="flex items-center border rounded-md">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => updateQuantity(item.id, -1)}
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <span className="w-8 text-center">
-                              {item.quantity}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => updateQuantity(item.id, 1)}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                          </div>
+                      <div
+                        key={item.id}
+                        className="flex items-center space-x-4"
+                      >
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="h-24 w-24 rounded-md object-cover"
+                        />
+                        <div className="flex-1">
+                          <h3 className="font-medium">{item.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {formatVND(item.price)}
+                          </p>
+                        </div>
+                        <div className="flex items-center border rounded-md">
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => removeItem(item.id)}
+                            className="h-8 w-8"
+                            onClick={() => updateQuantity(item.id, -1)}
                           >
-                            <Trash2 className="h-4 w-4 text-muted-foreground" />
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <span className="w-8 text-center">
+                            {item.quantity}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => updateQuantity(item.id, 1)}
+                          >
+                            <Plus className="h-3 w-3" />
                           </Button>
                         </div>
-                      ))}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeItem(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      </div>
+                    ))}
                 </CardContent>
               </Card>
             </div>
@@ -380,16 +501,16 @@ const Cart = () => {
             <div>
               <Card>
                 <CardHeader>
-                  <CardTitle>Tóm Tắt Đơn Hàng</CardTitle>
+                  <CardTitle>Order Summary</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex justify-between">
-                    <span>Tạm tính</span>
+                    <span>Subtotal</span>
                     <span>{formatVND(subtotal)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-bold">
-                    <span>Tổng cộng</span>
+                    <span>Total</span>
                     <span>{formatVND(total)}</span>
                   </div>
                 </CardContent>
@@ -404,7 +525,7 @@ const Cart = () => {
                     {isProfileLoading && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
-                    {isProfileLoading ? "Đang tải..." : "Tiến hành thanh toán"}
+                    {isProfileLoading ? "Loading..." : "Proceed to Checkout"}
                   </Button>
                 </CardFooter>
               </Card>
@@ -414,17 +535,17 @@ const Cart = () => {
           <div className="text-center py-16">
             <ShoppingBag className="mx-auto h-16 w-16 text-muted-foreground" />
             <h2 className="mt-2 text-2xl font-semibold">
-              Giỏ hàng của bạn đang trống
+              Your cart is empty
             </h2>
             <p className="mt-1 text-muted-foreground">
-              Hãy thêm sản phẩm vào giỏ để bắt đầu.
+              Add products to cart to get started.
             </p>
             <Button
               asChild
               className="mt-6"
               style={{ backgroundColor: "#7494ec" }}
             >
-              <Link to="/">Bắt đầu mua sắm</Link>
+              <Link to="/">Start Shopping</Link>
             </Button>
           </div>
         )}
@@ -439,143 +560,305 @@ const Cart = () => {
           style={{ maxHeight: "90vh", overflowY: "auto" }}
         >
           <DialogHeader>
-            <DialogTitle>Thông Tin Đặt Hàng</DialogTitle>
+            <DialogTitle>Order Information</DialogTitle>
             <DialogDescription>
-              Vui lòng nhập thông tin giao hàng và kiểm tra lại sản phẩm trước
-              khi xác nhận.
+              Please enter shipping information and review products before confirming.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">
-                Tên người nhận <span style={{ color: "red" }}>*</span>
-              </Label>
-              <Input
-                className="col-span-3"
-                name="recipientName"
-                value={checkoutInfo.recipientName}
-                onChange={handleInputChange}
-                placeholder="Nhập tên người nhận"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">
-                Số điện thoại <span style={{ color: "red" }}>*</span>
-              </Label>
-              <Input
-                className="col-span-3"
-                name="phone"
-                value={checkoutInfo.phone}
-                onChange={handleInputChange}
-                placeholder="Nhập số điện thoại"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">
-                Địa chỉ giao hàng <span style={{ color: "red" }}>*</span>
-              </Label>
-              <Textarea
-                className="col-span-3"
-                name="shippingAddress"
-                value={checkoutInfo.shippingAddress}
-                onChange={handleInputChange}
-                placeholder="Nhập địa chỉ giao hàng"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Ghi chú</Label>
-              <Textarea
-                className="col-span-3"
-                name="note"
-                value={checkoutInfo.note}
-                onChange={handleInputChange}
-                placeholder="Ghi chú cho đơn hàng (nếu có)"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Phương thức thanh toán</Label>
-              <div className="col-span-3">
-                <div className="flex gap-6">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="cod"
-                      checked={checkoutInfo.paymentMethod === "cod"}
-                      onChange={() => handlePaymentChange("cod")}
-                    />
-                    Thanh toán khi nhận hàng (COD)
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="online"
-                      checked={checkoutInfo.paymentMethod === "online"}
-                      onChange={() => handlePaymentChange("online")}
-                    />
-                    Thanh toán online
-                  </label>
-                </div>
+
+          {showAddressForm ? (
+            <NewAddressForm
+              onSave={handleAddNewAddress}
+              onCancel={() => {
+                setShowAddressForm(false);
+                setShowAddressSelection(true);
+              }}
+            />
+          ) : showAddressSelection ? (
+            <div className="py-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium" id="address-selection-title">Select Delivery Address</h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowAddressSelection(false)}
+                  aria-label="Close address selection"
+                  title="Close address selection"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
-            </div>
-            <Separator className="my-2" />
-            <div>
-              <div className="font-semibold mb-2">Sản phẩm trong đơn hàng</div>
-              <div className="space-y-2 max-h-[180px] overflow-y-auto">
-                {cartItems.map((item) => (
+
+              <div className="space-y-3 max-h-[300px] overflow-y-auto" role="radiogroup" aria-labelledby="address-selection-title">
+                {userAddresses.map((addr) => (
                   <div
-                    key={item.id}
-                    className="flex items-center justify-between border rounded-md p-2 bg-gray-50"
+                    key={addr._id}
+                    className={`border rounded-md p-3 cursor-pointer ${addr._id === selectedAddressId ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
+                    onClick={() => handleAddressSelection(addr._id || "")}
+                    role="radio"
+                    aria-checked={addr._id === selectedAddressId}
                   >
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="h-12 w-12 rounded object-cover border"
-                      />
-                      <div>
-                        <div className="font-medium text-base">{item.name}</div>
-                        <div className="text-sm text-gray-500">
-                          x{item.quantity}
-                        </div>
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0 pt-1">
+                        <input
+                          type="radio"
+                          checked={addr._id === selectedAddressId}
+                          onChange={() => handleAddressSelection(addr._id || "")}
+                          className="h-4 w-4 text-blue-600"
+                          id={`address-${addr._id}`}
+                          name="selected-address"
+                          aria-label={`Địa chỉ: ${addr.name}, ${addr.phone}, ${getFullAddress(addr)}`}
+                        />
                       </div>
-                    </div>
-                    <div className="font-semibold text-[#7494ec]">
-                      {formatVND(item.price * item.quantity)}
+                      <div className="ml-3 flex-grow">
+                        <label htmlFor={`address-${addr._id}`} className="block w-full cursor-pointer">
+                          <div className="flex justify-between">
+                            <span className="font-medium">{addr.name}</span>
+                            {addr.isDefault && (
+                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                                Default
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-600">{addr.phone}</div>
+                          <div className="text-sm mt-1">{getFullAddress(addr)}</div>
+                          <div className="mt-1 flex items-center">
+                            {addr.addressType === "Home" ? (
+                              <Home className="h-3.5 w-3.5 text-gray-400 mr-1" />
+                            ) : (
+                              <Building className="h-3.5 w-3.5 text-gray-400 mr-1" />
+                            )}
+                            <span className="text-xs text-gray-500">{addr.addressType}</span>
+                          </div>
+                        </label>
+                      </div>
                     </div>
                   </div>
                 ))}
+
+                <div
+                  className="border rounded-md p-3 border-dashed hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer"
+                  onClick={() => setShowAddressForm(true)}
+                  role="button"
+                  aria-label="Thêm địa chỉ mới"
+                >
+                  <div className="flex items-center justify-center py-2">
+                    <PlusOutlined className="h-4 w-4 mr-2" />
+                    <span className="font-medium">Add New Address</span>
+                  </div>
+                </div>
+
+                <div
+                  className={`border rounded-md p-3 cursor-pointer ${useManualAddress ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
+                  onClick={() => handleAddressSelection("manual")}
+                  role="radio"
+                  aria-checked={useManualAddress}
+                >
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 pt-1">
+                      <input
+                        type="radio"
+                        checked={useManualAddress}
+                        onChange={() => handleAddressSelection("manual")}
+                        className="h-4 w-4 text-blue-600"
+                        id="manual-address"
+                        name="selected-address"
+                        aria-label="Nhập địa chỉ mới"
+                      />
+                    </div>
+                    <div className="ml-3 flex-grow">
+                      <label htmlFor="manual-address" className="block w-full cursor-pointer">
+                        <span className="font-medium">Enter New Address</span>
+                        <div className="text-sm text-gray-600 mt-1">Enter different shipping information</div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-between mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAddressSelection(false)}
+                  title="Back to checkout page"
+                >
+                  Back
+                </Button>
+                <Button
+                  onClick={() => setShowAddressSelection(false)}
+                  style={{ backgroundColor: "#7494ec" }}
+                  title="Confirm selected address"
+                >
+                  Confirm
+                </Button>
               </div>
             </div>
-            <Separator className="my-2" />
-            <div className="flex justify-between">
-              <span>Tạm tính</span>
-              <span>{formatVND(subtotal)}</span>
+          ) : (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right" id="shipping-address-label">Shipping Address</Label>
+                <div className="col-span-3">
+                  <div className="border rounded-md p-3" aria-labelledby="shipping-address-label">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-medium">{checkoutInfo.recipientName}</div>
+                        <div className="text-sm text-gray-600">{checkoutInfo.phone}</div>
+                        <div className="text-sm mt-1">{checkoutInfo.shippingAddress}</div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleEditAddressClick}
+                        className="text-blue-500 p-0 h-auto hover:bg-transparent"
+                        aria-label="Edit shipping address"
+                        title="Edit shipping address"
+                      >
+                        Edit
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {useManualAddress && (
+                <>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label className="text-right">
+                      Recipient Name <span style={{ color: "red" }}>*</span>
+                    </Label>
+                    <Input
+                      className="col-span-3"
+                      name="recipientName"
+                      value={checkoutInfo.recipientName}
+                      onChange={handleInputChange}
+                      placeholder="Enter recipient name"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label className="text-right">
+                      Phone Number <span style={{ color: "red" }}>*</span>
+                    </Label>
+                    <Input
+                      className="col-span-3"
+                      name="phone"
+                      value={checkoutInfo.phone}
+                      onChange={handleInputChange}
+                      placeholder="Enter phone number"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label className="text-right">
+                      Shipping Address <span style={{ color: "red" }}>*</span>
+                    </Label>
+                    <Textarea
+                      className="col-span-3"
+                      name="shippingAddress"
+                      value={checkoutInfo.shippingAddress}
+                      onChange={handleInputChange}
+                      placeholder="Enter shipping address"
+                      required
+                    />
+                  </div>
+                </>
+              )}
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Notes</Label>
+                <Textarea
+                  className="col-span-3"
+                  name="note"
+                  value={checkoutInfo.note}
+                  onChange={handleInputChange}
+                  placeholder="Order notes (optional)"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Payment Method</Label>
+                <div className="col-span-3">
+                  <div className="flex gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="cod"
+                        checked={checkoutInfo.paymentMethod === "cod"}
+                        onChange={() => handlePaymentChange("cod")}
+                      />
+                      Cash on Delivery (COD)
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="online"
+                        checked={checkoutInfo.paymentMethod === "online"}
+                        onChange={() => handlePaymentChange("online")}
+                      />
+                      Online Payment
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <Separator className="my-2" />
+              <div>
+                <div className="font-semibold mb-2">Products in Order</div>
+                <div className="space-y-2 max-h-[180px] overflow-y-auto">
+                  {cartItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between border rounded-md p-2 bg-gray-50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="h-12 w-12 rounded object-cover border"
+                        />
+                        <div>
+                          <div className="font-medium text-base">{item.name}</div>
+                          <div className="text-sm text-gray-500">
+                            x{item.quantity}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="font-semibold text-[#7494ec]">
+                        {formatVND(item.price * item.quantity)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Separator className="my-2" />
+              <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span>{formatVND(subtotal)}</span>
+              </div>
+              <Separator className="my-2" />
+              <div className="flex justify-between font-bold text-lg">
+                <span>Total</span>
+                <span>{formatVND(total)}</span>
+              </div>
             </div>
-            <Separator className="my-2" />
-            <div className="flex justify-between font-bold text-lg">
-              <span>Tổng cộng</span>
-              <span>{formatVND(total)}</span>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsCheckoutDialogOpen(false)}
-            >
-              Hủy
-            </Button>
-            <Button
-              onClick={handleConfirmOrder}
-              style={{ backgroundColor: "#7494ec" }}
-            >
-              Đặt hàng
-            </Button>
-          </DialogFooter>
+          )}
+
+          {!showAddressSelection && !showAddressForm && (
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsCheckoutDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleConfirmOrder}
+                style={{ backgroundColor: "#7494ec" }}
+              >
+                Place Order
+              </Button>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     </div>

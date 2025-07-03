@@ -465,8 +465,8 @@ const OrderDetail = () => {
                       src={
                         item.productId?.images?.length
                           ? item.productId.images.find(
-                              (img: any) => img.isPrimary
-                            )?.url || item.productId.images[0].url
+                            (img: any) => img.isPrimary
+                          )?.url || item.productId.images[0].url
                           : "https://via.placeholder.com/80x80?text=No+Image"
                       }
                       alt={item.productId?.name}
@@ -565,6 +565,65 @@ const OrderDetail = () => {
             }}
             bodyStyle={{ padding: 24 }}
           >
+            {/* Payment Status Banner */}
+            <div
+              style={{
+                background:
+                  order.paymentStatus === "success"
+                    ? "linear-gradient(90deg, #d4edda 0%, #c3e6cb 100%)"
+                    : "linear-gradient(90deg, #fff3cd 0%, #ffeaa7 100%)",
+                padding: "12px 16px",
+                borderRadius: 12,
+                marginBottom: 16,
+                border:
+                  order.paymentStatus === "success"
+                    ? "1px solid #28a745"
+                    : "1px solid #ffc107",
+                textAlign: "center",
+              }}
+            >
+              <span
+                style={{
+                  fontWeight: 600,
+                  fontSize: 16,
+                  color:
+                    order.paymentStatus === "success"
+                      ? "#155724"
+                      : "#856404",
+                }}
+              >
+                {order.paymentStatus === "success"
+                  ? "✅ Đã thanh toán"
+                  : "⏳ Chưa thanh toán"}
+              </span>
+              <div
+                style={{
+                  fontSize: 14,
+                  color:
+                    order.paymentStatus === "success"
+                      ? "#155724"
+                      : "#856404",
+                  marginTop: 4,
+                  fontWeight: 500,
+                }}
+              >
+                Phương thức: {order.paymentMethod === "cash" ? "Tiền mặt" : order.paymentMethod === "bank" ? "Chuyển khoản" : order.paymentMethod === "online" ? "Thanh toán online" : "Thanh toán khi giao hàng"}
+              </div>
+              {order.paymentStatus === "pending" && (
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: "#856404",
+                    marginTop: 4,
+                  }}
+                >
+                  {order.paymentMethod === "cash"
+                    ? "Vui lòng chuẩn bị tiền mặt khi giao hàng"
+                    : "Vui lòng thanh toán để hoàn tất đơn hàng"}
+                </div>
+              )}
+            </div>
+
             <Descriptions
               column={1}
               size="small"
@@ -599,27 +658,174 @@ const OrderDetail = () => {
                 <CreditCardOutlined
                   style={{ color: "#1677ff", marginRight: 6 }}
                 />
-                <span style={{ fontWeight: 500 }}>Cash on delivery</span>
+                <span style={{ fontWeight: 500 }}>
+                  {order.paymentMethod === "cash"
+                    ? "Tiền mặt (Cash on delivery)"
+                    : order.paymentMethod === "bank"
+                      ? "Chuyển khoản ngân hàng"
+                      : order.paymentMethod === "online"
+                        ? "Thanh toán online"
+                        : "Thanh toán khi giao hàng"}
+                </span>
+              </Descriptions.Item>
+              <Descriptions.Item label="Payment status">
+                <Tag
+                  color={
+                    order.paymentStatus === "success" ? "green" : "orange"
+                  }
+                  style={{ fontWeight: 600 }}
+                >
+                  {order.paymentStatus === "success" ? "Paid" : "Pending"}
+                </Tag>
               </Descriptions.Item>
             </Descriptions>
             <div style={{ textAlign: "center", marginTop: 24 }}>
-              <Button
-                type="primary"
-                icon={<ShoppingCartOutlined />}
-                style={{
-                  borderRadius: 24,
-                  padding: "0 32px",
-                  fontWeight: 600,
-                  fontSize: 16,
-                  height: 44,
-                  background: "linear-gradient(90deg, rgb(31, 14, 189) 100%)",
-                  border: "none",
-                  boxShadow: "0 2px 8px 0 rgba(60,120,200,0.10)",
-                }}
-                onClick={() => reorderFromOrderDetail(order.items, navigate)}
-              >
-                Reorder
-              </Button>
+              {order.paymentStatus === "pending" &&
+                order.status !== "cancelled" ? (
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 12,
+                    justifyContent: "center",
+                  }}
+                >
+                  {order.paymentMethod !== "cash" && (
+                    <Button
+                      type="primary"
+                      icon={<CreditCardOutlined />}
+                      style={{
+                        borderRadius: 24,
+                        padding: "0 32px",
+                        fontWeight: 600,
+                        fontSize: 16,
+                        height: 44,
+                        background:
+                          "linear-gradient(90deg, #52c41a 0%, #73d13d 100%)",
+                        border: "none",
+                        boxShadow: "0 2px 8px 0 rgba(82, 196, 26, 0.3)",
+                      }}
+                      onClick={async () => {
+                        try {
+                          // Check if payment already exists first
+                          let paymentUrl = null;
+
+                          try {
+                            const existingPaymentCheck = await apiFetch(`http://localhost:10000/api/payments/check/${order.id}`, {
+                              method: "GET"
+                            });
+
+                            if (existingPaymentCheck.exists && existingPaymentCheck.paymentUrl) {
+                              paymentUrl = existingPaymentCheck.paymentUrl;
+                            }
+                          } catch (checkError) {
+                            console.log("Payment check failed, will try to create new payment");
+                          }
+
+                          if (!paymentUrl) {
+                            try {
+                              const paymentData = await apiFetch("http://localhost:10000/api/payments/create", {
+                                method: "POST",
+                                body: JSON.stringify({
+                                  orderId: order.id,
+                                  paymentMethod: order.paymentMethod || "bank"
+                                }),
+                              });
+
+                              if (paymentData.success && paymentData.data?.paymentUrl) {
+                                paymentUrl = paymentData.data.paymentUrl;
+                              }
+                            } catch (createError: any) {
+                              if (createError.message?.includes("already exists")) {
+                                // Try to reset and create again
+                                const resetResponse = await apiFetch(`http://localhost:10000/api/payments/reset/${order.id}`, {
+                                  method: "POST"
+                                });
+
+                                if (resetResponse.success) {
+                                  const retryPaymentData = await apiFetch("http://localhost:10000/api/payments/create", {
+                                    method: "POST",
+                                    body: JSON.stringify({
+                                      orderId: order.id,
+                                      paymentMethod: order.paymentMethod || "bank"
+                                    }),
+                                  });
+
+                                  if (retryPaymentData.success && retryPaymentData.data?.paymentUrl) {
+                                    paymentUrl = retryPaymentData.data.paymentUrl;
+                                  }
+                                }
+                              }
+                            }
+                          }
+
+                          if (paymentUrl) {
+                            window.location.href = paymentUrl;
+                          } else {
+                            message.error("Không thể tạo link thanh toán. Vui lòng liên hệ hỗ trợ.");
+                          }
+                        } catch (error) {
+                          console.error("Payment error:", error);
+                          message.error("Có lỗi xảy ra khi tạo thanh toán.");
+                        }
+                      }}
+                    >
+                      Thanh toán ngay
+                    </Button>
+                  )}
+                  {order.paymentMethod === "cash" && (
+                    <div
+                      style={{
+                        background: "#f0f8ff",
+                        padding: "12px 16px",
+                        borderRadius: 12,
+                        border: "1px solid #1677ff",
+                        color: "#1677ff",
+                        fontWeight: 500,
+                        fontSize: 14,
+                        textAlign: "center",
+                        marginBottom: 12,
+                      }}
+                    >
+                      💵 Bạn sẽ thanh toán bằng tiền mặt khi nhận hàng
+                    </div>
+                  )}
+                  <Button
+                    icon={<ShoppingCartOutlined />}
+                    style={{
+                      borderRadius: 24,
+                      padding: "0 32px",
+                      fontWeight: 600,
+                      fontSize: 16,
+                      height: 44,
+                      background: "linear-gradient(90deg, rgb(31, 14, 189) 100%)",
+                      border: "none",
+                      boxShadow: "0 2px 8px 0 rgba(60,120,200,0.10)",
+                      color: "white",
+                    }}
+                    onClick={() => reorderFromOrderDetail(order.items, navigate)}
+                  >
+                    Mua lại
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="primary"
+                  icon={<ShoppingCartOutlined />}
+                  style={{
+                    borderRadius: 24,
+                    padding: "0 32px",
+                    fontWeight: 600,
+                    fontSize: 16,
+                    height: 44,
+                    background: "linear-gradient(90deg, rgb(31, 14, 189) 100%)",
+                    border: "none",
+                    boxShadow: "0 2px 8px 0 rgba(60,120,200,0.10)",
+                  }}
+                  onClick={() => reorderFromOrderDetail(order.items, navigate)}
+                >
+                  Reorder
+                </Button>
+              )}
             </div>
           </Card>
         </Col>

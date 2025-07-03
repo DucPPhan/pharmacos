@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Card, Button, Tabs, Tag, Spin } from "antd";
+import { Card, Button, Tabs, Tag, Spin, Modal, Radio, Input } from "antd";
 import { GiftOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import { orderApi } from "@/lib/api";
+import { useToast } from "@/components/ui/use-toast";
 
 const ORDER_STATUS_MAP: Record<string, { label: string; color: string }> = {
   pending: { label: "Pending", color: "orange" },
@@ -18,6 +19,16 @@ const ORDER_TABS = [
   { key: "processing", label: "Processing" },
   { key: "completed", label: "Completed" },
   { key: "cancelled", label: "Cancelled" },
+];
+
+const CANCEL_REASONS = [
+  "I want to change the delivery address",
+  "I want to change products in the order",
+  "I found a better price elsewhere",
+  "I no longer want to buy",
+  "Ordered the wrong product",
+  "Delivery time is too long",
+  "Other reason",
 ];
 
 const fetchOrders = async () => {
@@ -49,6 +60,13 @@ const MyOrders: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  // Add modal state variables
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState<string>("");
+  const [customReason, setCustomReason] = useState<string>("");
 
   useEffect(() => {
     setLoading(true);
@@ -141,184 +159,288 @@ const MyOrders: React.FC = () => {
   );
 
   const handleCancelOrder = async (orderId: string) => {
-    setCancellingId(orderId);
+    // Show cancel reason modal instead of directly canceling
+    setCancelOrderId(orderId);
+    setShowCancelModal(true);
+  };
+
+  const confirmCancelOrder = async () => {
+    if (!cancelOrderId) return;
+
+    if (!cancelReason) {
+      toast({
+        title: "Error",
+        description: "Please select a reason for canceling the order.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (cancelReason === "Other reason" && !customReason.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a specific reason.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCancellingId(cancelOrderId);
     try {
       const token = localStorage.getItem("token");
-      await fetch(`http://localhost:10000/api/orders/${orderId}/cancel`, {
+      const reasonToSend = cancelReason === "Other reason" ? customReason : cancelReason;
+
+      await fetch(`http://localhost:10000/api/orders/${cancelOrderId}/cancel`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
+        body: JSON.stringify({
+          reason: reasonToSend
+        }),
       });
+
       // Refresh orders
       setOrders(await fetchOrders());
+
+      toast({
+        title: "Success",
+        description: "Order has been canceled successfully.",
+      });
+
+      // Reset modal states
+      setShowCancelModal(false);
+      setCancelOrderId(null);
+      setCancelReason("");
+      setCustomReason("");
     } catch (e) {
-      alert("Hủy đơn hàng thất bại!");
+      toast({
+        title: "Error",
+        description: "Failed to cancel order! Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setCancellingId(null);
     }
   };
 
+  const closeCancelModal = () => {
+    setShowCancelModal(false);
+    setCancelOrderId(null);
+    setCancelReason("");
+    setCustomReason("");
+  };
+
   return (
-    <Card
-      title={<span className="user-profile-section-title">My Orders</span>}
-      className="user-profile-section-card"
-      bodyStyle={{ padding: 0 }}
-      style={{ maxWidth: 1000, margin: "0 auto" }}
-    >
-      <div className="user-profile-section-content">
-        <Tabs
-          activeKey={orderTab}
-          onChange={setOrderTab}
-          items={ORDER_TABS.map((tab) => ({
-            key: tab.key,
-            label: tab.label,
-          }))}
-          style={{ marginBottom: 16 }}
-        />
-        <div style={{ maxHeight: 400, overflowY: "auto" }}>
-          {filteredOrders.length === 0 ? (
-            <div style={{ textAlign: "center", color: "#888", marginTop: 32 }}>
-              No orders in this status.
-            </div>
-          ) : (
-            filteredOrders.map((order, idx) => (
-              <Card
-                key={order.id || idx}
-                style={{
-                  marginBottom: 16,
-                  borderRadius: 12,
-                  border: "1px solid #f0f0f0",
-                }}
-                bodyStyle={{ padding: 16 }}
-              >
-                <div
+    <>
+      <Card
+        title={<span className="user-profile-section-title">My Orders</span>}
+        className="user-profile-section-card"
+        bodyStyle={{ padding: 0 }}
+        style={{ maxWidth: 1000, margin: "0 auto" }}
+      >
+        <div className="user-profile-section-content">
+          <Tabs
+            activeKey={orderTab}
+            onChange={setOrderTab}
+            items={ORDER_TABS.map((tab) => ({
+              key: tab.key,
+              label: tab.label,
+            }))}
+            style={{ marginBottom: 16 }}
+          />
+          <div style={{ maxHeight: 400, overflowY: "auto" }}>
+            {filteredOrders.length === 0 ? (
+              <div style={{ textAlign: "center", color: "#888", marginTop: 32 }}>
+                No orders in this status.
+              </div>
+            ) : (
+              filteredOrders.map((order, idx) => (
+                <Card
+                  key={order.id || idx}
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
+                    marginBottom: 16,
+                    borderRadius: 12,
+                    border: "1px solid #f0f0f0",
                   }}
+                  bodyStyle={{ padding: 16 }}
                 >
-                  <div>
-                    <b>
-                      Order
-                      <span style={{ marginLeft: 8, color: "#aaa" }}>
-                        #{order.id}
-                      </span>
-                    </b>
-                    <span
-                      style={{
-                        marginLeft: 16,
-                        fontWeight: 400,
-                        color:
-                          order.paymentStatus === "success"
-                            ? "green"
-                            : order.paymentStatus === "pending"
-                            ? "orange"
-                            : "red",
-                      }}
-                    >
-                      {order.paymentStatus === "success"
-                        ? "Đã thanh toán"
-                        : order.paymentStatus === "pending"
-                        ? "Chưa thanh toán"
-                        : order.paymentStatus}
-                    </span>
-                  </div>
-                  <Tag
-                    color={
-                      ORDER_STATUS_MAP[normalizeStatus(order.status)]?.color ||
-                      "orange"
-                    }
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
                   >
-                    {ORDER_STATUS_MAP[normalizeStatus(order.status)]?.label ||
-                      "Processing"}
-                  </Tag>
-                </div>
-                <div className="user-profile-order-items">
-                  {(order.items || []).map((item: any, i: number) => (
-                    <div key={i} className="user-profile-order-item">
-                      <div
-                        className="user-profile-order-item-name"
+                    <div>
+                      <b>
+                        Order
+                        <span style={{ marginLeft: 8, color: "#aaa" }}>
+                          #{order.id}
+                        </span>
+                      </b>
+                      <span
                         style={{
-                          fontWeight: 700,
-                          fontSize: 16,
-                          color: "#1976d2",
-                          background:
-                            "linear-gradient(90deg,#e3f0ff 60%,#f7f9fb 100%)",
-                          padding: "3px 10px",
-                          borderRadius: 7,
-                          marginBottom: 2,
-                          maxWidth: 320,
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          display: "inline-block",
+                          marginLeft: 16,
+                          fontWeight: 400,
+                          color:
+                            order.paymentStatus === "success"
+                              ? "green"
+                              : order.paymentStatus === "pending"
+                                ? "orange"
+                                : "red",
                         }}
                       >
-                        {item.productId && item.productId.name
-                          ? item.productId.name
-                          : "Sản phẩm đã bị xóa"}
-                      </div>
-                      <div className="user-profile-order-item-price">
-                        {formatVND(item.unitPrice ?? item.price ?? 0)} x
-                        {item.quantity ?? 1}
-                      </div>
+                        {order.paymentStatus === "success"
+                          ? "Đã thanh toán"
+                          : order.paymentStatus === "pending"
+                            ? "Chưa thanh toán"
+                            : order.paymentStatus}
+                      </span>
                     </div>
-                  ))}
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <div>
-                    <span
-                      style={{ color: "#1677ff", cursor: "pointer" }}
-                      onClick={() => navigate(`/order/${order.id}`)}
+                    <Tag
+                      color={
+                        ORDER_STATUS_MAP[normalizeStatus(order.status)]?.color ||
+                        "orange"
+                      }
                     >
-                      View details
-                    </span>
+                      {ORDER_STATUS_MAP[normalizeStatus(order.status)]?.label ||
+                        "Processing"}
+                    </Tag>
                   </div>
-                  <div>
-                    <span style={{ color: "#888", marginRight: 8 }}>
-                      Total:
-                    </span>
-                    <span
-                      style={{
-                        color: "#1677ff",
-                        fontWeight: 600,
-                        fontSize: 16,
-                      }}
-                    >
-                      {formatVND(getOrderTotal(order) + 1000)}
-                    </span>
+                  <div className="user-profile-order-items">
+                    {(order.items || []).map((item: any, i: number) => (
+                      <div key={i} className="user-profile-order-item">
+                        <div
+                          className="user-profile-order-item-name"
+                          style={{
+                            fontWeight: 700,
+                            fontSize: 16,
+                            color: "#1976d2",
+                            background:
+                              "linear-gradient(90deg,#e3f0ff 60%,#f7f9fb 100%)",
+                            padding: "3px 10px",
+                            borderRadius: 7,
+                            marginBottom: 2,
+                            maxWidth: 320,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            display: "inline-block",
+                          }}
+                        >
+                          {item.productId && item.productId.name
+                            ? item.productId.name
+                            : "Sản phẩm đã bị xóa"}
+                        </div>
+                        <div className="user-profile-order-item-price">
+                          {formatVND(item.unitPrice ?? item.price ?? 0)} x
+                          {item.quantity ?? 1}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-                {order.note && (
-                  <div style={{ marginTop: 8, color: "#888", fontSize: 13 }}>
-                    {order.note}
-                  </div>
-                )}
-                {normalizeStatus(order.status) === "pending" && (
-                  <Button
-                    danger
-                    loading={cancellingId === (order.id || order._id)}
-                    onClick={() => handleCancelOrder(order.id || order._id)}
-                    style={{ marginTop: 8 }}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
                   >
-                    Hủy đơn hàng
-                  </Button>
-                )}
-              </Card>
-            ))
+                    <div>
+                      <span
+                        style={{ color: "#1677ff", cursor: "pointer" }}
+                        onClick={() => navigate(`/order/${order.id}`)}
+                      >
+                        View details
+                      </span>
+                    </div>
+                    <div>
+                      <span style={{ color: "#888", marginRight: 8 }}>
+                        Total:
+                      </span>
+                      <span
+                        style={{
+                          color: "#1677ff",
+                          fontWeight: 600,
+                          fontSize: 16,
+                        }}
+                      >
+                        {formatVND(getOrderTotal(order) + 1000)}
+                      </span>
+                    </div>
+                  </div>
+                  {order.note && (
+                    <div style={{ marginTop: 8, color: "#888", fontSize: 13 }}>
+                      {order.note}
+                    </div>
+                  )}
+                  {normalizeStatus(order.status) === "pending" && (
+                    <Button
+                      danger
+                      loading={cancellingId === (order.id || order._id)}
+                      onClick={() => handleCancelOrder(order.id || order._id)}
+                      style={{ marginTop: 8 }}
+                    >
+                      Cancel Order
+                    </Button>
+                  )}
+                </Card>
+              ))
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Cancel Order Modal */}
+      <Modal
+        title="Order Cancellation Reason"
+        open={showCancelModal}
+        onOk={confirmCancelOrder}
+        onCancel={closeCancelModal}
+        okText="Confirm Cancel"
+        cancelText="Close"
+        okButtonProps={{
+          danger: true,
+          loading: cancellingId === cancelOrderId
+        }}
+        width={500}
+      >
+        <div style={{ padding: "16px 0" }}>
+          <p style={{ marginBottom: 16, color: "#666" }}>
+            Please select a reason for canceling order #{cancelOrderId}:
+          </p>
+
+          <Radio.Group
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            style={{ width: "100%" }}
+          >
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {CANCEL_REASONS.map((reason) => (
+                <Radio key={reason} value={reason} style={{ alignItems: "flex-start" }}>
+                  <span style={{ marginLeft: 8 }}>{reason}</span>
+                </Radio>
+              ))}
+            </div>
+          </Radio.Group>
+
+          {cancelReason === "Other reason" && (
+            <div style={{ marginTop: 16 }}>
+              <Input.TextArea
+                placeholder="Please enter specific reason..."
+                value={customReason}
+                onChange={(e) => setCustomReason(e.target.value)}
+                rows={3}
+                maxLength={200}
+                showCount
+              />
+            </div>
           )}
         </div>
-      </div>
-    </Card>
+      </Modal>
+    </>
   );
 };
 
