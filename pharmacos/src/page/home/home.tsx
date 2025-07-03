@@ -33,7 +33,7 @@ import CategoryNav from "./CategoryNav";
 import { useCart } from "@/contexts/CartContext";
 import { favoritesApi } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
-import { BlogRandomSection } from '../Blog/BlogRandomSection';
+import { BlogRandomSection } from "../Blog/BlogRandomSection";
 
 const categories = [
   {
@@ -294,6 +294,39 @@ const Home = () => {
     setFilteredProducts(filtered);
   }, [apiProducts, userFavorites]);
 
+  // Cập nhật favoriteProducts ngay khi userFavorites hoặc apiProducts thay đổi
+  useEffect(() => {
+    const favorites = apiProducts
+      .filter((product) => userFavorites.includes(product._id || product.id))
+      .map((product) => {
+        let image = "";
+        if (Array.isArray(product.images) && product.images.length > 0) {
+          const primary = product.images.find((img) => img.isPrimary);
+          image = primary ? primary.url : product.images[0].url;
+        }
+        const isNew =
+          product.createdAt &&
+          new Date().getTime() - new Date(product.createdAt).getTime() <
+            14 * 24 * 60 * 60 * 1000;
+
+        return {
+          id: product._id || product.id,
+          name: product.name,
+          price: product.price,
+          image,
+          category: product.category,
+          inStock: product.stockQuantity > 0,
+          rating: product.aiFeatures?.recommendationScore
+            ? parseFloat(product.aiFeatures.recommendationScore)
+            : undefined,
+          isNew: isNew,
+          discount: product.discount || 0,
+          isFavorite: true,
+        };
+      });
+    setFavoriteProducts(favorites);
+  }, [userFavorites, apiProducts]);
+
   useEffect(() => {
     const fetchFavorites = async () => {
       if (!isLoggedIn) {
@@ -522,7 +555,6 @@ const Home = () => {
           </div>
         </section>
 
-       
         <section className="py-12 bg-white">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl font-bold mb-8 text-center">
@@ -531,7 +563,7 @@ const Home = () => {
             <Tabs defaultValue="browse" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-8">
                 <TabsTrigger value="browse">Browse Categories</TabsTrigger>
-                <TabsTrigger value="featured">Featured Products</TabsTrigger>
+                <TabsTrigger value="favorite">Favorite Products</TabsTrigger>
               </TabsList>
               <TabsContent value="browse">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -560,24 +592,44 @@ const Home = () => {
                   ))}
                 </div>
               </TabsContent>
-              <TabsContent value="featured">
-                {loadingProducts ? (
+              <TabsContent value="favorite">
+                <div className="flex justify-between items-center mb-8">
+                  <h2 className="text-3xl font-bold">Favorite Products</h2>
+                  <Link
+                    to="/products"
+                    className="text-primary hover:underline hover:text-blue-400"
+                  >
+                    View All
+                  </Link>
+                </div>
+                {!isLoggedIn ? (
+                  <div className="text-center py-8 bg-white rounded-lg shadow">
+                    <p className="text-gray-500 mb-4">
+                      Please log in to view your favorite products
+                    </p>
+                    <Link to="/login">
+                      <Button style={{ backgroundColor: "#7494ec" }}>
+                        Log In
+                      </Button>
+                    </Link>
+                  </div>
+                ) : loadingFavorites ? (
                   <div className="text-center py-8">Loading...</div>
-                ) : apiProducts.length > 0 ? (
+                ) : favoriteProducts.length > 0 ? (
                   <ProductGrid
-                    products={filteredProducts.slice(0, 8)}
                     onAddToCart={handleAddToCart}
                     onFavoriteToggle={handleFavoriteToggle}
                     title=""
+                    products={favoriteProducts}
                   />
                 ) : (
                   <div className="text-center py-8 bg-white rounded-lg shadow">
                     <p className="text-gray-500 mb-4">
-                      No products available at the moment.
+                      You don't have any favorite products yet.
                     </p>
                     <Link to="/products">
                       <Button style={{ backgroundColor: "#7494ec" }}>
-                        Browse All Products
+                        Browse Products
                       </Button>
                     </Link>
                   </div>
@@ -587,51 +639,37 @@ const Home = () => {
           </div>
         </section>
 
-        {/* Favorite Products Section */}
-        <section className="py-12 bg-muted/30">
+        {/* Featured Products Section */}
+        <section className="py-12 bg-white">
           <div className="container mx-auto px-4">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-3xl font-bold">Favorite Products</h2>
-              <Link
-                to="/products"
-                className="text-primary hover:underline hover:text-blue-400"
-              >
-                View All
-              </Link>
-            </div>
-            {!isLoggedIn ? (
-              <div className="text-center py-8 bg-white rounded-lg shadow">
-                <p className="text-gray-500 mb-4">
-                  Please log in to view your favorite products
-                </p>
-                <Link to="/login">
-                  <Button style={{ backgroundColor: "#7494ec" }}>Log In</Button>
-                </Link>
-              </div>
-            ) : loadingFavorites ? (
+            <h2 className="text-3xl font-bold mb-8 text-center">
+              Featured Products
+            </h2>
+            {loadingProducts ? (
               <div className="text-center py-8">Loading...</div>
-            ) : favoriteProducts.length > 0 ? (
+            ) : apiProducts.length > 0 ? (
               <ProductGrid
+                products={filteredProducts.slice(0, 8)}
                 onAddToCart={handleAddToCart}
                 onFavoriteToggle={handleFavoriteToggle}
                 title=""
-                products={favoriteProducts}
               />
             ) : (
               <div className="text-center py-8 bg-white rounded-lg shadow">
                 <p className="text-gray-500 mb-4">
-                  You don't have any favorite products yet.
+                  No products available at the moment.
                 </p>
                 <Link to="/products">
                   <Button style={{ backgroundColor: "#7494ec" }}>
-                    Browse Products
+                    Browse All Products
                   </Button>
                 </Link>
               </div>
             )}
           </div>
         </section>
-         {/* Blog Random Section */}
+
+        {/* Blog Random Section */}
         <BlogRandomSection />
 
         {/* Find Products Your Way Section */}
