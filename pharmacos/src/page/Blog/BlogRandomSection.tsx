@@ -23,12 +23,12 @@ export const BlogRandomSection = () => {
   return (
     <section className="max-w-7xl mx-auto px-4 py-12">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-black-700">Blog có thể bạn quan tâm</h2>
+        <h2 className="text-2xl font-bold text-black-700">Blogs Products</h2>
         <button
           className="text-blue-600 hover:underline font-medium"
           onClick={() => navigate('/blog')}
         >
-          Xem tất cả blog
+          Views all blogs
         </button>
       </div>
       <div className="flex flex-wrap gap-8 justify-center">
