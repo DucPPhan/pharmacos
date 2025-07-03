@@ -70,6 +70,7 @@ form {
 .login-input-box {
   position: relative;
   margin: 30px 0;
+  padding-top: 10px;
 }
 
 .login-input-box input {
@@ -139,13 +140,6 @@ form {
   font-size: 24px;
   color: #333;
   margin: 0 8px;
-}
-
-.login-social-icons img {
-  vertical-align: middle;
-  margin: 0 auto;
-  display: block;
-  background: transparent;
 }
 
 .login-toggle-box {

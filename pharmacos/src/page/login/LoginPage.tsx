@@ -336,25 +336,8 @@ const LoginPage: React.FC = () => {
               </div>
             )}
 
-            <p>or register with social platforms</p>
-            <div className="login-social-icons">
-              <a href="#">
-                <img
-                  src={googleIcon}
-                  alt="Google"
-                  style={{ width: 28, height: 28, objectFit: 'contain', background: 'transparent' }}
-                />
-              </a>
-              <a href="#">
-                <i className="bx bxl-facebook"></i>
-              </a>
-              <a href="#">
-                <i className="bx bxl-github"></i>
-              </a>
-              <a href="#">
-                <i className="bx bxl-linkedin"></i>
-              </a>
-            </div>
+         
+        
           </form>
         </div>
         <div className="login-toggle-box">
