@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./LoginPage.css";
+import googleIcon from '../../../public/google-logo-icon-gsuite-hd-701751694791470gzbayltphh.png';
 
 const LoginPage: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -174,18 +175,14 @@ const LoginPage: React.FC = () => {
               </div>
             )}
             <p>or login with social platforms</p>
-            <div className="login-social-icons">
-              <a href="#">
-                <i className="bx bxl-google"></i>
-              </a>
-              <a href="#">
-                <i className="bx bxl-facebook"></i>
-              </a>
-              <a href="#">
-                <i className="bx bxl-github"></i>
-              </a>
-              <a href="#">
-                <i className="bx bxl-linkedin"></i>
+            <div className="login-social-icons" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <a href="#" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: 'inherit' }}>
+                <img
+                  src={googleIcon}
+                  alt="Google"
+                  style={{ width: 28, height: 28, objectFit: 'contain', background: 'transparent' }}
+                />
+                <span style={{ fontWeight: 500, fontSize: 16 }}>Login with Google</span>
               </a>
             </div>
           </form>
@@ -339,21 +336,8 @@ const LoginPage: React.FC = () => {
               </div>
             )}
 
-            <p>or register with social platforms</p>
-            <div className="login-social-icons">
-              <a href="#">
-                <i className="bx bxl-google"></i>
-              </a>
-              <a href="#">
-                <i className="bx bxl-facebook"></i>
-              </a>
-              <a href="#">
-                <i className="bx bxl-github"></i>
-              </a>
-              <a href="#">
-                <i className="bx bxl-linkedin"></i>
-              </a>
-            </div>
+         
+        
           </form>
         </div>
         <div className="login-toggle-box">
