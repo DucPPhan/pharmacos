@@ -148,3 +148,16 @@ export const paymentApi = {
   getPayment: async (paymentId: string) =>
     apiFetch(`${API_URL}/payments/${paymentId}`),
 };
+
+export const staffAnalyticsApi = {
+  getSales: async (startDate?: string, endDate?: string) => {
+    let url = `${API_URL}/staff/analytics/sales`;
+    const params = [];
+    if (startDate) params.push(`startDate=${encodeURIComponent(startDate)}`);
+    if (endDate) params.push(`endDate=${encodeURIComponent(endDate)}`);
+    if (params.length) url += "?" + params.join("&");
+    return apiFetch(url);
+  },
+  getProducts: async () => apiFetch(`${API_URL}/staff/analytics/products`),
+  getInventory: async () => apiFetch(`${API_URL}/staff/analytics`),
+};
