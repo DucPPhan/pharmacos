@@ -28,10 +28,11 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
   const location = useLocation();
 
   const links = [
-    { href: "overview", label: "Overview", icon: BarChart3 },
+    { href: "analytics", label: "Analytics", icon: Activity },
+    // { href: "overview", label: "Overview", icon: BarChart3 },
     { href: "inventory", label: "Inventory", icon: Package },
     { href: "orders", label: "Orders", icon: ShoppingCart },
-    { href: "analytics", label: "Analytics", icon: Activity },
+    
   ];
 
   const handleLogout = () => {
