@@ -1,18 +1,35 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Input } from "./ui/input";
-import { Menu, Search, ShoppingCart, User, X, Camera } from "lucide-react";
+import {
+  Menu,
+  Search,
+  ShoppingCart,
+  User,
+  X,
+  Camera,
+  LogOut,
+} from "lucide-react";
 import { Button } from "./ui/button";
 import AIImageSearch from "./AIImageSearch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import CartDropdown from "./CartDropdown/CartDropdown";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAISearchOpen, setIsAISearchOpen] = useState(false);
   const navigate = useNavigate();
-  const isLoggedIn = !!localStorage.getItem("user");
+  const { currentUser, logout } = useAuth();
+  const isLoggedIn = !!localStorage.getItem("user") || !!currentUser;
   const [isUser, setIsUser] = useState(true); // true if regular user or not logged in, false if staff
 
   useEffect(() => {
@@ -39,6 +56,17 @@ export default function Header() {
     console.log("Search completed with results:", results);
     // Close the dialog after handling results if needed
     // setIsAISearchOpen(false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      navigate("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
 
   return (
@@ -108,24 +136,73 @@ export default function Header() {
 
             <div className="hidden md:flex items-center space-x-4 ml-4">
               <CartDropdown />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  if (!isUser) {
-                    // User is staff
-                    navigate("/staff/dashboard");
-                  } else if (!isLoggedIn) {
-                    // User is not staff AND not logged in
-                    navigate("/login");
-                  } else {
-                    // User is not staff AND is logged in
-                    navigate("/profile");
-                  }
-                }}
-              >
-                <User className="h-5 w-5 text-white" />
-              </Button>
+
+              {/* User Profile/Auth Section */}
+              {currentUser ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="flex items-center gap-2 text-white hover:bg-blue-600"
+                    >
+                      {currentUser.photoURL ? (
+                        <img
+                          src={currentUser.photoURL}
+                          alt="Profile"
+                          className="w-6 h-6 rounded-full object-cover"
+                        />
+                      ) : (
+                        <User className="h-5 w-5" />
+                      )}
+                      <span className="text-sm max-w-32 truncate">
+                        {currentUser.displayName || currentUser.email}
+                      </span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <div className="px-2 py-1.5 text-sm text-gray-700">
+                      <div className="font-medium truncate">
+                        {currentUser.displayName || "User"}
+                      </div>
+                      <div className="text-xs text-gray-500 truncate">
+                        {currentUser.email}
+                      </div>
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate("/profile")}>
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      className="text-red-600"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    if (!isUser) {
+                      // User is staff
+                      navigate("/staff/dashboard");
+                    } else if (!isLoggedIn) {
+                      // User is not staff AND not logged in
+                      navigate("/login");
+                    } else {
+                      // User is not staff AND is logged in
+                      navigate("/profile");
+                    }
+                  }}
+                >
+                  <User className="h-5 w-5 text-white" />
+                </Button>
+              )}
             </div>
 
             <div className="md:hidden">

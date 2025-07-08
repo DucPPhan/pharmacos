@@ -24,6 +24,7 @@ import FullScreenLoader from "./components/FullScreenLoader/FullScreenLoader";
 import { BlogList } from "./page/Blog/BlogList.tsx";
 import { BlogDetail } from "./page/Blog/BlogDetail.tsx";
 import PaymentResult from "./page/OrderConfirmation/PaymentResult";
+import AuthStatus from "./components/AuthStatus";
 
 // Lazy load a apges for better transition experience
 const Home = lazy(() => import("./page/home/home"));
@@ -126,6 +127,7 @@ function App() {
           </>
           {visible && <Footer />}
         </div>
+        <AuthStatus />
         <Toaster />
       </Suspense>
     </CartProvider>

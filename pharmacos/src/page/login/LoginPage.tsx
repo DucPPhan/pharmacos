@@ -2,12 +2,15 @@ import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./LoginPage.css";
-import googleIcon from '../../../public/google-logo-icon-gsuite-hd-701751694791470gzbayltphh.png';
+import googleIcon from "../../../public/google-logo-icon-gsuite-hd-701751694791470gzbayltphh.png";
+import { useAuth } from "../../contexts/AuthContext";
 
 const LoginPage: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { signInWithGoogle } = useAuth();
   const [showVerifyBtn, setShowVerifyBtn] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -110,6 +113,58 @@ const LoginPage: React.FC = () => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    setLoginError("");
+    setLoginSuccess("");
+    try {
+      const result = await signInWithGoogle();
+      const user = result.user;
+
+      // Gửi thông tin user từ Firebase đến backend để xử lý
+      const firebaseToken = await user.getIdToken();
+
+      try {
+        // Gửi request đến backend để xác thực với Firebase token
+        const res = await axios.post(
+          "http://localhost:10000/api/auth/google-login",
+          {
+            firebaseToken,
+            email: user.email,
+            name: user.displayName,
+            photoURL: user.photoURL,
+          }
+        );
+
+        setLoginSuccess("Đăng nhập Google thành công!");
+        localStorage.setItem("token", res.data.token);
+        localStorage.setItem("user", JSON.stringify(res.data.user));
+
+        setTimeout(() => {
+          const role = res.data.user?.role;
+          if (role && role.toLowerCase() === "staff") {
+            navigate("/staff/dashboard");
+          } else if (role && role.toLowerCase() === "admin") {
+            navigate("/admin/dashboard");
+          } else {
+            navigate("/");
+          }
+        }, 1200);
+      } catch (backendError: any) {
+        // Nếu backend chưa hỗ trợ Google login, tạm thời chuyển về trang chủ
+        setLoginSuccess("Đăng nhập Google thành công!");
+        setTimeout(() => {
+          navigate("/");
+        }, 1200);
+      }
+    } catch (error: any) {
+      setLoginError("Đăng nhập Google thất bại!");
+      console.error("Google login error:", error);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   return (
     <div className="login-root">
       <button
@@ -175,15 +230,67 @@ const LoginPage: React.FC = () => {
               </div>
             )}
             <p>or login with social platforms</p>
-            <div className="login-social-icons" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <a href="#" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: 'inherit' }}>
+            <div
+              className="login-social-icons"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={googleLoading}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  textDecoration: "none",
+                  color: "inherit",
+                  background: "transparent",
+                  border: "none",
+                  cursor: googleLoading ? "not-allowed" : "pointer",
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  transition: "all 0.2s ease-in-out",
+                }}
+                onMouseEnter={(e) => {
+                  if (!googleLoading) {
+                    e.currentTarget.style.backgroundColor = "#e3f2fd";
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.boxShadow =
+                      "0 4px 12px rgba(0,0,0,0.15)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              >
                 <img
                   src={googleIcon}
                   alt="Google"
-                  style={{ width: 28, height: 28, objectFit: 'contain', background: 'transparent' }}
+                  style={{
+                    width: 28,
+                    height: 28,
+                    objectFit: "contain",
+                    background: "transparent",
+                    opacity: googleLoading ? 0.6 : 1,
+                  }}
                 />
-                <span style={{ fontWeight: 500, fontSize: 16 }}>Login with Google</span>
-              </a>
+                <span
+                  style={{
+                    fontWeight: 500,
+                    fontSize: 16,
+                    opacity: googleLoading ? 0.6 : 1,
+                  }}
+                >
+                  {googleLoading ? "Đang đăng nhập..." : "Login with Google"}
+                </span>
+              </button>
             </div>
           </form>
         </div>
@@ -335,9 +442,6 @@ const LoginPage: React.FC = () => {
                 {registerSuccess}
               </div>
             )}
-
-         
-        
           </form>
         </div>
         <div className="login-toggle-box">
