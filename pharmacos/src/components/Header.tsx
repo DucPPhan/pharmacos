@@ -98,17 +98,16 @@ export default function Header() {
               <Link to="/products" className="hover:text-primary">
                 Products
               </Link>
-              <Link to="/blog" className="hover:text-primary">Blog</Link>
+              <Link to="/blog" className="hover:text-primary">
+                Blog
+              </Link>
               <Link to="/about" className="hover:text-primary">
                 About
               </Link>
             </nav>
 
             <div className="hidden md:flex items-center space-x-4 ml-4">
-              <Button variant="ghost" size="icon">
-                {/* <ShoppingCart className="h-5 w-5 text-white" /> */}
-                <CartDropdown />
-              </Button>
+              <CartDropdown />
               <Button
                 variant="ghost"
                 size="icon"
