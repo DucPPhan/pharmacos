@@ -37,6 +37,7 @@ interface OrderData {
   note: string;
   status: string;
   paymentStatus: string;
+  paymentMethod: string;
   totalAmount: number;
   orderDate: string;
   items: OrderItem[];
@@ -270,11 +271,10 @@ const OrderConfirmation = () => {
                     <div className="flex justify-between items-center">
                       <span className="text-sm">Payment status:</span>
                       <span
-                        className={`text-sm px-2 py-1 rounded-full ${
-                          isPaid
-                            ? "bg-green-100 text-green-800"
-                            : "bg-orange-100 text-orange-800"
-                        }`}
+                        className={`text-sm px-2 py-1 rounded-full ${isPaid
+                          ? "bg-green-100 text-green-800"
+                          : "bg-orange-100 text-orange-800"
+                          }`}
                       >
                         {isPaid ? "Completed" : "Pending"}
                       </span>
@@ -282,7 +282,7 @@ const OrderConfirmation = () => {
                   </div>
 
                   {/* Payment Button */}
-                  {!isPaid && order.paymentStatus === "pending" && (
+                  {!isPaid && order.paymentStatus === "pending" && order.paymentMethod !== "cod" && order.paymentMethod !== "cash" && (
                     <Button
                       onClick={handlePayment}
                       disabled={paymentLoading}
@@ -293,6 +293,13 @@ const OrderConfirmation = () => {
                       )}
                       Thanh toán ngay
                     </Button>
+                  )}
+
+                  {/* COD Message */}
+                  {!isPaid && order.paymentStatus === "pending" && (order.paymentMethod === "cod" || order.paymentMethod === "cash") && (
+                    <div className="w-full p-3 bg-blue-50 border border-blue-200 rounded-md text-center text-blue-700 font-medium">
+                      💵 Đơn hàng COD - Thanh toán khi nhận hàng
+                    </div>
                   )}
 
                   <div className="space-y-2">

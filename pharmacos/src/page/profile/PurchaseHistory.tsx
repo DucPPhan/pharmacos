@@ -132,6 +132,21 @@ const PurchaseHistory: React.FC = () => {
     return 0;
   };
 
+  const getPaymentMethodDisplay = (paymentMethod: string) => {
+    switch (paymentMethod) {
+      case "cod":
+        return "💵 COD (Thanh toán khi nhận hàng)";
+      case "online":
+        return "💳 Thanh toán online";
+      case "cash":
+        return "💵 Tiền mặt";
+      case "bank":
+        return "🏦 Chuyển khoản ngân hàng";
+      default:
+        return "❓ Không xác định";
+    }
+  };
+
   const filteredHistory =
     orderTab === "all"
       ? normalizedHistory
@@ -205,6 +220,19 @@ const PurchaseHistory: React.FC = () => {
                           #{item.id || idx + 1}
                         </span>
                       </b>
+                      {item.paymentMethod && (
+                        <div style={{
+                          fontSize: 12,
+                          color: "#666",
+                          marginTop: 4,
+                          padding: "2px 8px",
+                          background: "#f5f5f5",
+                          borderRadius: 4,
+                          display: "inline-block",
+                        }}>
+                          {getPaymentMethodDisplay(item.paymentMethod)}
+                        </div>
+                      )}
                     </div>
                     <Tag
                       color={
