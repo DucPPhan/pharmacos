@@ -304,16 +304,6 @@ const EditProfileInlineForm: React.FC<{
               }
             />
           </Form.Item>
-          <Form.Item
-            label="Loại địa chỉ"
-            name="addressType"
-            initialValue="Nhà riêng"
-          >
-            <Radio.Group>
-              <Radio.Button value="Nhà riêng">Nhà riêng</Radio.Button>
-              <Radio.Button value="Văn phòng">Văn phòng</Radio.Button>
-            </Radio.Group>
-          </Form.Item>
           <Form.Item style={{ marginTop: 32, textAlign: "center" }}>
             <Button
               type="primary"

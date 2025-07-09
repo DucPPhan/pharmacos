@@ -80,6 +80,7 @@ const MyOrders: React.FC = () => {
       data.forEach((order: any) => {
         if ((order.paymentMethod === 'online' || order.paymentMethod === 'bank') &&
           order.paymentStatus === 'pending') {
+          // Always check with server on initial load
           checkPaymentTimeout(order.id || order._id);
         }
       });
@@ -103,24 +104,58 @@ const MyOrders: React.FC = () => {
       if (response.ok) {
         const result = await response.json();
         if (result.success && result.data) {
+          // Check if payment has expired based on server response
+          // This ensures we get the accurate status even after page refresh
           const isExpired = result.data.paymentExpired || result.data.timeLeft <= 0;
+
+          console.log(`Order ${orderId} payment status:`, {
+            isExpired,
+            timeLeft: result.data.timeLeft,
+            serverTime: new Date().toISOString()
+          });
+
           setPaymentTimeouts(prev => ({
             ...prev,
             [orderId]: isExpired
           }));
 
-          // Start countdown if payment is still active
+          // Only start countdown if payment is still active
           if (!isExpired && result.data.timeLeft > 0) {
             setPaymentTimers(prev => ({
               ...prev,
               [orderId]: result.data.timeLeft
             }));
             startCountdown(orderId, result.data.timeLeft);
+          } else {
+            // If expired, make sure we mark it clearly
+            setPaymentTimeouts(prev => ({
+              ...prev,
+              [orderId]: true
+            }));
+
+            // Remove any existing timers for this order
+            setPaymentTimers(prev => {
+              const newTimers = { ...prev };
+              delete newTimers[orderId];
+              return newTimers;
+            });
           }
         }
+      } else {
+        // If we can't get status from server, assume expired for safety
+        console.error("Failed to check payment status:", await response.text());
+        setPaymentTimeouts(prev => ({
+          ...prev,
+          [orderId]: true
+        }));
       }
     } catch (error) {
       console.error("Error checking payment timeout:", error);
+      // Assume expired on error
+      setPaymentTimeouts(prev => ({
+        ...prev,
+        [orderId]: true
+      }));
     }
   };
 
@@ -555,6 +590,19 @@ const MyOrders: React.FC = () => {
                               }}
                               onClick={async () => {
                                 try {
+                                  // First, re-check payment status before proceeding
+                                  await checkPaymentTimeout(order.id || order._id);
+
+                                  // Only proceed if payment is still valid
+                                  if (paymentTimeouts[order.id || order._id]) {
+                                    toast({
+                                      title: "Error",
+                                      description: "Payment time has expired for this order.",
+                                      variant: "destructive",
+                                    });
+                                    return;
+                                  }
+
                                   const token = localStorage.getItem("token");
                                   const response = await fetch(
                                     "http://localhost:10000/api/payments/create",
