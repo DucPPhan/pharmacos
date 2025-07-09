@@ -18,6 +18,7 @@ import {
   SaveOutlined,
 } from "@ant-design/icons";
 import "./UserProfile.css";
+import { ensureValidAddressType } from "@/lib/api";
 
 const { Option } = Select;
 
@@ -80,7 +81,13 @@ const fetchProfile = async (): Promise<UserInfo> => {
     district: data.district || "",
     ward: data.ward || "",
     address: data.address || "",
-    addressType: data.addressType || "Home",
+    // Fix the address type to match backend expectations
+    addressType:
+      data.addressType === "Home"
+        ? "Nhà riêng"
+        : data.addressType === "Office"
+          ? "Văn phòng"
+          : data.addressType || "Nhà riêng",
     isDefault: !!data.isDefault,
   };
 };
@@ -137,16 +144,50 @@ const fetchAddresses = async (): Promise<AddressInfo[]> => {
 const addAddress = async (data: Partial<AddressInfo>) => {
   const token = localStorage.getItem("token");
   const url = "http://localhost:10000/api/customers/addresses";
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error("Failed to add address");
-  return await res.json();
+
+  // Create a sanitized copy with valid addressType
+  const sanitizedData = {
+    ...data,
+    addressType: ensureValidAddressType(data.addressType)
+  };
+
+  // Log the data being sent for debugging
+  console.log("Adding address with data:", JSON.stringify(sanitizedData, null, 2));
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(sanitizedData),
+    });
+
+    // Read the response text first so we can log it
+    const responseText = await res.text();
+    console.log(`Server response (${res.status}):`, responseText);
+
+    if (!res.ok) {
+      // Try to parse as JSON if possible
+      try {
+        const errorData = JSON.parse(responseText);
+        throw new Error(errorData.message || "Failed to add address");
+      } catch (parseError) {
+        // If not JSON or other error parsing
+        throw new Error(`Server error (${res.status}): ${responseText || "Unknown error"}`);
+      }
+    }
+
+    try {
+      return JSON.parse(responseText);
+    } catch (e) {
+      return { success: true, message: "Address added successfully" };
+    }
+  } catch (error) {
+    console.error("Error in addAddress:", error);
+    throw error;
+  }
 };
 
 const updateAddress = async (id: string, data: Partial<AddressInfo>) => {
@@ -259,16 +300,19 @@ const AddressBook: React.FC = () => {
     setShowForm(true);
     setEditing(null);
     form.resetFields();
+
+    // Prefill with user's profile information if available
     form.setFieldsValue({
-      name: "",
-      phone: "",
+      name: user?.name || "",
+      phone: user?.phone || "",
       city: undefined,
       district: undefined,
       ward: undefined,
       address: "",
-      addressType: "Home",
+      addressType: "Nhà riêng",
       isDefault: false,
     });
+
     setDistricts([]);
     setWards([]);
   };
@@ -308,19 +352,49 @@ const AddressBook: React.FC = () => {
     try {
       const values = await form.validateFields();
       setLoading(true);
-      if (editing && editing._id) {
-        await updateAddress(editing._id, values);
-      } else {
-        await addAddress(values);
+
+      // Ensure all required fields are present and properly formatted
+      if (!values.name || !values.phone || !values.city ||
+        !values.district || !values.ward || !values.address) {
+        throw new Error("Please fill in all required fields");
       }
+
+      // Make sure phone matches required format
+      if (!phoneRegex.test(values.phone)) {
+        throw new Error("Phone number must be 10 digits starting with 03, 05, 07, 08, or 09");
+      }
+
+      // Convert and sanitize data
+      const addressData = {
+        name: values.name.trim(),
+        phone: values.phone.trim(),
+        city: values.city,
+        district: values.district,
+        ward: values.ward,
+        address: values.address.trim(),
+        // Use our robust validation helper
+        addressType: ensureValidAddressType(values.addressType),
+        isDefault: Boolean(values.isDefault),
+      };
+
+      console.log("Submitting address with addressType:", addressData.addressType);
+
+      if (editing && editing._id) {
+        await updateAddress(editing._id, addressData);
+        message.success("Address updated successfully!");
+      } else {
+        await addAddress(addressData);
+        message.success("Address added successfully!");
+      }
+
       await loadAddresses();
       setShowForm(false);
       setEditing(null);
-      setLoading(false);
-      message.success(editing ? "Address updated!" : "Address added!");
     } catch (err: any) {
+      console.error("Address operation failed:", err);
+      message.error(err.message || "Operation failed. Please try again.");
+    } finally {
       setLoading(false);
-      message.error(err.message || "Operation failed!");
     }
   };
 
@@ -374,7 +448,7 @@ const AddressBook: React.FC = () => {
                 form={form}
                 layout="vertical"
                 initialValues={
-                  editing || { addressType: "Home", isDefault: false }
+                  editing || { addressType: "Nhà riêng", isDefault: false }
                 }
                 className="user-profile-form"
                 onFinish={handleSave}
@@ -543,11 +617,11 @@ const AddressBook: React.FC = () => {
                 <Form.Item
                   label="Address Type"
                   name="addressType"
-                  initialValue="Home"
+                  initialValue="Nhà riêng"
                 >
                   <Radio.Group>
-                    <Radio.Button value="Home">Home</Radio.Button>
-                    <Radio.Button value="Office">Office</Radio.Button>
+                    <Radio.Button value="Nhà riêng">Nhà riêng</Radio.Button>
+                    <Radio.Button value="Văn phòng">Văn phòng</Radio.Button>
                   </Radio.Group>
                 </Form.Item>
                 <Form.Item

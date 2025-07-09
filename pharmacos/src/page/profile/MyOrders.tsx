@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { Card, Button, Tabs, Tag, Spin, Modal, Radio, Input } from "antd";
+import {
+  Card,
+  Button,
+  Tabs,
+  Tag,
+  Spin,
+  Modal,
+  Radio,
+  Input,
+  Progress,
+} from "antd";
 import { GiftOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
@@ -68,14 +78,145 @@ const MyOrders: React.FC = () => {
   const [cancelReason, setCancelReason] = useState<string>("");
   const [customReason, setCustomReason] = useState<string>("");
 
+  // Payment timeout state
+  const [paymentTimeouts, setPaymentTimeouts] = useState<
+    Record<string, boolean>
+  >({});
+  const [paymentTimers, setPaymentTimers] = useState<Record<string, number>>(
+    {}
+  );
+
   useEffect(() => {
     setLoading(true);
     fetchOrders().then((data) => {
       setOrders(data);
+
+      // Check payment status for each online/bank order
+      data.forEach((order: any) => {
+        if (
+          (order.paymentMethod === "online" ||
+            order.paymentMethod === "bank") &&
+          order.paymentStatus === "pending"
+        ) {
+          // Always check with server on initial load
+          checkPaymentTimeout(order.id || order._id);
+        }
+      });
+
       setLoading(false);
     });
   }, []);
 
+  const checkPaymentTimeout = async (orderId: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `http://localhost:10000/api/payments/status/${orderId}`,
+        {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          // Check if payment has expired based on server response
+          // This ensures we get the accurate status even after page refresh
+          const isExpired =
+            result.data.paymentExpired || result.data.timeLeft <= 0;
+
+          console.log(`Order ${orderId} payment status:`, {
+            isExpired,
+            timeLeft: result.data.timeLeft,
+            serverTime: new Date().toISOString(),
+          });
+
+          setPaymentTimeouts((prev) => ({
+            ...prev,
+            [orderId]: isExpired,
+          }));
+
+          // Only start countdown if payment is still active
+          if (!isExpired && result.data.timeLeft > 0) {
+            setPaymentTimers((prev) => ({
+              ...prev,
+              [orderId]: result.data.timeLeft,
+            }));
+            startCountdown(orderId, result.data.timeLeft);
+          } else {
+            // If expired, make sure we mark it clearly
+            setPaymentTimeouts((prev) => ({
+              ...prev,
+              [orderId]: true,
+            }));
+
+            // Remove any existing timers for this order
+            setPaymentTimers((prev) => {
+              const newTimers = { ...prev };
+              delete newTimers[orderId];
+              return newTimers;
+            });
+          }
+        }
+      } else {
+        // If we can't get status from server, assume expired for safety
+        console.error("Failed to check payment status:", await response.text());
+        setPaymentTimeouts((prev) => ({
+          ...prev,
+          [orderId]: true,
+        }));
+      }
+    } catch (error) {
+      console.error("Error checking payment timeout:", error);
+      // Assume expired on error
+      setPaymentTimeouts((prev) => ({
+        ...prev,
+        [orderId]: true,
+      }));
+    }
+  };
+
+  const startCountdown = (orderId: string, initialTime: number) => {
+    let timeLeft = initialTime;
+
+    const timer = setInterval(() => {
+      timeLeft -= 1;
+
+      setPaymentTimers((prev) => ({
+        ...prev,
+        [orderId]: timeLeft,
+      }));
+
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        setPaymentTimeouts((prev) => ({
+          ...prev,
+          [orderId]: true,
+        }));
+        setPaymentTimers((prev) => {
+          const newTimers = { ...prev };
+          delete newTimers[orderId];
+          return newTimers;
+        });
+        toast({
+          title: "Payment Expired",
+          description: `Payment time has expired for order #${orderId}`,
+          variant: "destructive",
+        });
+      }
+    }, 1000);
+
+    // Store timer reference to clean up later if needed
+    return timer;
+  };
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+  };
   if (loading) {
     return (
       <Spin size="large" style={{ display: "block", margin: "64px auto" }} />
@@ -379,17 +520,213 @@ const MyOrders: React.FC = () => {
                       {order.note}
                     </div>
                   )}
-                  {normalizeStatus(order.status) === "pending" &&
-                    order.paymentStatus !== "success" && (
-                      <Button
-                        danger
-                        loading={cancellingId === (order.id || order._id)}
-                        onClick={() => handleCancelOrder(order.id || order._id)}
-                        style={{ marginTop: 8 }}
+                  {normalizeStatus(order.status) === "pending" && (
+                    <div style={{ marginTop: 8 }}>
+                      {/* Payment countdown timer for online/bank orders */}
+                      {(order.paymentMethod === "online" ||
+                        order.paymentMethod === "bank") &&
+                        order.paymentStatus === "pending" &&
+                        !paymentTimeouts[order.id || order._id] &&
+                        paymentTimers[order.id || order._id] > 0 && (
+                          <div
+                            style={{
+                              background:
+                                "linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%)",
+                              padding: "12px 16px",
+                              borderRadius: 8,
+                              border: "1px solid #ffc107",
+                              textAlign: "center",
+                              marginBottom: 12,
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontWeight: 600,
+                                fontSize: 12,
+                                color: "#856404",
+                                marginBottom: 4,
+                              }}
+                            >
+                              ⏰ Thời gian thanh toán còn lại
+                            </div>
+                            <div
+                              style={{
+                                fontWeight: 700,
+                                fontSize: 16,
+                                color: "#d32f2f",
+                                marginBottom: 6,
+                              }}
+                            >
+                              {formatTime(paymentTimers[order.id || order._id])}
+                            </div>
+                            <Progress
+                              percent={Math.max(
+                                0,
+                                (paymentTimers[order.id || order._id] / 300) *
+                                  100
+                              )}
+                              showInfo={false}
+                              strokeColor="#ff4d4f"
+                              size="small"
+                            />
+                          </div>
+                        )}
+
+                      <div
+                        style={{ display: "flex", gap: 8, flexWrap: "wrap" }}
                       >
-                        Cancel Order
-                      </Button>
-                    )}
+                        {/* Show payment button only for non-COD orders and non-expired payments */}
+                        {order.paymentMethod !== "cod" &&
+                          order.paymentMethod !== "cash" &&
+                          order.paymentStatus === "pending" &&
+                          !paymentTimeouts[order.id || order._id] && (
+                            <Button
+                              type="primary"
+                              style={{
+                                background: "#52c41a",
+                                borderColor: "#52c41a",
+                                height: 45, // Make same height as Cancel button
+                              }}
+                              onClick={async () => {
+                                try {
+                                  // First, re-check payment status before proceeding
+                                  await checkPaymentTimeout(
+                                    order.id || order._id
+                                  );
+
+                                  // Only proceed if payment is still valid
+                                  if (paymentTimeouts[order.id || order._id]) {
+                                    toast({
+                                      title: "Error",
+                                      description:
+                                        "Payment time has expired for this order.",
+                                      variant: "destructive",
+                                    });
+                                    return;
+                                  }
+
+                                  const token = localStorage.getItem("token");
+                                  const response = await fetch(
+                                    "http://localhost:10000/api/payments/create",
+                                    {
+                                      method: "POST",
+                                      headers: {
+                                        "Content-Type": "application/json",
+                                        ...(token && {
+                                          Authorization: `Bearer ${token}`,
+                                        }),
+                                      },
+                                      body: JSON.stringify({
+                                        orderId: order.id || order._id,
+                                        paymentMethod:
+                                          order.paymentMethod || "online",
+                                      }),
+                                    }
+                                  );
+
+                                  const result = await response.json();
+
+                                  if (result.expired) {
+                                    toast({
+                                      title: "Error",
+                                      description:
+                                        "Payment time has expired for this order.",
+                                      variant: "destructive",
+                                    });
+                                    setPaymentTimeouts((prev) => ({
+                                      ...prev,
+                                      [order.id || order._id]: true,
+                                    }));
+                                    return;
+                                  }
+
+                                  if (result.data?.paymentUrl) {
+                                    window.location.href =
+                                      result.data.paymentUrl;
+                                  } else {
+                                    toast({
+                                      title: "Error",
+                                      description:
+                                        "Cannot create payment link. Please contact support.",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                } catch (error) {
+                                  console.error("Payment error:", error);
+                                  toast({
+                                    title: "Error",
+                                    description: "Payment creation failed.",
+                                    variant: "destructive",
+                                  });
+                                }
+                              }}
+                            >
+                              💳 Thanh toán ngay
+                            </Button>
+                          )}
+
+                        {/* Show COD message for COD orders */}
+                        {(order.paymentMethod === "cod" ||
+                          order.paymentMethod === "cash") && (
+                          <div
+                            style={{
+                              background:
+                                "linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%)",
+                              padding: "12px 16px",
+                              borderRadius: 8,
+                              border: "1px solid #1677ff",
+                              color: "#1677ff",
+                              fontSize: 13,
+                              fontWeight: 600,
+                              textAlign: "center",
+                              boxShadow: "0 2px 6px rgba(22, 119, 255, 0.1)",
+                              flex: 1,
+                              minWidth: 200,
+                            }}
+                          >
+                            💵 COD - Thanh toán khi giao hàng
+                          </div>
+                        )}
+
+                        {/* Show payment expired message for online/bank orders */}
+                        {(order.paymentMethod === "online" ||
+                          order.paymentMethod === "bank") &&
+                          paymentTimeouts[order.id || order._id] && (
+                            <div
+                              style={{
+                                background:
+                                  "linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)",
+                                padding: "12px 16px",
+                                borderRadius: 8,
+                                border: "1px solid #f44336",
+                                color: "#d32f2f",
+                                fontSize: 13,
+                                fontWeight: 600,
+                                textAlign: "center",
+                                boxShadow: "0 2px 6px rgba(244, 67, 54, 0.1)",
+                                flex: 1,
+                                minWidth: 200,
+                              }}
+                            >
+                              ⏰ Hết thời gian thanh toán
+                            </div>
+                          )}
+
+                        <Button
+                          danger
+                          loading={cancellingId === (order.id || order._id)}
+                          onClick={() =>
+                            handleCancelOrder(order.id || order._id)
+                          }
+                          style={{
+                            height: 45,
+                          }}
+                        >
+                          Cancel Order
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </Card>
               ))
             )}

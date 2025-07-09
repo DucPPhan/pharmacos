@@ -14,6 +14,7 @@ import {
   DatePicker,
   Select,
   Upload,
+  Radio,
 } from "antd";
 import {
   UserOutlined,
@@ -186,7 +187,7 @@ const EditProfileInlineForm: React.FC<{
             : undefined,
         });
       })
-      .catch(() => {});
+      .catch(() => { });
   };
   return (
     <Card
@@ -274,7 +275,7 @@ const EditProfileInlineForm: React.FC<{
             <Select size="large" placeholder="Select gender">
               <Option value="male">Male</Option>
               <Option value="female">Female</Option>
-              <Option value="Khác">Other</Option>
+              <Option value="other">Other</Option>
             </Select>
           </Form.Item>
           <Form.Item
@@ -498,8 +499,8 @@ const fetchProfileByRole = async (): Promise<UserInfo> => {
       data.gender === "male"
         ? "Male"
         : data.gender === "female"
-        ? "Female"
-        : data.gender || "",
+          ? "Female"
+          : data.gender || "",
     birthday: data.dateOfBirth
       ? dayjs(data.dateOfBirth).format("DD/MM/YYYY")
       : data.birthday || "",
@@ -521,8 +522,8 @@ const updateProfileByRole = async (data: UserInfo): Promise<UserInfo> => {
       data.gender === "Male"
         ? "male"
         : data.gender === "Female"
-        ? "female"
-        : data.gender,
+          ? "female"
+          : data.gender,
     dateOfBirth: data.birthday
       ? dayjs(data.birthday, "DD/MM/YYYY").format("YYYY-MM-DD")
       : undefined,
