@@ -82,7 +82,7 @@ const Cart = () => {
     submitOrder,
     isSubmitting,
     isCartLoading,
-    clearCart, // Add this if it exists in your CartContext
+    forceRefresh,
   } = useCart();
 
   const [isCheckoutDialogOpen, setIsCheckoutDialogOpen] = useState(false);
@@ -303,7 +303,6 @@ const Cart = () => {
       });
       return;
     }
-
     try {
       // Prepare order data according to API Orders standard
       const orderData = {
@@ -311,7 +310,8 @@ const Cart = () => {
         phone: checkoutInfo.phone,
         shippingAddress: checkoutInfo.shippingAddress,
         note: checkoutInfo.note,
-        paymentMethod: checkoutInfo.paymentMethod, // Add payment method
+        paymentMethod:
+          checkoutInfo.paymentMethod === "online" ? "online" : "cod",
         items: cartItems.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
@@ -334,10 +334,7 @@ const Cart = () => {
           "http://localhost:10000/api/payments/create",
           {
             method: "POST",
-            body: JSON.stringify({
-              orderId,
-              paymentMethod: checkoutInfo.paymentMethod
-            }),
+            body: JSON.stringify({ orderId }),
           }
         );
 
@@ -367,7 +364,7 @@ const Cart = () => {
 
       // If COD, clear cart immediately as payment is completed
       localStorage.removeItem("cart");
-      cartItems.forEach((item) => removeItem(item.id));
+      forceRefresh(); // Sync with server (backend already cleared cart)
 
       setIsCheckoutDialogOpen(false);
       toast({
@@ -409,10 +406,11 @@ const Cart = () => {
         const pendingOrder = localStorage.getItem("pendingOrder");
         if (pendingOrder) {
           try {
-            const orderData = JSON.parse(pendingOrder);
             localStorage.removeItem("cart");
-            orderData.cartItems.forEach((item: any) => removeItem(item.id));
             localStorage.removeItem("pendingOrder");
+            forceRefresh().catch((error) =>
+              console.error("Error refreshing cart:", error)
+            ); // Sync with server (backend already cleared cart)
           } catch (error) {
             console.error("Error clearing pending order:", error);
           }
@@ -455,7 +453,7 @@ const Cart = () => {
         navigate("/profile/orders");
       }
     }
-  }, [navigate, toast, removeItem]);
+  }, [navigate, toast, forceRefresh]);
 
   const total = subtotal + 1000;
 
@@ -567,64 +565,64 @@ const Cart = () => {
                 <CardContent className="space-y-4">
                   {isCartLoading
                     ? Array.from({ length: 2 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center space-x-4 animate-pulse"
-                      >
-                        <div className="h-24 w-24 rounded-md bg-gray-200"></div>
-                        <div className="flex-1 space-y-2">
-                          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                        </div>
-                        <div className="h-8 w-24 bg-gray-200 rounded-md"></div>
-                      </div>
-                    ))
-                    : cartItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center space-x-4"
-                      >
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="h-24 w-24 rounded-md object-cover"
-                        />
-                        <div className="flex-1">
-                          <h3 className="font-medium">{item.name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {formatVND(item.price)}
-                          </p>
-                        </div>
-                        <div className="flex items-center border rounded-md">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => updateQuantity(item.id, -1)}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="w-8 text-center">
-                            {item.quantity}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => updateQuantity(item.id, 1)}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeItem(item.id)}
+                        <div
+                          key={i}
+                          className="flex items-center space-x-4 animate-pulse"
                         >
-                          <Trash2 className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                      </div>
-                    ))}
+                          <div className="h-24 w-24 rounded-md bg-gray-200"></div>
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                          </div>
+                          <div className="h-8 w-24 bg-gray-200 rounded-md"></div>
+                        </div>
+                      ))
+                    : cartItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center space-x-4"
+                        >
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="h-24 w-24 rounded-md object-cover"
+                          />
+                          <div className="flex-1">
+                            <h3 className="font-medium">{item.name}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {formatVND(item.price)}
+                            </p>
+                          </div>
+                          <div className="flex items-center border rounded-md">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => updateQuantity(item.id, -1)}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="w-8 text-center">
+                              {item.quantity}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => updateQuantity(item.id, 1)}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeItem(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </div>
+                      ))}
                 </CardContent>
               </Card>
             </div>
@@ -736,10 +734,11 @@ const Cart = () => {
                 {userAddresses.map((addr) => (
                   <div
                     key={addr._id}
-                    className={`border rounded-md p-3 cursor-pointer ${addr._id === selectedAddressId
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200"
-                      }`}
+                    className={`border rounded-md p-3 cursor-pointer ${
+                      addr._id === selectedAddressId
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200"
+                    }`}
                     onClick={() => handleAddressSelection(addr._id || "")}
                     role="radio"
                     aria-checked={addr._id === selectedAddressId}
@@ -755,8 +754,9 @@ const Cart = () => {
                           className="h-4 w-4 text-blue-600"
                           id={`address-${addr._id}`}
                           name="selected-address"
-                          aria-label={`Địa chỉ: ${addr.name}, ${addr.phone
-                            }, ${getFullAddress(addr)}`}
+                          aria-label={`Địa chỉ: ${addr.name}, ${
+                            addr.phone
+                          }, ${getFullAddress(addr)}`}
                         />
                       </div>
                       <div className="ml-3 flex-grow">
@@ -797,7 +797,7 @@ const Cart = () => {
                           </div>
                           <div className="mt-1 flex items-center">
                             {addr.addressType === "Nhà riêng" ||
-                              addr.addressType === "Home" ? (
+                            addr.addressType === "Home" ? (
                               <Home className="h-3.5 w-3.5 text-gray-400 mr-1" />
                             ) : (
                               <Building className="h-3.5 w-3.5 text-gray-400 mr-1" />
@@ -806,8 +806,8 @@ const Cart = () => {
                               {addr.addressType === "Home"
                                 ? "Nhà riêng"
                                 : addr.addressType === "Office"
-                                  ? "Văn phòng"
-                                  : addr.addressType}
+                                ? "Văn phòng"
+                                : addr.addressType}
                             </span>
                           </div>
                         </label>
@@ -829,10 +829,11 @@ const Cart = () => {
                 </div>
 
                 <div
-                  className={`border rounded-md p-3 cursor-pointer ${useManualAddress
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200"
-                    }`}
+                  className={`border rounded-md p-3 cursor-pointer ${
+                    useManualAddress
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200"
+                  }`}
                   onClick={() => handleAddressSelection("manual")}
                   role="radio"
                   aria-checked={useManualAddress}

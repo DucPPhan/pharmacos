@@ -17,12 +17,13 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { apiFetch } from "@/lib/api";
 import CategoryNav from "../home/CategoryNav";
+import { useCart } from "@/contexts/CartContext";
 
 interface OrderItem {
   productId: {
     _id: string;
     name: string;
-    imageUrl: string;
+    images?: Array<{ url: string }>;
     price: number;
   };
   quantity: number;
@@ -34,10 +35,9 @@ interface OrderData {
   recipientName: string;
   phone: string;
   shippingAddress: string;
-  note: string;
+  note?: string;
   status: string;
-  paymentStatus: string;
-  paymentMethod: string;
+  paymentStatus?: string;
   totalAmount: number;
   orderDate: string;
   items: OrderItem[];
@@ -52,23 +52,42 @@ const OrderConfirmation = () => {
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get("orderId");
   const { toast } = useToast();
+  const { forceRefresh } = useCart();
 
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(true);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [cartRefreshed, setCartRefreshed] = useState(false);
 
   useEffect(() => {
-    if (orderId) {
+    if (orderId && !cartRefreshed) {
       fetchOrderDetails();
     }
-  }, [orderId]);
+  }, [orderId, cartRefreshed]);
 
   const fetchOrderDetails = async () => {
     try {
-      const orderData = await apiFetch(
+      const response = await apiFetch(
         `http://localhost:10000/api/orders/${orderId}`
       );
-      setOrder(orderData);
+
+      // API returns { order, items }, combine them
+      const combinedOrder = {
+        ...response.order,
+        items: response.items,
+        // Ensure paymentStatus exists (default to "pending" if missing)
+        paymentStatus: response.order.paymentStatus || "pending",
+      };
+
+      setOrder(combinedOrder);
+
+      // Force refresh cart ONCE after order details are loaded
+      // Cart should be empty after any successful order creation
+      console.log(
+        "Order confirmed, force refreshing cart to sync with server..."
+      );
+      await forceRefresh();
+      setCartRefreshed(true);
     } catch (error) {
       console.error("Failed to fetch order:", error);
       toast({
@@ -143,12 +162,21 @@ const OrderConfirmation = () => {
     );
   }
 
-  const subtotal = order.items.reduce(
-    (sum, item) => sum + item.unitPrice * item.quantity,
-    0
-  );
+  const subtotal =
+    order.items?.reduce(
+      (sum, item) => sum + (item.unitPrice || 0) * (item.quantity || 0),
+      0
+    ) || 0;
   const shippingFee = 1000;
   const isPaid = order.paymentStatus === "completed";
+  const grandTotal = subtotal + shippingFee;
+
+  // Debug logging
+  console.log("Order:", order);
+  console.log("Subtotal:", subtotal);
+  console.log("Shipping fee:", shippingFee);
+  console.log("Grand total:", grandTotal);
+  console.log("Order total amount:", order.totalAmount);
 
   return (
     <div className="min-h-screen bg-background">
@@ -208,7 +236,11 @@ const OrderConfirmation = () => {
                     {order.items.map((item, index) => (
                       <div key={index} className="flex items-center space-x-4">
                         <img
-                          src={item.productId.imageUrl}
+                          src={
+                            item.productId.images?.length
+                              ? `http://localhost:10000${item.productId.images[0].url}`
+                              : "/placeholder.png"
+                          }
                           alt={item.productId.name}
                           className="w-16 h-16 rounded-md object-cover"
                         />
@@ -253,7 +285,7 @@ const OrderConfirmation = () => {
                     <div className="flex justify-between font-bold text-lg">
                       <span>Grand total</span>
                       <span className="text-blue-600">
-                        {formatVND(order.totalAmount)}
+                        {formatVND(grandTotal)}
                       </span>
                     </div>
                   </div>
@@ -271,10 +303,11 @@ const OrderConfirmation = () => {
                     <div className="flex justify-between items-center">
                       <span className="text-sm">Payment status:</span>
                       <span
-                        className={`text-sm px-2 py-1 rounded-full ${isPaid
-                          ? "bg-green-100 text-green-800"
-                          : "bg-orange-100 text-orange-800"
-                          }`}
+                        className={`text-sm px-2 py-1 rounded-full ${
+                          isPaid
+                            ? "bg-green-100 text-green-800"
+                            : "bg-orange-100 text-orange-800"
+                        }`}
                       >
                         {isPaid ? "Completed" : "Pending"}
                       </span>
@@ -282,7 +315,7 @@ const OrderConfirmation = () => {
                   </div>
 
                   {/* Payment Button */}
-                  {!isPaid && order.paymentStatus === "pending" && order.paymentMethod !== "cod" && order.paymentMethod !== "cash" && (
+                  {!isPaid && order.paymentStatus === "pending" && (
                     <Button
                       onClick={handlePayment}
                       disabled={paymentLoading}
@@ -293,13 +326,6 @@ const OrderConfirmation = () => {
                       )}
                       Thanh toán ngay
                     </Button>
-                  )}
-
-                  {/* COD Message */}
-                  {!isPaid && order.paymentStatus === "pending" && (order.paymentMethod === "cod" || order.paymentMethod === "cash") && (
-                    <div className="w-full p-3 bg-blue-50 border border-blue-200 rounded-md text-center text-blue-700 font-medium">
-                      💵 Đơn hàng COD - Thanh toán khi nhận hàng
-                    </div>
                   )}
 
                   <div className="space-y-2">

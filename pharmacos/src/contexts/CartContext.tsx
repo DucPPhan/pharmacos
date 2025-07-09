@@ -8,7 +8,7 @@ import React, {
   ReactNode,
 } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, cartApi, orderApi } from "@/lib/api";
 
 // --- Interfaces ---
 
@@ -42,6 +42,8 @@ interface CartContextType {
   updateQuantity: (id: string, change: number) => void;
   removeItem: (id: string) => void;
   clearCart: () => void;
+  refreshCart: () => Promise<void>;
+  forceRefresh: () => Promise<void>;
   subtotal: number;
   itemCount: number;
   isCartLoading: boolean;
@@ -51,14 +53,7 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// Define API endpoints for easy management
-const API = {
-  getCart: "http://localhost:10000/api/cart",
-  addItem: "http://localhost:10000/api/cart/items",
-  updateItem: (id: string) => `http://localhost:10000/api/cart/items/${id}`,
-  deleteItem: (id: string) => `http://localhost:10000/api/cart/items/${id}`,
-  createOrder: "http://localhost:10000/api/orders",
-};
+// Using centralized API functions from /lib/api.ts
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({
   children,
@@ -67,67 +62,79 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartLoading, setIsCartLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [refreshTimeout, setRefreshTimeout] = useState<NodeJS.Timeout | null>(
+    null
+  );
+
+  // Extract fetchCart as a reusable function
+  const fetchCart = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setCartItems([]);
+      localStorage.removeItem("cart");
+      return;
+    }
+
+    try {
+      setIsCartLoading(true);
+      // Use cartApi for consistent API calls
+      const cartData = await cartApi.getCart();
+      const mappedItems = (cartData.items || [])
+        .map((item: any) => {
+          if (!item.product && !item.productId) return null; // Bỏ qua item lỗi/null
+          let image =
+            (item.product?.images?.length && item.product.images[0]?.url) ||
+            (item.productId?.images?.length && item.productId.images[0]?.url) ||
+            item.image ||
+            "/placeholder.png";
+          return {
+            id: item._id,
+            productId:
+              item.product?._id ||
+              (typeof item.productId === "object"
+                ? item.productId._id
+                : item.productId) ||
+              "",
+            name: item.product?.name || item.productId?.name || item.name || "",
+            price:
+              item.product?.price ||
+              item.productId?.price ||
+              item.unitPrice ||
+              item.price ||
+              0,
+            image,
+            quantity: item.quantity,
+          };
+        })
+        .filter(Boolean); // Bỏ các item null
+      setCartItems(mappedItems);
+      // Always update localStorage with server data
+      if (mappedItems.length === 0) {
+        localStorage.removeItem("cart");
+      } else {
+        localStorage.setItem("cart", JSON.stringify(mappedItems));
+      }
+    } catch (error) {
+      console.error("Failed to fetch cart:", error);
+      setCartItems([]);
+      localStorage.removeItem("cart");
+    } finally {
+      setIsCartLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Đảm bảo luôn lấy đúng hình ảnh sản phẩm khi reload
-    const fetchCart = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setCartItems([]);
-        localStorage.removeItem("cart");
-        return;
-      }
-
-      try {
-        setIsCartLoading(true);
-        const cartData = await apiFetch(API.getCart, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const mappedItems = (cartData.items || [])
-          .map((item: any) => {
-            if (!item.product && !item.productId) return null; // Bỏ qua item lỗi/null
-            let image =
-              (item.product?.images?.length && item.product.images[0]?.url) ||
-              (item.productId?.images?.length &&
-                item.productId.images[0]?.url) ||
-              item.image ||
-              "/placeholder.png";
-            return {
-              id: item._id,
-              productId:
-                item.product?._id ||
-                (typeof item.productId === "object"
-                  ? item.productId._id
-                  : item.productId) ||
-                "",
-              name:
-                item.product?.name || item.productId?.name || item.name || "",
-              price:
-                item.product?.price ||
-                item.productId?.price ||
-                item.unitPrice ||
-                item.price ||
-                0,
-              image,
-              quantity: item.quantity,
-            };
-          })
-          .filter(Boolean); // Bỏ các item null
-        setCartItems(mappedItems);
-        localStorage.setItem("cart", JSON.stringify(mappedItems));
-      } catch (error) {
-        setCartItems([]);
-        localStorage.removeItem("cart");
-        console.error("Failed to fetch cart:", error);
-      } finally {
-        setIsCartLoading(false);
-      }
-    };
-
     fetchCart();
   }, [localStorage.getItem("token")]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+    };
+  }, [refreshTimeout]);
 
   const addToCart = async (
     product: { id: string; name: string; price: number; image: string },
@@ -166,10 +173,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
 
     // Call API in the background
     try {
-      const addedItemData = await apiFetch(API.addItem, {
-        method: "POST",
-        body: JSON.stringify({ productId: product.id, quantity }),
-      });
+      const addedItemData = await cartApi.addItem(product.id, quantity);
       // Replace the temporary item with the real one from the server
       setCartItems((prev) =>
         prev.map((item) =>
@@ -206,7 +210,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
     if (newQuantity < 1) {
       // If item is removed, call DELETE API
       try {
-        await apiFetch(API.deleteItem(itemId), { method: "DELETE" });
+        await cartApi.removeItem(itemId);
         toast({ title: "Item removed", variant: "destructive" });
       } catch (error) {
         toast({
@@ -219,10 +223,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
     } else {
       // If quantity is updated, call PATCH API
       try {
-        await apiFetch(API.updateItem(itemId), {
-          method: "PUT",
-          body: JSON.stringify({ quantity: newQuantity }),
-        });
+        await cartApi.updateItem(itemId, newQuantity);
       } catch (error) {
         toast({
           title: "Error",
@@ -241,7 +242,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
     toast({ title: "Item removed", variant: "destructive" });
 
     try {
-      await apiFetch(API.deleteItem(itemId), { method: "DELETE" });
+      await cartApi.removeItem(itemId);
     } catch (error) {
       toast({
         title: "Error",
@@ -256,13 +257,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
     const previousCart = [...cartItems];
     setCartItems([]); // Optimistic update
     try {
-      // Note: A single API endpoint `DELETE /api/cart` would be more efficient
-      const deletePromises = previousCart.map(
-        async (item) =>
-          await apiFetch(API.deleteItem(item.id), { method: "DELETE" })
-      );
-      await Promise.all(deletePromises);
+      // Use cartApi for consistent API calls
+      await cartApi.clearCart();
+      console.log("Cart cleared successfully");
     } catch (error) {
+      console.error("Failed to clear cart:", error);
       toast({
         title: "Error",
         description: "Could not clear the cart.",
@@ -282,6 +281,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
       throw new Error("User not logged in");
     }
     const user = JSON.parse(userString);
+    // Use user.id (account ID) to match backend cart logic
     const customerId = user.id;
 
     setIsSubmitting(true);
@@ -299,13 +299,21 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
         })),
       };
 
-      await apiFetch(API.createOrder, {
-        method: "POST",
-        body: JSON.stringify(orderData),
-      });
+      const result = await orderApi.createOrder(orderData);
 
-      // After successful order, clear the cart
-      await clearCart();
+      // After successful order, immediately clear cart state
+      console.log("Order created successfully, clearing cart...");
+      setCartItems([]);
+      localStorage.removeItem("cart");
+
+      // Add a small delay to ensure backend has cleared the cart
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Refresh cart from server to ensure sync
+      await fetchCart();
+      console.log("Cart cleared and refreshed after order creation");
+
+      return result;
     } finally {
       setIsSubmitting(false);
     }
@@ -326,6 +334,31 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({
     updateQuantity,
     removeItem,
     clearCart,
+    refreshCart: fetchCart, // Expose fetchCart as refreshCart
+    forceRefresh: async () => {
+      // Clear any pending refresh timeout
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+        setRefreshTimeout(null);
+      }
+
+      console.log("Force refreshing cart...");
+
+      // Immediately clear local state
+      setCartItems([]);
+      localStorage.removeItem("cart");
+
+      // Add a small delay to ensure backend has processed the order
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Fetch fresh data from server
+      try {
+        await fetchCart();
+        console.log("Cart force refresh completed");
+      } catch (error) {
+        console.error("Failed to force refresh cart:", error);
+      }
+    },
     subtotal,
     itemCount, // Provide itemCount
     submitOrder,
