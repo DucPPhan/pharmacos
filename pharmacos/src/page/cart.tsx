@@ -110,6 +110,12 @@ const Cart = () => {
     paymentMethod: "cod",
   });
 
+  // Debug: Log initial payment method
+  console.log(
+    "Cart component mounted, initial payment method:",
+    checkoutInfo.paymentMethod
+  );
+
   const fetchUserAddresses = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -167,6 +173,7 @@ const Cart = () => {
       recipientName: address.name || "",
       phone: address.phone || "",
       shippingAddress: getFullAddress(address),
+      // Keep existing paymentMethod and note - don't reset them
     }));
     // Store the initial address info for potential reset
     setInitialAddressInfo({
@@ -185,6 +192,7 @@ const Cart = () => {
   };
 
   const handlePaymentChange = (value: string) => {
+    console.log("Payment method changed to:", value);
     setCheckoutInfo((prev) => ({ ...prev, paymentMethod: value }));
   };
 
@@ -252,9 +260,14 @@ const Cart = () => {
           recipientName: profileData.name || "",
           phone: profileData.phone || "",
           shippingAddress: getFullAddress(profileData),
+          // Keep existing paymentMethod - don't reset it
         }));
       }
 
+      console.log(
+        "Opening checkout with payment method:",
+        checkoutInfo.paymentMethod
+      );
       setIsCheckoutDialogOpen(true);
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
@@ -319,18 +332,30 @@ const Cart = () => {
         })),
       };
 
+      // Debug logging
+      console.log("Order data being sent:", {
+        paymentMethod: orderData.paymentMethod,
+        checkoutPaymentMethod: checkoutInfo.paymentMethod,
+      });
+
       // 1. Create order
       const orderRes = await apiFetch("http://localhost:10000/api/orders", {
         method: "POST",
         body: JSON.stringify(orderData),
       });
 
+      // Debug: Log response from backend
+      console.log("Order created response:", {
+        orderPaymentMethod: orderRes?.order?.paymentMethod,
+        originalPaymentMethod: orderData.paymentMethod,
+        fullResponse: orderRes,
+      });
+
       // Get order ID
       const orderId = orderRes?.order?._id || orderRes?.order?.id;
       if (!orderId) throw new Error("Cannot get order ID!");
 
-      // Clear cart immediately for ALL payment methods
-      // Store cart items in localStorage before clearing for online payments
+      // Store cart items for online payments before clearing
       if (checkoutInfo.paymentMethod === "online") {
         localStorage.setItem(
           "pendingOrder",
@@ -341,9 +366,14 @@ const Cart = () => {
         );
       }
 
-      // Always clear cart after placing order
+      // Clear cart after placing order - only clear localStorage for frontend
+      // Backend already clears server cart when order is created
       localStorage.removeItem("cart");
-      cartItems.forEach((item) => removeItem(item.id));
+
+      // Force refresh cart context to sync with cleared localStorage
+      forceRefresh().catch((error) =>
+        console.error("Error refreshing cart:", error)
+      );
 
       // If online payment is selected, create payment link and redirect
       if (checkoutInfo.paymentMethod === "online") {

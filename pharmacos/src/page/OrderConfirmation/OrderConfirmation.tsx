@@ -38,6 +38,7 @@ interface OrderData {
   note?: string;
   status: string;
   paymentStatus?: string;
+  paymentMethod?: string;
   totalAmount: number;
   orderDate: string;
   items: OrderItem[];
@@ -173,6 +174,8 @@ const OrderConfirmation = () => {
 
   // Debug logging
   console.log("Order:", order);
+  console.log("Payment Method:", order.paymentMethod);
+  console.log("Payment Status:", order.paymentStatus);
   console.log("Subtotal:", subtotal);
   console.log("Shipping fee:", shippingFee);
   console.log("Grand total:", grandTotal);
@@ -233,33 +236,50 @@ const OrderConfirmation = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {order.items.map((item, index) => (
-                      <div key={index} className="flex items-center space-x-4">
-                        <img
-                          src={
-                            item.productId.images?.length
-                              ? `http://localhost:10000${item.productId.images[0].url}`
-                              : "/placeholder.png"
-                          }
-                          alt={item.productId.name}
-                          className="w-16 h-16 rounded-md object-cover"
-                        />
-                        <div className="flex-1">
-                          <h3 className="font-medium">{item.productId.name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {formatVND(item.unitPrice)}
-                          </p>
+                    {order.items.map((item, index) => {
+                      // Debug image URL
+                      console.log("Product images:", item.productId.images);
+                      const imageUrl = item.productId.images?.length
+                        ? item.productId.images[0].url.startsWith("http")
+                          ? item.productId.images[0].url
+                          : `http://localhost:10000${item.productId.images[0].url}`
+                        : "https://via.placeholder.com/64x64?text=No+Image";
+                      console.log("Final image URL:", imageUrl);
+
+                      return (
+                        <div
+                          key={index}
+                          className="flex items-center space-x-4"
+                        >
+                          <img
+                            src={imageUrl}
+                            alt={item.productId.name}
+                            className="w-16 h-16 rounded-md object-cover border"
+                            onError={(e) => {
+                              console.log("Image failed to load:", imageUrl);
+                              e.currentTarget.src =
+                                "https://via.placeholder.com/64x64?text=No+Image";
+                            }}
+                          />
+                          <div className="flex-1">
+                            <h3 className="font-medium">
+                              {item.productId.name}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {formatVND(item.unitPrice)}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium">
+                              {formatVND(item.unitPrice * item.quantity)}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              x{item.quantity}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-medium">
-                            {formatVND(item.unitPrice * item.quantity)}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            x{item.quantity}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
@@ -295,9 +315,10 @@ const OrderConfirmation = () => {
                       <span className="text-sm">Payment method:</span>
                       <span className="text-sm flex items-center">
                         <CreditCard className="h-4 w-4 mr-1" />
-                        {order.paymentStatus === "pending"
+                        {order.paymentMethod === "online" ||
+                        order.paymentMethod === "bank"
                           ? "Online Payment"
-                          : "Cash on Delivery"}
+                          : "Cash on Delivery (COD)"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -314,25 +335,28 @@ const OrderConfirmation = () => {
                     </div>
                   </div>
 
-                  {/* Payment Button */}
-                  {!isPaid && order.paymentStatus === "pending" && (
-                    <Button
-                      onClick={handlePayment}
-                      disabled={paymentLoading}
-                      className="w-full bg-green-600 hover:bg-green-700"
-                    >
-                      {paymentLoading && (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      )}
-                      Thanh toán ngay
-                    </Button>
-                  )}
+                  {/* Payment Button - only for online/bank payments */}
+                  {!isPaid &&
+                    order.paymentStatus === "pending" &&
+                    (order.paymentMethod === "online" ||
+                      order.paymentMethod === "bank") && (
+                      <Button
+                        onClick={handlePayment}
+                        disabled={paymentLoading}
+                        className="w-full bg-green-600 hover:bg-green-700"
+                      >
+                        {paymentLoading && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        Pay Now
+                      </Button>
+                    )}
 
                   <div className="space-y-2">
                     <Button asChild variant="outline" className="w-full">
                       <Link to="/profile/orders">
                         <ShoppingBag className="mr-2 h-4 w-4" />
-                        Mua lại
+                        Reorder
                       </Link>
                     </Button>
 
