@@ -34,11 +34,31 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { apiFetch, cartApi, orderApi, paymentApi } from "@/lib/api";
+import {
+  apiFetch,
+  cartApi,
+  orderApi,
+  paymentApi,
+  getCustomerAddresses,
+  createCustomerAddress,
+  deleteCustomerAddress,
+  AddressData,
+  AddressResponse,
+} from "@/lib/api";
 import { AddressInfo, getFullAddress } from "./profile/AddressBook";
 import { PlusOutlined } from "@ant-design/icons";
 import NewAddressForm from "./NewAddressForm";
@@ -76,6 +96,11 @@ const Cart = () => {
   >({});
   const [showAddressSelection, setShowAddressSelection] = useState(false);
   const [showAddressForm, setShowAddressForm] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [addressToDelete, setAddressToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const [checkoutInfo, setCheckoutInfo] = useState({
     recipientName: "",
@@ -90,13 +115,30 @@ const Cart = () => {
       const token = localStorage.getItem("token");
       if (!token) return;
 
-      const addresses = await apiFetch(
-        "http://localhost:10000/api/customers/addresses"
+      // Use the new API function
+      const addresses = await getCustomerAddresses();
+
+      // Convert AddressResponse[] to AddressInfo[] format
+      const convertedAddresses: AddressInfo[] = addresses.map(
+        (addr: AddressResponse) => ({
+          _id: addr._id,
+          name: addr.name,
+          phone: addr.phone,
+          address: addr.address,
+          city: addr.city,
+          district: addr.district,
+          ward: addr.ward,
+          addressType: addr.addressType, // Keep the Vietnamese format from API
+          isDefault: addr.isDefault,
+          createdAt: addr.createdAt,
+          updatedAt: addr.updatedAt,
+        })
       );
-      setUserAddresses(addresses);
+
+      setUserAddresses(convertedAddresses);
 
       // Set default address if available
-      const defaultAddress = addresses.find((addr) => addr.isDefault);
+      const defaultAddress = convertedAddresses.find((addr) => addr.isDefault);
       if (defaultAddress) {
         setSelectedAddressId(defaultAddress._id || "");
         updateCheckoutInfoFromAddress(defaultAddress);
@@ -110,6 +152,12 @@ const Cart = () => {
       }
     } catch (error) {
       console.error("Failed to fetch user addresses:", error);
+      // Show user-friendly error message
+      toast({
+        title: "Error",
+        description: "Unable to load saved addresses. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -176,14 +224,14 @@ const Cart = () => {
   };
 
   const handleOpenCheckout = async () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
       toast({
         title: "Login Required",
         description: "Please log in to continue with checkout.",
         variant: "destructive",
       });
-      navigate('/login', { state: { from: '/cart' } });
+      navigate("/login", { state: { from: "/cart" } });
       return;
     }
 
@@ -193,15 +241,17 @@ const Cart = () => {
       await fetchUserAddresses();
 
       // Load latest user information to fill the form
-      const profileData = await apiFetch('http://localhost:10000/api/customers/profile');
+      const profileData = await apiFetch(
+        "http://localhost:10000/api/customers/profile"
+      );
 
       // Only set profile data if no address is selected
       if (!selectedAddressId) {
-        setCheckoutInfo(prev => ({
+        setCheckoutInfo((prev) => ({
           ...prev,
-          recipientName: profileData.name || '',
-          phone: profileData.phone || '',
-          shippingAddress: getFullAddress(profileData)
+          recipientName: profileData.name || "",
+          phone: profileData.phone || "",
+          shippingAddress: getFullAddress(profileData),
         }));
       }
 
@@ -210,7 +260,8 @@ const Cart = () => {
       console.error("Failed to fetch user profile:", error);
       toast({
         title: "Error",
-        description: "Unable to load your personal information. Please try again.",
+        description:
+          "Unable to load your personal information. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -287,10 +338,13 @@ const Cart = () => {
 
         if (paymentRes.success && paymentRes.data?.paymentUrl) {
           // Save order info to localStorage for processing after payment
-          localStorage.setItem('pendingOrder', JSON.stringify({
-            orderId,
-            cartItems: cartItems.map(item => ({ ...item }))
-          }));
+          localStorage.setItem(
+            "pendingOrder",
+            JSON.stringify({
+              orderId,
+              cartItems: cartItems.map((item) => ({ ...item })),
+            })
+          );
 
           setIsCheckoutDialogOpen(false);
           toast({
@@ -308,7 +362,7 @@ const Cart = () => {
 
       // If COD, clear cart immediately as payment is completed
       localStorage.removeItem("cart");
-      cartItems.forEach(item => removeItem(item.id));
+      cartItems.forEach((item) => removeItem(item.id));
 
       setIsCheckoutDialogOpen(false);
       toast({
@@ -332,26 +386,30 @@ const Cart = () => {
   // Handle payment return (success/failure)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const paymentStatus = urlParams.get('payment');
-    const orderId = urlParams.get('orderId');
-    const vnp_ResponseCode = urlParams.get('vnp_ResponseCode');
-    const paypal_status = urlParams.get('paypal_status');
+    const paymentStatus = urlParams.get("payment");
+    const orderId = urlParams.get("orderId");
+    const vnp_ResponseCode = urlParams.get("vnp_ResponseCode");
+    const paypal_status = urlParams.get("paypal_status");
 
     if (paymentStatus && orderId) {
       // Clear URL params first
       window.history.replaceState({}, document.title, window.location.pathname);
 
-      if (paymentStatus === 'success' || vnp_ResponseCode === '00' || paypal_status === 'success') {
+      if (
+        paymentStatus === "success" ||
+        vnp_ResponseCode === "00" ||
+        paypal_status === "success"
+      ) {
         // Payment successful - clear cart and pending order
-        const pendingOrder = localStorage.getItem('pendingOrder');
+        const pendingOrder = localStorage.getItem("pendingOrder");
         if (pendingOrder) {
           try {
             const orderData = JSON.parse(pendingOrder);
             localStorage.removeItem("cart");
             orderData.cartItems.forEach((item: any) => removeItem(item.id));
-            localStorage.removeItem('pendingOrder');
+            localStorage.removeItem("pendingOrder");
           } catch (error) {
-            console.error('Error clearing pending order:', error);
+            console.error("Error clearing pending order:", error);
           }
         }
 
@@ -360,19 +418,23 @@ const Cart = () => {
           description: "Your order has been paid and is being processed.",
         });
         navigate(`/order-confirmation?orderId=${orderId}`);
-      } else if (paymentStatus === 'failed' || paymentStatus === 'cancel' || vnp_ResponseCode !== '00') {
+      } else if (
+        paymentStatus === "failed" ||
+        paymentStatus === "cancel" ||
+        vnp_ResponseCode !== "00"
+      ) {
         // Payment failed/cancelled - KEEP cart and payment link available for retry
-        const isCancelled = paymentStatus === 'cancel';
+        const isCancelled = paymentStatus === "cancel";
 
         // Restore cart from pending order if needed
-        const pendingOrder = localStorage.getItem('pendingOrder');
-        if (pendingOrder && !localStorage.getItem('cart')) {
+        const pendingOrder = localStorage.getItem("pendingOrder");
+        if (pendingOrder && !localStorage.getItem("cart")) {
           try {
             const orderData = JSON.parse(pendingOrder);
-            localStorage.setItem('cart', JSON.stringify(orderData.cartItems));
-            window.dispatchEvent(new Event('cartUpdated'));
+            localStorage.setItem("cart", JSON.stringify(orderData.cartItems));
+            window.dispatchEvent(new Event("cartUpdated"));
           } catch (error) {
-            console.error('Error restoring cart:', error);
+            console.error("Error restoring cart:", error);
           }
         }
 
@@ -385,7 +447,7 @@ const Cart = () => {
         });
 
         // Always navigate to orders page so user can retry payment
-        navigate('/profile/orders');
+        navigate("/profile/orders");
       }
     }
   }, [navigate, toast, removeItem]);
@@ -396,16 +458,80 @@ const Cart = () => {
     setShowAddressSelection(true);
   };
 
-  const handleAddNewAddress = (newAddress: AddressInfo) => {
-    // After successfully adding a new address, refresh the address list
-    fetchUserAddresses();
-    // Select the newly added address
-    if (newAddress._id) {
-      handleAddressSelection(newAddress._id);
+  const handleAddNewAddress = async (addressData: AddressData) => {
+    try {
+      // Create address using new API
+      const result = await createCustomerAddress(addressData);
+
+      if (result.success && result.data) {
+        toast({
+          title: "Success",
+          description: result.message || "Address added successfully!",
+        });
+
+        // Refresh the address list
+        await fetchUserAddresses();
+
+        // Select the newly added address
+        if (result.data._id) {
+          handleAddressSelection(result.data._id);
+        }
+
+        // Close the address form and return to the address selection
+        setShowAddressForm(false);
+        setShowAddressSelection(true);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description:
+          error.message || "Failed to add address. Please try again.",
+        variant: "destructive",
+      });
     }
-    // Close the address form and return to the address selection
-    setShowAddressForm(false);
-    setShowAddressSelection(true);
+  };
+
+  const handleDeleteAddress = (addressId: string, addressName: string) => {
+    setAddressToDelete({ id: addressId, name: addressName });
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteAddress = async () => {
+    if (!addressToDelete) return;
+
+    try {
+      await deleteCustomerAddress(addressToDelete.id);
+
+      toast({
+        title: "Success",
+        description: "Địa chỉ đã được xóa thành công!",
+      });
+
+      // If the deleted address was selected, clear selection
+      if (selectedAddressId === addressToDelete.id) {
+        setSelectedAddressId("");
+        setUseManualAddress(true);
+        setCheckoutInfo((prev) => ({
+          ...prev,
+          recipientName: "",
+          phone: "",
+          shippingAddress: "",
+        }));
+      }
+
+      // Refresh the address list
+      await fetchUserAddresses();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description:
+          error.message || "Không thể xóa địa chỉ. Vui lòng thử lại.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteDialogOpen(false);
+      setAddressToDelete(null);
+    }
   };
 
   return (
@@ -436,64 +562,64 @@ const Cart = () => {
                 <CardContent className="space-y-4">
                   {isCartLoading
                     ? Array.from({ length: 2 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center space-x-4 animate-pulse"
-                      >
-                        <div className="h-24 w-24 rounded-md bg-gray-200"></div>
-                        <div className="flex-1 space-y-2">
-                          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                        </div>
-                        <div className="h-8 w-24 bg-gray-200 rounded-md"></div>
-                      </div>
-                    ))
-                    : cartItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center space-x-4"
-                      >
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="h-24 w-24 rounded-md object-cover"
-                        />
-                        <div className="flex-1">
-                          <h3 className="font-medium">{item.name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {formatVND(item.price)}
-                          </p>
-                        </div>
-                        <div className="flex items-center border rounded-md">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => updateQuantity(item.id, -1)}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="w-8 text-center">
-                            {item.quantity}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => updateQuantity(item.id, 1)}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeItem(item.id)}
+                        <div
+                          key={i}
+                          className="flex items-center space-x-4 animate-pulse"
                         >
-                          <Trash2 className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                      </div>
-                    ))}
+                          <div className="h-24 w-24 rounded-md bg-gray-200"></div>
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                          </div>
+                          <div className="h-8 w-24 bg-gray-200 rounded-md"></div>
+                        </div>
+                      ))
+                    : cartItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center space-x-4"
+                        >
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="h-24 w-24 rounded-md object-cover"
+                          />
+                          <div className="flex-1">
+                            <h3 className="font-medium">{item.name}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {formatVND(item.price)}
+                            </p>
+                          </div>
+                          <div className="flex items-center border rounded-md">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => updateQuantity(item.id, -1)}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="w-8 text-center">
+                              {item.quantity}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => updateQuantity(item.id, 1)}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeItem(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </div>
+                      ))}
                 </CardContent>
               </Card>
             </div>
@@ -504,6 +630,10 @@ const Cart = () => {
                   <CardTitle>Order Summary</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="flex justify-between">
+                    <span>Shipping Fee</span>
+                    <span>{formatVND(1000)}</span>
+                  </div>
                   <div className="flex justify-between">
                     <span>Subtotal</span>
                     <span>{formatVND(subtotal)}</span>
@@ -534,9 +664,7 @@ const Cart = () => {
         ) : (
           <div className="text-center py-16">
             <ShoppingBag className="mx-auto h-16 w-16 text-muted-foreground" />
-            <h2 className="mt-2 text-2xl font-semibold">
-              Your cart is empty
-            </h2>
+            <h2 className="mt-2 text-2xl font-semibold">Your cart is empty</h2>
             <p className="mt-1 text-muted-foreground">
               Add products to cart to get started.
             </p>
@@ -562,7 +690,8 @@ const Cart = () => {
           <DialogHeader>
             <DialogTitle>Order Information</DialogTitle>
             <DialogDescription>
-              Please enter shipping information and review products before confirming.
+              Please enter shipping information and review products before
+              confirming.
             </DialogDescription>
           </DialogHeader>
 
@@ -577,7 +706,12 @@ const Cart = () => {
           ) : showAddressSelection ? (
             <div className="py-4">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium" id="address-selection-title">Select Delivery Address</h3>
+                <h3
+                  className="text-lg font-medium"
+                  id="address-selection-title"
+                >
+                  Select Delivery Address
+                </h3>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -589,11 +723,19 @@ const Cart = () => {
                 </Button>
               </div>
 
-              <div className="space-y-3 max-h-[300px] overflow-y-auto" role="radiogroup" aria-labelledby="address-selection-title">
+              <div
+                className="space-y-3 max-h-[300px] overflow-y-auto"
+                role="radiogroup"
+                aria-labelledby="address-selection-title"
+              >
                 {userAddresses.map((addr) => (
                   <div
                     key={addr._id}
-                    className={`border rounded-md p-3 cursor-pointer ${addr._id === selectedAddressId ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
+                    className={`border rounded-md p-3 cursor-pointer ${
+                      addr._id === selectedAddressId
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200"
+                    }`}
                     onClick={() => handleAddressSelection(addr._id || "")}
                     role="radio"
                     aria-checked={addr._id === selectedAddressId}
@@ -603,32 +745,67 @@ const Cart = () => {
                         <input
                           type="radio"
                           checked={addr._id === selectedAddressId}
-                          onChange={() => handleAddressSelection(addr._id || "")}
+                          onChange={() =>
+                            handleAddressSelection(addr._id || "")
+                          }
                           className="h-4 w-4 text-blue-600"
                           id={`address-${addr._id}`}
                           name="selected-address"
-                          aria-label={`Địa chỉ: ${addr.name}, ${addr.phone}, ${getFullAddress(addr)}`}
+                          aria-label={`Địa chỉ: ${addr.name}, ${
+                            addr.phone
+                          }, ${getFullAddress(addr)}`}
                         />
                       </div>
                       <div className="ml-3 flex-grow">
-                        <label htmlFor={`address-${addr._id}`} className="block w-full cursor-pointer">
+                        <label
+                          htmlFor={`address-${addr._id}`}
+                          className="block w-full cursor-pointer"
+                        >
                           <div className="flex justify-between">
                             <span className="font-medium">{addr.name}</span>
-                            {addr.isDefault && (
-                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
-                                Default
-                              </span>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {addr.isDefault && (
+                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                                  Default
+                                </span>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Prevent triggering the address selection
+                                  handleDeleteAddress(
+                                    addr._id || "",
+                                    addr.name || ""
+                                  );
+                                }}
+                                title="Xóa địa chỉ"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </div>
-                          <div className="text-sm text-gray-600">{addr.phone}</div>
-                          <div className="text-sm mt-1">{getFullAddress(addr)}</div>
+                          <div className="text-sm text-gray-600">
+                            {addr.phone}
+                          </div>
+                          <div className="text-sm mt-1">
+                            {getFullAddress(addr)}
+                          </div>
                           <div className="mt-1 flex items-center">
-                            {addr.addressType === "Home" ? (
+                            {addr.addressType === "Nhà riêng" ||
+                            addr.addressType === "Home" ? (
                               <Home className="h-3.5 w-3.5 text-gray-400 mr-1" />
                             ) : (
                               <Building className="h-3.5 w-3.5 text-gray-400 mr-1" />
                             )}
-                            <span className="text-xs text-gray-500">{addr.addressType}</span>
+                            <span className="text-xs text-gray-500">
+                              {addr.addressType === "Home"
+                                ? "Nhà riêng"
+                                : addr.addressType === "Office"
+                                ? "Văn phòng"
+                                : addr.addressType}
+                            </span>
                           </div>
                         </label>
                       </div>
@@ -649,7 +826,11 @@ const Cart = () => {
                 </div>
 
                 <div
-                  className={`border rounded-md p-3 cursor-pointer ${useManualAddress ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
+                  className={`border rounded-md p-3 cursor-pointer ${
+                    useManualAddress
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200"
+                  }`}
                   onClick={() => handleAddressSelection("manual")}
                   role="radio"
                   aria-checked={useManualAddress}
@@ -667,9 +848,14 @@ const Cart = () => {
                       />
                     </div>
                     <div className="ml-3 flex-grow">
-                      <label htmlFor="manual-address" className="block w-full cursor-pointer">
+                      <label
+                        htmlFor="manual-address"
+                        className="block w-full cursor-pointer"
+                      >
                         <span className="font-medium">Enter New Address</span>
-                        <div className="text-sm text-gray-600 mt-1">Enter different shipping information</div>
+                        <div className="text-sm text-gray-600 mt-1">
+                          Enter different shipping information
+                        </div>
                       </label>
                     </div>
                   </div>
@@ -696,14 +882,25 @@ const Cart = () => {
           ) : (
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right" id="shipping-address-label">Shipping Address</Label>
+                <Label className="text-right" id="shipping-address-label">
+                  Shipping Address
+                </Label>
                 <div className="col-span-3">
-                  <div className="border rounded-md p-3" aria-labelledby="shipping-address-label">
+                  <div
+                    className="border rounded-md p-3"
+                    aria-labelledby="shipping-address-label"
+                  >
                     <div className="flex justify-between items-start">
                       <div>
-                        <div className="font-medium">{checkoutInfo.recipientName}</div>
-                        <div className="text-sm text-gray-600">{checkoutInfo.phone}</div>
-                        <div className="text-sm mt-1">{checkoutInfo.shippingAddress}</div>
+                        <div className="font-medium">
+                          {checkoutInfo.recipientName}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {checkoutInfo.phone}
+                        </div>
+                        <div className="text-sm mt-1">
+                          {checkoutInfo.shippingAddress}
+                        </div>
                       </div>
                       <Button
                         variant="ghost"
@@ -817,7 +1014,9 @@ const Cart = () => {
                           className="h-12 w-12 rounded object-cover border"
                         />
                         <div>
-                          <div className="font-medium text-base">{item.name}</div>
+                          <div className="font-medium text-base">
+                            {item.name}
+                          </div>
                           <div className="text-sm text-gray-500">
                             x{item.quantity}
                           </div>
@@ -834,6 +1033,10 @@ const Cart = () => {
               <div className="flex justify-between">
                 <span>Subtotal</span>
                 <span>{formatVND(subtotal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Shipping Fee</span>
+                <span>{formatVND(1000)}</span>
               </div>
               <Separator className="my-2" />
               <div className="flex justify-between font-bold text-lg">
@@ -861,6 +1064,29 @@ const Cart = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Address Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa địa chỉ</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa địa chỉ của "{addressToDelete?.name}"?
+              <br />
+              Hành động này không thể hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy bỏ</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteAddress}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Xóa địa chỉ
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

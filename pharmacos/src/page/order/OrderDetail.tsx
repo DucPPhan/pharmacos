@@ -246,7 +246,7 @@ const OrderDetail = () => {
               boxShadow: "0 2px 12px 0 rgba(60,120,200,0.06)",
               background: "#fff",
             }}
-            bodyStyle={{ padding: 28, paddingBottom: 18 }}
+            styles={{ body: { padding: 28, paddingBottom: 18 } }}
           >
             <div
               style={{
@@ -390,7 +390,7 @@ const OrderDetail = () => {
                       <UserOutlined /> Recipient info
                     </span>
                   }
-                  contentStyle={{ fontWeight: 500, fontSize: 15 }}
+                  styles={{ content: { fontWeight: 500, fontSize: 15 } }}
                 >
                   <Descriptions.Item label="">
                     {order.recipientName}
@@ -407,7 +407,7 @@ const OrderDetail = () => {
                       <HomeOutlined /> Delivery address
                     </span>
                   }
-                  contentStyle={{ fontWeight: 500, fontSize: 15 }}
+                  styles={{ content: { fontWeight: 500, fontSize: 15 } }}
                 >
                   <Descriptions.Item label="">
                     {order.shippingAddress}
@@ -423,7 +423,7 @@ const OrderDetail = () => {
                       <ShopOutlined /> Pharmacy
                     </span>
                   }
-                  contentStyle={{ fontWeight: 500, fontSize: 15 }}
+                  styles={{ content: { fontWeight: 500, fontSize: 15 } }}
                 >
                   <div>PharmaCos</div>
                 </Descriptions>
@@ -452,7 +452,7 @@ const OrderDetail = () => {
                   transition: "box-shadow 0.2s, border 0.2s",
                   cursor: "pointer",
                 }}
-                bodyStyle={{ padding: 18 }}
+                styles={{ body: { padding: 18 } }}
                 hoverable
               >
                 <Row align="middle" gutter={[16, 8]}>
@@ -465,8 +465,8 @@ const OrderDetail = () => {
                       src={
                         item.productId?.images?.length
                           ? item.productId.images.find(
-                            (img: any) => img.isPrimary
-                          )?.url || item.productId.images[0].url
+                              (img: any) => img.isPrimary
+                            )?.url || item.productId.images[0].url
                           : "https://via.placeholder.com/80x80?text=No+Image"
                       }
                       alt={item.productId?.name}
@@ -563,7 +563,7 @@ const OrderDetail = () => {
               background: "#fff",
               boxShadow: "0 2px 12px 0 rgba(60,120,200,0.06)",
             }}
-            bodyStyle={{ padding: 24 }}
+            styles={{ body: { padding: 24 } }}
           >
             {/* Payment Status Banner */}
             <div
@@ -587,9 +587,7 @@ const OrderDetail = () => {
                   fontWeight: 600,
                   fontSize: 16,
                   color:
-                    order.paymentStatus === "success"
-                      ? "#155724"
-                      : "#856404",
+                    order.paymentStatus === "success" ? "#155724" : "#856404",
                 }}
               >
                 {order.paymentStatus === "success"
@@ -600,14 +598,19 @@ const OrderDetail = () => {
                 style={{
                   fontSize: 14,
                   color:
-                    order.paymentStatus === "success"
-                      ? "#155724"
-                      : "#856404",
+                    order.paymentStatus === "success" ? "#155724" : "#856404",
                   marginTop: 4,
                   fontWeight: 500,
                 }}
               >
-                Phương thức: {order.paymentMethod === "cash" ? "Tiền mặt" : order.paymentMethod === "bank" ? "Chuyển khoản" : order.paymentMethod === "online" ? "Thanh toán online" : "Thanh toán khi giao hàng"}
+                Phương thức:{" "}
+                {order.paymentMethod === "cash"
+                  ? "Tiền mặt"
+                  : order.paymentMethod === "bank"
+                  ? "Chuyển khoản"
+                  : order.paymentMethod === "online"
+                  ? "Thanh toán online"
+                  : "Thanh toán khi giao hàng"}
               </div>
               {order.paymentStatus === "pending" && (
                 <div
@@ -627,7 +630,7 @@ const OrderDetail = () => {
             <Descriptions
               column={1}
               size="small"
-              labelStyle={{ fontWeight: 600, color: "#1a237e" }}
+              styles={{ label: { fontWeight: 600, color: "#1a237e" } }}
             >
               <Descriptions.Item label="Total">
                 <span style={{ fontWeight: 600 }}>
@@ -662,17 +665,15 @@ const OrderDetail = () => {
                   {order.paymentMethod === "cash"
                     ? "Tiền mặt (Cash on delivery)"
                     : order.paymentMethod === "bank"
-                      ? "Chuyển khoản ngân hàng"
-                      : order.paymentMethod === "online"
-                        ? "Thanh toán online"
-                        : "Thanh toán khi giao hàng"}
+                    ? "Chuyển khoản ngân hàng"
+                    : order.paymentMethod === "online"
+                    ? "Thanh toán online"
+                    : "Thanh toán khi giao hàng"}
                 </span>
               </Descriptions.Item>
               <Descriptions.Item label="Payment status">
                 <Tag
-                  color={
-                    order.paymentStatus === "success" ? "green" : "orange"
-                  }
+                  color={order.paymentStatus === "success" ? "green" : "orange"}
                   style={{ fontWeight: 600 }}
                 >
                   {order.paymentStatus === "success" ? "Paid" : "Pending"}
@@ -681,7 +682,7 @@ const OrderDetail = () => {
             </Descriptions>
             <div style={{ textAlign: "center", marginTop: 24 }}>
               {order.paymentStatus === "pending" &&
-                order.status !== "cancelled" ? (
+              order.status !== "cancelled" ? (
                 <div
                   style={{
                     display: "flex",
@@ -706,62 +707,34 @@ const OrderDetail = () => {
                       }}
                       onClick={async () => {
                         try {
-                          // Check if payment already exists first
-                          let paymentUrl = null;
-
-                          try {
-                            const existingPaymentCheck = await apiFetch(`http://localhost:10000/api/payments/check/${order.id}`, {
-                              method: "GET"
-                            });
-
-                            if (existingPaymentCheck.exists && existingPaymentCheck.paymentUrl) {
-                              paymentUrl = existingPaymentCheck.paymentUrl;
-                            }
-                          } catch (checkError) {
-                            console.log("Payment check failed, will try to create new payment");
-                          }
-
-                          if (!paymentUrl) {
-                            try {
-                              const paymentData = await apiFetch("http://localhost:10000/api/payments/create", {
-                                method: "POST",
-                                body: JSON.stringify({
-                                  orderId: order.id,
-                                  paymentMethod: order.paymentMethod || "bank"
+                          // Direct fetch to handle pending payment properly
+                          const token = localStorage.getItem("token");
+                          const response = await fetch(
+                            "http://localhost:10000/api/payments/create",
+                            {
+                              method: "POST",
+                              headers: {
+                                "Content-Type": "application/json",
+                                ...(token && {
+                                  Authorization: `Bearer ${token}`,
                                 }),
-                              });
-
-                              if (paymentData.success && paymentData.data?.paymentUrl) {
-                                paymentUrl = paymentData.data.paymentUrl;
-                              }
-                            } catch (createError: any) {
-                              if (createError.message?.includes("already exists")) {
-                                // Try to reset and create again
-                                const resetResponse = await apiFetch(`http://localhost:10000/api/payments/reset/${order.id}`, {
-                                  method: "POST"
-                                });
-
-                                if (resetResponse.success) {
-                                  const retryPaymentData = await apiFetch("http://localhost:10000/api/payments/create", {
-                                    method: "POST",
-                                    body: JSON.stringify({
-                                      orderId: order.id,
-                                      paymentMethod: order.paymentMethod || "bank"
-                                    }),
-                                  });
-
-                                  if (retryPaymentData.success && retryPaymentData.data?.paymentUrl) {
-                                    paymentUrl = retryPaymentData.data.paymentUrl;
-                                  }
-                                }
-                              }
+                              },
+                              body: JSON.stringify({
+                                orderId: order.id,
+                                paymentMethod: order.paymentMethod || "bank",
+                              }),
                             }
-                          }
+                          );
 
-                          if (paymentUrl) {
-                            window.location.href = paymentUrl;
+                          const result = await response.json();
+
+                          // If has paymentUrl (even with error for pending payment), redirect
+                          if (result.data?.paymentUrl) {
+                            window.location.href = result.data.paymentUrl;
                           } else {
-                            message.error("Không thể tạo link thanh toán. Vui lòng liên hệ hỗ trợ.");
+                            message.error(
+                              "Không thể tạo link thanh toán. Vui lòng liên hệ hỗ trợ."
+                            );
                           }
                         } catch (error) {
                           console.error("Payment error:", error);
@@ -797,12 +770,15 @@ const OrderDetail = () => {
                       fontWeight: 600,
                       fontSize: 16,
                       height: 44,
-                      background: "linear-gradient(90deg, rgb(31, 14, 189) 100%)",
+                      background:
+                        "linear-gradient(90deg, rgb(31, 14, 189) 100%)",
                       border: "none",
                       boxShadow: "0 2px 8px 0 rgba(60,120,200,0.10)",
                       color: "white",
                     }}
-                    onClick={() => reorderFromOrderDetail(order.items, navigate)}
+                    onClick={() =>
+                      reorderFromOrderDetail(order.items, navigate)
+                    }
                   >
                     Mua lại
                   </Button>

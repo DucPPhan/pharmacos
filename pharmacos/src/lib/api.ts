@@ -161,3 +161,137 @@ export const staffAnalyticsApi = {
   getProducts: async () => apiFetch(`${API_URL}/staff/analytics/products`),
   getInventory: async () => apiFetch(`${API_URL}/staff/analytics`),
 };
+
+// Address API functions
+export interface AddressData {
+  name: string; // Họ tên người nhận
+  phone: string; // Số điện thoại
+  city: string; // Tỉnh/Thành phố
+  district: string; // Quận/Huyện
+  ward: string; // Phường/Xã
+  address: string; // Địa chỉ chi tiết
+  addressType?: "Nhà riêng" | "Văn phòng"; // Loại địa chỉ
+  isDefault?: boolean; // Đặt làm địa chỉ mặc định
+}
+
+export interface AddressResponse {
+  _id: string;
+  name: string;
+  phone: string;
+  city: string;
+  district: string;
+  ward: string;
+  address: string;
+  addressType: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data?: T;
+  error?: string;
+}
+
+// Lấy danh sách địa chỉ của customer
+export const getCustomerAddresses = async (): Promise<AddressResponse[]> => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    throw new Error("Vui lòng đăng nhập để xem địa chỉ");
+  }
+
+  const response = await fetch(`${API_URL}/customers/addresses`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Không thể lấy danh sách địa chỉ");
+  }
+
+  return response.json();
+};
+
+// Thêm địa chỉ mới
+export const createCustomerAddress = async (
+  addressData: AddressData
+): Promise<ApiResponse<AddressResponse>> => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    throw new Error("Vui lòng đăng nhập để thêm địa chỉ");
+  }
+
+  const response = await fetch(`${API_URL}/customers/addresses`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(addressData),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.message || "Không thể thêm địa chỉ");
+  }
+
+  return result;
+};
+
+// Cập nhật địa chỉ
+export const updateCustomerAddress = async (
+  addressId: string,
+  addressData: Partial<AddressData>
+): Promise<AddressResponse> => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    throw new Error("Vui lòng đăng nhập để cập nhật địa chỉ");
+  }
+
+  const response = await fetch(`${API_URL}/customers/addresses/${addressId}`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(addressData),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Không thể cập nhật địa chỉ");
+  }
+
+  return response.json();
+};
+
+// Xóa địa chỉ
+export const deleteCustomerAddress = async (
+  addressId: string
+): Promise<{ message: string }> => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    throw new Error("Vui lòng đăng nhập để xóa địa chỉ");
+  }
+
+  const response = await fetch(`${API_URL}/customers/addresses/${addressId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Không thể xóa địa chỉ");
+  }
+
+  return response.json();
+};
