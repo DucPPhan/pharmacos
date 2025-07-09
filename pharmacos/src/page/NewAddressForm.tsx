@@ -39,6 +39,9 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
+  const [userProfile, setUserProfile] = useState<{ name?: string; phone?: string }>(
+    {}
+  );
 
   useEffect(() => {
     fetch("https://provinces.open-api.vn/api/?depth=3")
@@ -53,9 +56,77 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
       });
   }, []);
 
+  // Fetch user profile to prefill form
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const response = await fetch(
+          "http://localhost:10000/api/customers/profile",
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setUserProfile({
+            name: data.name || data.fullName || "",
+            phone: data.phone || data.phoneNumber || "",
+          });
+
+          // Only set fields if they aren't already set by initialValues
+          if (!initialValues?.name && !initialValues?.phone) {
+            form.setFieldsValue({
+              name: data.name || data.fullName || "",
+              phone: data.phone || data.phoneNumber || "",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch user profile:", error);
+      }
+    };
+
+    fetchUserProfile();
+  }, [form]);
+
   useEffect(() => {
     if (initialValues) {
-      form.setFieldsValue(initialValues);
+      // Create a copy of initialValues to work with
+      const formValues = { ...initialValues };
+
+      // Type-safe handling of addressType conversion
+      if (formValues.addressType) {
+        // Cast to string to avoid type errors during comparison
+        const addressTypeStr = String(formValues.addressType);
+
+        // Convert to the correct enum value
+        if (
+          addressTypeStr === "Home" ||
+          addressTypeStr.toLowerCase().includes("nhà")
+        ) {
+          formValues.addressType = "Nhà riêng";
+        } else if (
+          addressTypeStr === "Office" ||
+          addressTypeStr.toLowerCase().includes("văn")
+        ) {
+          formValues.addressType = "Văn phòng";
+        } else if (
+          addressTypeStr !== "Nhà riêng" &&
+          addressTypeStr !== "Văn phòng"
+        ) {
+          // Default if not a valid value
+          formValues.addressType = "Nhà riêng";
+        }
+      }
+
+      form.setFieldsValue(formValues);
 
       if (initialValues.city && provinces.length > 0) {
         const province = provinces.find((p) => p.name === initialValues.city);
@@ -72,8 +143,16 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
           }
         }
       }
+    } else if (userProfile.name || userProfile.phone) {
+      // If no initialValues but we have user profile, use that
+      form.setFieldsValue({
+        name: userProfile.name || form.getFieldValue("name") || "",
+        phone: userProfile.phone || form.getFieldValue("phone") || "",
+        addressType: "Nhà riêng",
+        isDefault: false,
+      });
     }
-  }, [initialValues, form, provinces]);
+  }, [initialValues, form, provinces, userProfile]);
 
   const handleCityChange = (city: string) => {
     console.log("City selected:", city);
@@ -103,7 +182,7 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
       const values = await form.validateFields();
       setLoading(true);
 
-      // Map form values to AddressData format
+      // Map form values to AddressData format with strict enum handling
       const addressData: AddressData = {
         name: values.name,
         phone: values.phone,
@@ -111,9 +190,15 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
         district: values.district,
         ward: values.ward,
         address: values.address,
-        addressType: values.addressType || "Nhà riêng",
+        // Force correct enum values
+        addressType:
+          values.addressType === "Nhà riêng" || values.addressType === "Văn phòng"
+            ? values.addressType
+            : "Nhà riêng", // Default to this value if invalid
         isDefault: values.isDefault || false,
       };
+
+      console.log("Submitting address with addressType:", addressData.addressType);
 
       try {
         // Use the new API function
@@ -147,6 +232,8 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
         initialValues={{
           addressType: "Nhà riêng",
           isDefault: false,
+          name: userProfile.name || "",
+          phone: userProfile.phone || "",
           ...initialValues,
         }}
         className="address-form"
@@ -185,8 +272,8 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
             filterOption={(input, option) =>
               option?.children
                 ? String(option.children)
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
                 : false
             }
             popupClassName="address-dropdown"
@@ -217,8 +304,8 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
             filterOption={(input, option) =>
               option?.children
                 ? String(option.children)
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
                 : false
             }
             popupClassName="address-dropdown"
@@ -256,8 +343,8 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
             filterOption={(input, option) =>
               option?.children
                 ? String(option.children)
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
                 : false
             }
             popupClassName="address-dropdown"

@@ -883,7 +883,7 @@ const OrderDetail = () => {
                           }
                         }}
                       >
-                        💳 Thanh toán ngay
+                        Thanh toán ngay
                       </Button>
                     )}
 

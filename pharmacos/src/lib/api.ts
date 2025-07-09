@@ -170,7 +170,7 @@ export interface AddressData {
   district: string; // Quận/Huyện
   ward: string; // Phường/Xã
   address: string; // Địa chỉ chi tiết
-  addressType?: "Nhà riêng" | "Văn phòng"; // Loại địa chỉ
+  addressType: "Nhà riêng" | "Văn phòng"; // Loại địa chỉ - MUST match backend enum exactly
   isDefault?: boolean; // Đặt làm địa chỉ mặc định
 }
 
@@ -217,6 +217,40 @@ export const getCustomerAddresses = async (): Promise<AddressResponse[]> => {
   return response.json();
 };
 
+// Helper function to ensure valid addressType values
+export function ensureValidAddressType(
+  addressType: any
+): "Nhà riêng" | "Văn phòng" {
+  if (addressType === "Nhà riêng" || addressType === "Văn phòng") {
+    return addressType;
+  }
+
+  // Handle English values or any other format
+  const addressStr = String(addressType || "").toLowerCase();
+  if (
+    addressStr.includes("office") ||
+    addressStr.includes("văn") ||
+    addressStr === "văn phòng"
+  ) {
+    return "Văn phòng";
+  }
+
+  // Default to "Nhà riêng" for all other cases
+  return "Nhà riêng";
+}
+
+// Validation function to ensure valid address type values
+const validateAddressData = (data: AddressData): AddressData => {
+  // Ensure addressType is one of the valid backend enum values
+  if (data.addressType !== "Nhà riêng" && data.addressType !== "Văn phòng") {
+    return {
+      ...data,
+      addressType: "Nhà riêng", // Default to a known valid value
+    };
+  }
+  return data;
+};
+
 // Thêm địa chỉ mới
 export const createCustomerAddress = async (
   addressData: AddressData
@@ -226,41 +260,66 @@ export const createCustomerAddress = async (
     throw new Error("Vui lòng đăng nhập để thêm địa chỉ");
   }
 
-  const response = await fetch(`${API_URL}/customers/addresses`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(addressData),
-  });
+  // Create a sanitized copy to ensure the correct format
+  const sanitizedData = {
+    ...addressData,
+    addressType: ensureValidAddressType(addressData.addressType),
+  };
 
-  const result = await response.json();
+  console.log("Sending sanitized address data:", sanitizedData);
 
-  if (!response.ok) {
-    throw new Error(result.message || "Không thể thêm địa chỉ");
+  try {
+    const response = await fetch(`${API_URL}/customers/addresses`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(sanitizedData),
+    });
+
+    // Read text response first for debugging
+    const responseText = await response.text();
+    console.log(`API response (${response.status}):`, responseText);
+
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (e) {
+      throw new Error(`Invalid JSON response: ${responseText}`);
+    }
+
+    if (!response.ok) {
+      throw new Error(result.message || "Không thể thêm địa chỉ");
+    }
+
+    return result;
+  } catch (error: any) {
+    console.error("Error in createCustomerAddress:", error);
+    throw new Error(error.message || "Không thể thêm địa chỉ");
   }
-
-  return result;
 };
 
 // Cập nhật địa chỉ
 export const updateCustomerAddress = async (
-  addressId: string,
-  addressData: Partial<AddressData>
-): Promise<AddressResponse> => {
+  id: string,
+  addressData: AddressData
+): Promise<ApiResponse<AddressResponse>> => {
+  // Similar validation
+  const validatedData = validateAddressData(addressData);
+
   const token = localStorage.getItem("token");
   if (!token) {
     throw new Error("Vui lòng đăng nhập để cập nhật địa chỉ");
   }
 
-  const response = await fetch(`${API_URL}/customers/addresses/${addressId}`, {
+  const response = await fetch(`${API_URL}/customers/addresses/${id}`, {
     method: "PATCH",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(addressData),
+    body: JSON.stringify(validatedData),
   });
 
   if (!response.ok) {

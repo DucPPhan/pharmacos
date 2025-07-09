@@ -325,11 +325,28 @@ const Cart = () => {
         body: JSON.stringify(orderData),
       });
 
-      // If online payment is selected, create payment link and redirect (DO NOT clear cart)
-      if (checkoutInfo.paymentMethod === "online") {
-        const orderId = orderRes?.order?._id || orderRes?.order?.id;
-        if (!orderId) throw new Error("Cannot get order ID!");
+      // Get order ID
+      const orderId = orderRes?.order?._id || orderRes?.order?.id;
+      if (!orderId) throw new Error("Cannot get order ID!");
 
+      // Clear cart immediately for ALL payment methods
+      // Store cart items in localStorage before clearing for online payments
+      if (checkoutInfo.paymentMethod === "online") {
+        localStorage.setItem(
+          "pendingOrder",
+          JSON.stringify({
+            orderId,
+            cartItems: cartItems.map((item) => ({ ...item })),
+          })
+        );
+      }
+
+      // Always clear cart after placing order
+      localStorage.removeItem("cart");
+      cartItems.forEach((item) => removeItem(item.id));
+
+      // If online payment is selected, create payment link and redirect
+      if (checkoutInfo.paymentMethod === "online") {
         const paymentRes = await apiFetch(
           "http://localhost:10000/api/payments/create",
           {
@@ -342,40 +359,27 @@ const Cart = () => {
         );
 
         if (paymentRes.success && paymentRes.data?.paymentUrl) {
-          // Save order info to localStorage for processing after payment
-          localStorage.setItem(
-            "pendingOrder",
-            JSON.stringify({
-              orderId,
-              cartItems: cartItems.map((item) => ({ ...item })),
-            })
-          );
-
           setIsCheckoutDialogOpen(false);
           toast({
             title: "Redirecting...",
             description: "Redirecting to payment page.",
           });
 
-          // Redirect to payment gateway WITHOUT clearing cart
+          // Redirect to payment gateway (cart already cleared)
           window.location.href = paymentRes.data.paymentUrl;
           return;
         } else {
           throw new Error("Failed to create payment link!");
         }
+      } else {
+        // For COD payments
+        setIsCheckoutDialogOpen(false);
+        toast({
+          title: "Order placed successfully!",
+          description: "Your order is being processed.",
+        });
+        navigate(`/order-confirmation?orderId=${orderId}`);
       }
-
-      // If COD, clear cart immediately as payment is completed
-      localStorage.removeItem("cart");
-      cartItems.forEach((item) => removeItem(item.id));
-
-      setIsCheckoutDialogOpen(false);
-      toast({
-        title: "Order placed successfully!",
-        description: "Your order is being processed.",
-      });
-      const orderId = orderRes?.order?._id || orderRes?.order?.id;
-      navigate(`/order-confirmation?orderId=${orderId}`);
     } catch (error) {
       toast({
         title: "Error",
@@ -405,18 +409,8 @@ const Cart = () => {
         vnp_ResponseCode === "00" ||
         paypal_status === "success"
       ) {
-        // Payment successful - clear cart and pending order
-        const pendingOrder = localStorage.getItem("pendingOrder");
-        if (pendingOrder) {
-          try {
-            const orderData = JSON.parse(pendingOrder);
-            localStorage.removeItem("cart");
-            orderData.cartItems.forEach((item: any) => removeItem(item.id));
-            localStorage.removeItem("pendingOrder");
-          } catch (error) {
-            console.error("Error clearing pending order:", error);
-          }
-        }
+        // Payment successful - just clean up pendingOrder
+        localStorage.removeItem("pendingOrder");
 
         toast({
           title: "Payment successful!",
@@ -428,14 +422,14 @@ const Cart = () => {
         paymentStatus === "cancel" ||
         vnp_ResponseCode !== "00"
       ) {
-        // Payment failed/cancelled - KEEP cart and payment link available for retry
+        // Payment failed/cancelled - restore cart from pendingOrder if needed
         const isCancelled = paymentStatus === "cancel";
-
-        // Restore cart from pending order if needed
         const pendingOrder = localStorage.getItem("pendingOrder");
-        if (pendingOrder && !localStorage.getItem("cart")) {
+
+        if (pendingOrder) {
           try {
             const orderData = JSON.parse(pendingOrder);
+            // Restore cart items
             localStorage.setItem("cart", JSON.stringify(orderData.cartItems));
             window.dispatchEvent(new Event("cartUpdated"));
           } catch (error) {
@@ -446,13 +440,13 @@ const Cart = () => {
         toast({
           title: isCancelled ? "Payment cancelled" : "Payment failed",
           description: isCancelled
-            ? "You cancelled the payment. The payment link is still valid. You can retry payment from the order page."
-            : "An error occurred during payment. You can try again from the order page.",
+            ? "You cancelled the payment. Your cart has been restored."
+            : "An error occurred during payment. Your cart has been restored.",
           variant: "destructive",
         });
 
-        // Always navigate to orders page so user can retry payment
-        navigate("/profile/orders");
+        // Navigate to cart page instead of orders page
+        navigate("/cart");
       }
     }
   }, [navigate, toast, removeItem]);
@@ -796,18 +790,13 @@ const Cart = () => {
                             {getFullAddress(addr)}
                           </div>
                           <div className="mt-1 flex items-center">
-                            {addr.addressType === "Nhà riêng" ||
-                              addr.addressType === "Home" ? (
+                            {addr.addressType === "Nhà riêng" ? (
                               <Home className="h-3.5 w-3.5 text-gray-400 mr-1" />
                             ) : (
                               <Building className="h-3.5 w-3.5 text-gray-400 mr-1" />
                             )}
                             <span className="text-xs text-gray-500">
-                              {addr.addressType === "Home"
-                                ? "Nhà riêng"
-                                : addr.addressType === "Office"
-                                  ? "Văn phòng"
-                                  : addr.addressType}
+                              {addr.addressType}
                             </span>
                           </div>
                         </label>
@@ -1092,5 +1081,6 @@ const Cart = () => {
     </div>
   );
 };
+
 
 export default Cart;
