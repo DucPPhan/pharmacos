@@ -59,7 +59,11 @@ const PersonalInfo: React.FC<{
   onChangePassword: () => void;
   isFirebaseUser?: boolean;
 }> = ({ user, onEdit, onChangePassword, isFirebaseUser = false }) => (
-  <Card title={null} className="user-profile-card" bodyStyle={{ padding: 0 }}>
+  <Card
+    title={null}
+    className="user-profile-card"
+    styles={{ body: { padding: 0 } }}
+  >
     <div className="user-profile-card-header">
       <Tooltip title="Personal Information" placement="bottom">
         <Avatar
@@ -188,7 +192,7 @@ const EditProfileInlineForm: React.FC<{
     <Card
       title={null}
       className="user-profile-card"
-      bodyStyle={{ padding: 0, height: "100%" }}
+      styles={{ body: { padding: 0, height: "100%" } }}
     >
       <div className="user-profile-card-header">
         <Tooltip title="Personal Information" placement="bottom">
@@ -357,7 +361,11 @@ const ChangePasswordForm: React.FC<{
   };
 
   return (
-    <Card title={null} className="user-profile-card" bodyStyle={{ padding: 0 }}>
+    <Card
+      title={null}
+      className="user-profile-card"
+      styles={{ body: { padding: 0 } }}
+    >
       <div className="user-profile-card-header">
         <Avatar
           size={120}

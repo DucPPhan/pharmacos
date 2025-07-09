@@ -188,7 +188,8 @@ const MyOrders: React.FC = () => {
     setCancellingId(cancelOrderId);
     try {
       const token = localStorage.getItem("token");
-      const reasonToSend = cancelReason === "Other reason" ? customReason : cancelReason;
+      const reasonToSend =
+        cancelReason === "Other reason" ? customReason : cancelReason;
 
       await fetch(`http://localhost:10000/api/orders/${cancelOrderId}/cancel`, {
         method: "POST",
@@ -197,7 +198,7 @@ const MyOrders: React.FC = () => {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          reason: reasonToSend
+          reason: reasonToSend,
         }),
       });
 
@@ -237,7 +238,7 @@ const MyOrders: React.FC = () => {
       <Card
         title={<span className="user-profile-section-title">My Orders</span>}
         className="user-profile-section-card"
-        bodyStyle={{ padding: 0 }}
+        styles={{ body: { padding: 0 } }}
         style={{ maxWidth: 1000, margin: "0 auto" }}
       >
         <div className="user-profile-section-content">
@@ -252,7 +253,9 @@ const MyOrders: React.FC = () => {
           />
           <div style={{ maxHeight: 400, overflowY: "auto" }}>
             {filteredOrders.length === 0 ? (
-              <div style={{ textAlign: "center", color: "#888", marginTop: 32 }}>
+              <div
+                style={{ textAlign: "center", color: "#888", marginTop: 32 }}
+              >
                 No orders in this status.
               </div>
             ) : (
@@ -264,7 +267,7 @@ const MyOrders: React.FC = () => {
                     borderRadius: 12,
                     border: "1px solid #f0f0f0",
                   }}
-                  bodyStyle={{ padding: 16 }}
+                  styles={{ body: { padding: 16 } }}
                 >
                   <div
                     style={{
@@ -288,21 +291,21 @@ const MyOrders: React.FC = () => {
                             order.paymentStatus === "success"
                               ? "green"
                               : order.paymentStatus === "pending"
-                                ? "orange"
-                                : "red",
+                              ? "orange"
+                              : "red",
                         }}
                       >
                         {order.paymentStatus === "success"
                           ? "Đã thanh toán"
                           : order.paymentStatus === "pending"
-                            ? "Chưa thanh toán"
-                            : order.paymentStatus}
+                          ? "Chưa thanh toán"
+                          : order.paymentStatus}
                       </span>
                     </div>
                     <Tag
                       color={
-                        ORDER_STATUS_MAP[normalizeStatus(order.status)]?.color ||
-                        "orange"
+                        ORDER_STATUS_MAP[normalizeStatus(order.status)]
+                          ?.color || "orange"
                       }
                     >
                       {ORDER_STATUS_MAP[normalizeStatus(order.status)]?.label ||
@@ -403,7 +406,7 @@ const MyOrders: React.FC = () => {
         cancelText="Close"
         okButtonProps={{
           danger: true,
-          loading: cancellingId === cancelOrderId
+          loading: cancellingId === cancelOrderId,
         }}
         width={500}
       >
@@ -419,7 +422,11 @@ const MyOrders: React.FC = () => {
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {CANCEL_REASONS.map((reason) => (
-                <Radio key={reason} value={reason} style={{ alignItems: "flex-start" }}>
+                <Radio
+                  key={reason}
+                  value={reason}
+                  style={{ alignItems: "flex-start" }}
+                >
                   <span style={{ marginLeft: 8 }}>{reason}</span>
                 </Radio>
               ))}

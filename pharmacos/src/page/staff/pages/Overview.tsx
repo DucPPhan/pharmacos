@@ -62,10 +62,30 @@ export function Overview() {
 
         // Mock orders data
         const mockOrders = [
-          { id: "ORD-7245", customer: "Sarah Johnson", status: "Delivered", amount: 125.99 },
-          { id: "ORD-7244", customer: "Michael Chen", status: "Processing", amount: 89.50 },
-          { id: "ORD-7243", customer: "Emma Wilson", status: "Shipped", amount: 245.75 },
-          { id: "ORD-7242", customer: "James Rodriguez", status: "Pending", amount: 78.25 },
+          {
+            id: "ORD-7245",
+            customer: "Sarah Johnson",
+            status: "Delivered",
+            amount: 125.99,
+          },
+          {
+            id: "ORD-7244",
+            customer: "Michael Chen",
+            status: "Processing",
+            amount: 89.5,
+          },
+          {
+            id: "ORD-7243",
+            customer: "Emma Wilson",
+            status: "Shipped",
+            amount: 245.75,
+          },
+          {
+            id: "ORD-7242",
+            customer: "James Rodriguez",
+            status: "Pending",
+            amount: 78.25,
+          },
         ];
         setOrders(mockOrders);
 
@@ -88,13 +108,17 @@ export function Overview() {
   }, []);
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-full">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-full">Loading...</div>
+    );
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight text-[#1F3368]">Dashboard</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-[#1F3368]">
+          Dashboard
+        </h2>
       </div>
 
       {/* Overview Stats */}
@@ -157,10 +181,13 @@ export function Overview() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                   <XAxis dataKey="month" stroke="#1F3368" />
                   <YAxis stroke="#1F3368" />
-                  <Tooltip 
+                  <Tooltip
                     formatter={(value) => [`$${value}`, "Sales"]}
-                    contentStyle={{ backgroundColor: 'white', borderColor: '#1F3368' }}
-                    labelStyle={{ color: '#1F3368' }}
+                    contentStyle={{
+                      backgroundColor: "white",
+                      borderColor: "#1F3368",
+                    }}
+                    labelStyle={{ color: "#1F3368" }}
                   />
                   <Line
                     type="monotone"
@@ -183,17 +210,27 @@ export function Overview() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-[#1F3368]/5">
-                  <TableHead className="text-[#1F3368] font-semibold">Order ID</TableHead>
-                  <TableHead className="text-[#1F3368] font-semibold">Customer</TableHead>
-                  <TableHead className="text-[#1F3368] font-semibold">Status</TableHead>
-                  <TableHead className="text-right text-[#1F3368] font-semibold">Amount</TableHead>
+                  <TableHead className="text-[#1F3368] font-semibold">
+                    Order ID
+                  </TableHead>
+                  <TableHead className="text-[#1F3368] font-semibold">
+                    Customer
+                  </TableHead>
+                  <TableHead className="text-[#1F3368] font-semibold">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-right text-[#1F3368] font-semibold">
+                    Amount
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {orders.map((order) => (
                   <TableRow key={order.id} className="hover:bg-[#1F3368]/5">
                     <TableCell className="text-[#1F3368]">{order.id}</TableCell>
-                    <TableCell className="text-[#1F3368]">{order.customer}</TableCell>
+                    <TableCell className="text-[#1F3368]">
+                      {order.customer}
+                    </TableCell>
                     <TableCell>
                       <Badge
                         variant={
@@ -218,7 +255,9 @@ export function Overview() {
                         {order.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right text-[#1F3368]">${order.amount}</TableCell>
+                    <TableCell className="text-right text-[#1F3368]">
+                      ${order.amount}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -234,16 +273,26 @@ export function Overview() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-[#1F3368]/5">
-                  <TableHead className="text-[#1F3368] font-semibold">Product</TableHead>
-                  <TableHead className="text-[#1F3368] font-semibold">Stock</TableHead>
-                  <TableHead className="text-right text-[#1F3368] font-semibold">Status</TableHead>
+                  <TableHead className="text-[#1F3368] font-semibold">
+                    Product
+                  </TableHead>
+                  <TableHead className="text-[#1F3368] font-semibold">
+                    Stock
+                  </TableHead>
+                  <TableHead className="text-right text-[#1F3368] font-semibold">
+                    Status
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {lowStockItems.map((item) => (
                   <TableRow key={item.id} className="hover:bg-[#1F3368]/5">
-                    <TableCell className="text-[#1F3368]">{item.name}</TableCell>
-                    <TableCell className="text-[#1F3368]">{item.stock}</TableCell>
+                    <TableCell className="text-[#1F3368]">
+                      {item.name}
+                    </TableCell>
+                    <TableCell className="text-[#1F3368]">
+                      {item.stock}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Progress
                         value={(item.stock / item.max) * 100}
