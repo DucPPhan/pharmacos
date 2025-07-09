@@ -520,6 +520,7 @@ const MyOrders: React.FC = () => {
                       {order.note}
                     </div>
                   )}
+                  {/* Show action buttons for pending orders */}
                   {normalizeStatus(order.status) === "pending" && (
                     <div style={{ marginTop: 8 }}>
                       {/* Payment countdown timer for online/bank orders */}
@@ -547,7 +548,7 @@ const MyOrders: React.FC = () => {
                                 marginBottom: 4,
                               }}
                             >
-                              ⏰ Thời gian thanh toán còn lại
+                              ⏰ Payment Time Remaining
                             </div>
                             <div
                               style={{
@@ -573,7 +574,13 @@ const MyOrders: React.FC = () => {
                         )}
 
                       <div
-                        style={{ display: "flex", gap: 8, flexWrap: "wrap" }}
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          flexWrap: "wrap",
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
                       >
                         {/* Show payment button only for non-COD orders and non-expired payments */}
                         {order.paymentMethod !== "cod" &&
@@ -661,7 +668,7 @@ const MyOrders: React.FC = () => {
                                 }
                               }}
                             >
-                              💳 Thanh toán ngay
+                              💳 Pay Now
                             </Button>
                           )}
 
@@ -684,7 +691,7 @@ const MyOrders: React.FC = () => {
                               minWidth: 200,
                             }}
                           >
-                            💵 COD - Thanh toán khi giao hàng
+                            💵 COD - Cash on Delivery
                           </div>
                         )}
 
@@ -708,22 +715,52 @@ const MyOrders: React.FC = () => {
                                 minWidth: 200,
                               }}
                             >
-                              ⏰ Hết thời gian thanh toán
+                              ⏰ Payment Expired
                             </div>
                           )}
 
-                        <Button
-                          danger
-                          loading={cancellingId === (order.id || order._id)}
-                          onClick={() =>
-                            handleCancelOrder(order.id || order._id)
-                          }
-                          style={{
-                            height: 45,
-                          }}
-                        >
-                          Cancel Order
-                        </Button>
+                        {/* Only show Cancel Order button if payment is not completed */}
+                        {order.paymentStatus !== "success" && (
+                          <Button
+                            danger
+                            loading={cancellingId === (order.id || order._id)}
+                            onClick={() =>
+                              handleCancelOrder(order.id || order._id)
+                            }
+                            style={{
+                              height: 45,
+                            }}
+                          >
+                            Cancel Order
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Show cancelled order information */}
+                  {normalizeStatus(order.status) === "cancelled" && (
+                    <div style={{ marginTop: 8 }}>
+                      <div
+                        style={{
+                          background:
+                            "linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)",
+                          padding: "12px 16px",
+                          borderRadius: 8,
+                          border: "1px solid #f44336",
+                          color: "#d32f2f",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          textAlign: "center",
+                          boxShadow: "0 2px 6px rgba(244, 67, 54, 0.1)",
+                        }}
+                      >
+                        ❌ This order has been cancelled
+                        {order.cancelReason && (
+                          <div style={{ marginTop: 4, fontSize: 12 }}>
+                            Reason: {order.cancelReason}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

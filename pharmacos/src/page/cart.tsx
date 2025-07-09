@@ -85,6 +85,7 @@ const Cart = () => {
     forceRefresh,
   } = useCart();
 
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isCheckoutDialogOpen, setIsCheckoutDialogOpen] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [userAddresses, setUserAddresses] = useState<AddressInfo[]>([]);
@@ -98,6 +99,13 @@ const Cart = () => {
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [addressToDelete, setAddressToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [deleteSelectedDialogOpen, setDeleteSelectedDialogOpen] =
+    useState(false);
+  const [deleteSingleDialogOpen, setDeleteSingleDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{
     id: string;
     name: string;
   } | null>(null);
@@ -115,6 +123,156 @@ const Cart = () => {
     "Cart component mounted, initial payment method:",
     checkoutInfo.paymentMethod
   );
+
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      const allItemIds = new Set(cartItems.map((item) => item.id));
+      setSelectedItems(allItemIds);
+    }
+  }, [cartItems]);
+
+  // Checkbox handlers
+  const handleSelectItem = (itemId: string) => {
+    setSelectedItems((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
+      } else {
+        newSet.add(itemId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedItems(new Set());
+    } else {
+      const allItemIds = new Set(cartItems.map((item) => item.id));
+      setSelectedItems(allItemIds);
+    }
+  };
+
+  const isAllSelected =
+    selectedItems.size === cartItems.length && cartItems.length > 0;
+  const selectedCartItems = cartItems.filter((item) =>
+    selectedItems.has(item.id)
+  );
+  const selectedSubtotal = selectedCartItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+  const selectedTotal = selectedSubtotal + (selectedItems.size > 0 ? 1000 : 0);
+
+  // Handle delete selected items
+  const handleDeleteSelected = () => {
+    setDeleteSelectedDialogOpen(true);
+  };
+
+  const confirmDeleteSelected = async () => {
+    const itemsCount = selectedItems.size;
+    const selectedItemsArray = Array.from(selectedItems);
+
+    try {
+      // Remove items one by one to avoid race conditions
+      const { cartApi } = await import("@/lib/api");
+
+      let removedCount = 0;
+      for (const itemId of selectedItemsArray) {
+        try {
+          // Check if item still exists in cart before removing
+          const itemExists = cartItems.find((item) => item.id === itemId);
+          if (itemExists) {
+            await cartApi.removeItem(itemId);
+            removedCount++;
+
+            // Add small delay to prevent overwhelming the backend
+            if (removedCount < selectedItemsArray.length) {
+              await new Promise((resolve) => setTimeout(resolve, 100));
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to remove item ${itemId}:`, error);
+          // Continue with other items even if one fails
+        }
+      }
+
+      // Refresh cart to update state
+      await forceRefresh();
+
+      // Clear selection after deletion
+      setSelectedItems(new Set());
+
+      // Show success toast with actual count removed
+      if (removedCount > 0) {
+        toast({
+          title: "Success",
+          description: `${removedCount} item(s) removed from cart successfully.`,
+        });
+      } else {
+        toast({
+          title: "Warning",
+          description:
+            "No items were removed. They may have already been deleted.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error in confirmDeleteSelected:", error);
+
+      // Refresh cart to restore correct state if something failed
+      await forceRefresh();
+
+      toast({
+        title: "Error",
+        description: "Failed to remove items from cart. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteSelectedDialogOpen(false);
+    }
+  };
+
+  // Handle delete single item
+  const handleDeleteSingle = (itemId: string, itemName: string) => {
+    setItemToDelete({ id: itemId, name: itemName });
+    setDeleteSingleDialogOpen(true);
+  };
+
+  const confirmDeleteSingle = async () => {
+    if (!itemToDelete) return;
+
+    try {
+      // Call API directly without CartContext toast
+      const { cartApi } = await import("@/lib/api");
+      await cartApi.removeItem(itemToDelete.id);
+
+      // Refresh cart to update state
+      await forceRefresh();
+
+      // Also remove from selected items if it was selected
+      setSelectedItems((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(itemToDelete.id);
+        return newSet;
+      });
+
+      // Show single success toast
+      toast({
+        title: "Success",
+        description: `"${itemToDelete.name}" removed from cart successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to remove item from cart. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteSingleDialogOpen(false);
+      setItemToDelete(null);
+    }
+  };
 
   const fetchUserAddresses = async () => {
     try {
@@ -243,6 +401,15 @@ const Cart = () => {
       return;
     }
 
+    if (selectedItems.size === 0) {
+      toast({
+        title: "No Items Selected",
+        description: "Please select at least one item to checkout.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsProfileLoading(true);
     try {
       // Fetch user's saved addresses
@@ -308,16 +475,16 @@ const Cart = () => {
       });
       return;
     }
-    if (cartItems.length === 0) {
+    if (selectedItems.size === 0) {
       toast({
         title: "Error",
-        description: "Cart is empty.",
+        description: "Please select at least one item to checkout.",
         variant: "destructive",
       });
       return;
     }
     try {
-      // Prepare order data according to API Orders standard
+      // Prepare order data according to API Orders standard (only selected items)
       const orderData = {
         recipientName: checkoutInfo.recipientName,
         phone: checkoutInfo.phone,
@@ -325,7 +492,7 @@ const Cart = () => {
         note: checkoutInfo.note,
         paymentMethod:
           checkoutInfo.paymentMethod === "online" ? "online" : "cod",
-        items: cartItems.map((item) => ({
+        items: selectedCartItems.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
           unitPrice: item.price,
@@ -355,13 +522,13 @@ const Cart = () => {
       const orderId = orderRes?.order?._id || orderRes?.order?.id;
       if (!orderId) throw new Error("Cannot get order ID!");
 
-      // Store cart items for online payments before clearing
+      // Store selected cart items for online payments before clearing
       if (checkoutInfo.paymentMethod === "online") {
         localStorage.setItem(
           "pendingOrder",
           JSON.stringify({
             orderId,
-            cartItems: cartItems.map((item) => ({ ...item })),
+            cartItems: selectedCartItems.map((item) => ({ ...item })),
           })
         );
       }
@@ -580,10 +747,40 @@ const Cart = () => {
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>
-                    Items in Cart (
-                    {cartItems.reduce((acc, item) => acc + item.quantity, 0)})
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>
+                      Items in Cart (
+                      {cartItems.reduce((acc, item) => acc + item.quantity, 0)})
+                    </CardTitle>
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="select-all"
+                          checked={isAllSelected}
+                          onChange={handleSelectAll}
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <label
+                          htmlFor="select-all"
+                          className="text-sm font-medium cursor-pointer"
+                        >
+                          Select All
+                        </label>
+                      </div>
+                      {selectedItems.size > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleDeleteSelected}
+                          className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete Selected ({selectedItems.size})
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {isCartLoading
@@ -603,8 +800,19 @@ const Cart = () => {
                     : cartItems.map((item) => (
                         <div
                           key={item.id}
-                          className="flex items-center space-x-4"
+                          className={`flex items-center space-x-4 p-3 rounded-lg border transition-colors ${
+                            selectedItems.has(item.id)
+                              ? "border-blue-200 bg-blue-50"
+                              : "border-gray-200 bg-white"
+                          }`}
                         >
+                          <input
+                            type="checkbox"
+                            id={`item-${item.id}`}
+                            checked={selectedItems.has(item.id)}
+                            onChange={() => handleSelectItem(item.id)}
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
                           <img
                             src={item.image}
                             alt={item.name}
@@ -640,7 +848,9 @@ const Cart = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => removeItem(item.id)}
+                            onClick={() =>
+                              handleDeleteSingle(item.id, item.name)
+                            }
                           >
                             <Trash2 className="h-4 w-4 text-muted-foreground" />
                           </Button>
@@ -656,18 +866,26 @@ const Cart = () => {
                   <CardTitle>Order Summary</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>Selected Items</span>
+                    <span>
+                      {selectedItems.size} of {cartItems.length}
+                    </span>
+                  </div>
                   <div className="flex justify-between">
                     <span>Shipping Fee</span>
-                    <span>{formatVND(1000)}</span>
+                    <span>
+                      {selectedItems.size > 0 ? formatVND(1000) : formatVND(0)}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span>{formatVND(subtotal)}</span>
+                    <span>{formatVND(selectedSubtotal)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-bold">
                     <span>Total</span>
-                    <span>{formatVND(total)}</span>
+                    <span>{formatVND(selectedTotal)}</span>
                   </div>
                 </CardContent>
                 <CardFooter>
@@ -675,13 +893,25 @@ const Cart = () => {
                     className="w-full"
                     size="lg"
                     onClick={handleOpenCheckout}
-                    disabled={isSubmitting || isProfileLoading}
-                    style={{ backgroundColor: "#7494ec" }}
+                    disabled={
+                      isSubmitting ||
+                      isProfileLoading ||
+                      selectedItems.size === 0
+                    }
+                    style={{
+                      backgroundColor:
+                        selectedItems.size === 0 ? "#gray" : "#7494ec",
+                      opacity: selectedItems.size === 0 ? 0.5 : 1,
+                    }}
                   >
                     {isProfileLoading && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
-                    {isProfileLoading ? "Loading..." : "Proceed to Checkout"}
+                    {isProfileLoading
+                      ? "Loading..."
+                      : selectedItems.size === 0
+                      ? "Select items to checkout"
+                      : "Proceed to Checkout"}
                   </Button>
                 </CardFooter>
               </Card>
@@ -1021,9 +1251,11 @@ const Cart = () => {
               </div>
               <Separator className="my-2" />
               <div>
-                <div className="font-semibold mb-2">Products in Order</div>
+                <div className="font-semibold mb-2">
+                  Products in Order ({selectedItems.size} selected)
+                </div>
                 <div className="space-y-2 max-h-[180px] overflow-y-auto">
-                  {cartItems.map((item) => (
+                  {selectedCartItems.map((item) => (
                     <div
                       key={item.id}
                       className="flex items-center justify-between border rounded-md p-2 bg-gray-50"
@@ -1053,16 +1285,16 @@ const Cart = () => {
               <Separator className="my-2" />
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span>{formatVND(subtotal)}</span>
+                <span>{formatVND(selectedSubtotal)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Shipping Fee</span>
-                <span>{formatVND(1000)}</span>
+                <span>{formatVND(selectedItems.size > 0 ? 1000 : 0)}</span>
               </div>
               <Separator className="my-2" />
               <div className="flex justify-between font-bold text-lg">
                 <span>Total</span>
-                <span>{formatVND(total)}</span>
+                <span>{formatVND(selectedTotal)}</span>
               </div>
             </div>
           )}
@@ -1104,6 +1336,60 @@ const Cart = () => {
               className="bg-red-600 hover:bg-red-700"
             >
               Xóa địa chỉ
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Selected Items Confirmation Dialog */}
+      <AlertDialog
+        open={deleteSelectedDialogOpen}
+        onOpenChange={setDeleteSelectedDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Delete Items</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove {selectedItems.size} selected
+              item(s) from your cart?
+              <br />
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteSelected}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete Items
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Single Item Confirmation Dialog */}
+      <AlertDialog
+        open={deleteSingleDialogOpen}
+        onOpenChange={setDeleteSingleDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Delete Item</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove "{itemToDelete?.name}" from your
+              cart?
+              <br />
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteSingle}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete Item
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
