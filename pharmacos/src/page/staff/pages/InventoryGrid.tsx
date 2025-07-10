@@ -29,9 +29,6 @@ export default function InventoryGrid({ inventory, lowStockCount }: InventoryGri
             <div className="p-3 rounded-lg bg-blue-500">
               <Package size={24} className="text-white" />
             </div>
-            <span className="text-sm font-medium text-green-600">
-              +12% from last month
-            </span>
           </div>
           <div>
             <p className="text-2xl font-bold text-gray-900 mb-1">
@@ -46,9 +43,7 @@ export default function InventoryGrid({ inventory, lowStockCount }: InventoryGri
             <div className="p-3 rounded-lg bg-green-500">
               <DollarSign size={24} className="text-white" />
             </div>
-            <span className="text-sm font-medium text-green-600">
-              +8% from last month
-            </span>
+            
           </div>
           <div>
             <p className="text-2xl font-bold text-gray-900 mb-1">

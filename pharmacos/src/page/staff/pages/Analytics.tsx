@@ -31,7 +31,11 @@ export default function Analytics() {
         ]);
         // SALES
         const monthlySales = sales?.salesByMonth || [];
-        const totalSales = monthlySales.reduce((sum, s) => sum + (s.totalSales || 0), 0);
+        // SỬA: Lấy tổng tiền của tất cả đơn hàng đã mua (tổng totalAmount)
+        let totalSalesAmount = 0;
+        if (Array.isArray(monthlySales) && monthlySales.length > 0) {
+          totalSalesAmount = monthlySales.reduce((sum, s) => sum + (s.totalSales || 0), 0);
+        }
         setSalesData(monthlySales.map(item => ({
           month: `${item._id.year}-${String(item._id.month).padStart(2, '0')}`,
           sales: item.totalSales || 0,
@@ -53,7 +57,7 @@ export default function Analytics() {
         // INVENTORY
         const inventoryStatus = inventory?.inventoryStatus || {};
         setStats({
-          totalSales: totalSales.toLocaleString(),
+          totalSales: totalSalesAmount.toLocaleString(),
           salesChange: '+0%',
           topProduct: topProductObj?.product?.name || 'N/A',
           topProductUnits: topProductObj?.totalQuantity?.toString() || '0',
