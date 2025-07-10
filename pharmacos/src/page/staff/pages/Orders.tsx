@@ -27,7 +27,7 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 
-type OrderStatus = "pending" | "processing" | "completed" | "cancelled";
+type OrderStatus = "pending" | "processing" | "shipping" | "delivered" | "completed" | "cancelled";
 
 interface OrderItem {
   _id: string;
@@ -68,6 +68,8 @@ interface Order {
   updatedAt: string;
   cancelReason?: string;
   items: OrderItem[];
+  paymentStatus?: string; // e.g., "success", "pending", "failed"
+  paymentMethod?: string; // e.g., "online", "cod"
 }
 
 interface OrderCardProps {
@@ -90,6 +92,10 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onUpdateStatus }) => {
         return "bg-gray-100 text-gray-800 border-gray-200";
       case "cancelled":
         return "bg-red-100 text-red-800 border-red-200";
+      case "shipping":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "delivered":
+        return "bg-indigo-100 text-indigo-800 border-indigo-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -100,9 +106,12 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onUpdateStatus }) => {
       case "pending":
         return ["processing", "cancelled"];
       case "processing":
+        return ["shipping", "cancelled"];
+      case "shipping":
+        return ["delivered", "cancelled"];
+      case "delivered":
         return ["completed", "cancelled"];
       case "completed":
-        return [];
       case "cancelled":
         return [];
       default:
@@ -195,6 +204,26 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onUpdateStatus }) => {
                       <div className="text-sm text-gray-500">Phone</div>
                       <div className="font-medium text-gray-900">
                         {order.phone}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Payment Status</div>
+                      <div className="font-medium text-gray-900">
+                        <span className={
+                          order.paymentStatus === "success"
+                            ? "bg-green-100 text-green-800 px-2 py-1 rounded"
+                            : order.paymentStatus === "pending"
+                            ? "bg-yellow-100 text-yellow-800 px-2 py-1 rounded"
+                            : "bg-red-100 text-red-800 px-2 py-1 rounded"
+                        }>
+                          {order.paymentStatus || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Payment Method</div>
+                      <div className="font-medium text-gray-900 capitalize">
+                        {order.paymentMethod || "N/A"}
                       </div>
                     </div>
                     <div>
@@ -410,6 +439,8 @@ export function Orders() {
     total: orders.length,
     pending: orders.filter((o) => o.status === "pending").length,
     processing: orders.filter((o) => o.status === "processing").length,
+    shipping: orders.filter((o) => o.status === "shipping").length,
+    delivered: orders.filter((o) => o.status === "delivered").length,
     completed: orders.filter((o) => o.status === "completed").length,
     cancelled: orders.filter((o) => o.status === "cancelled").length,
   };
@@ -433,7 +464,7 @@ export function Orders() {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `http://localhost:10000/api/orders/${pendingStatusChange.orderId}/status`,
+        `http://localhost:10000/api/orders/${pendingStatusChange.orderId}/update-status`,
         {
           method: "PATCH",
           headers: {
@@ -487,7 +518,7 @@ export function Orders() {
       </div>
 
       {/* Order Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <div className="text-2xl font-bold text-gray-900">
             {orderStats.total}
@@ -505,6 +536,18 @@ export function Orders() {
             {orderStats.processing}
           </div>
           <div className="text-sm text-gray-500">Processing</div>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+          <div className="text-2xl font-bold text-blue-600">
+            {orderStats.shipping}
+          </div>
+          <div className="text-sm text-gray-500">Shipping</div>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+          <div className="text-2xl font-bold text-indigo-600">
+            {orderStats.delivered}
+          </div>
+          <div className="text-sm text-gray-500">Delivered</div>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <div className="text-2xl font-bold text-green-600">
@@ -544,6 +587,8 @@ export function Orders() {
               <option value="">All Statuses</option>
               <option value="pending">Pending</option>
               <option value="processing">Processing</option>
+              <option value="shipping">Shipping</option>
+              <option value="delivered">Delivered</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
             </select>
