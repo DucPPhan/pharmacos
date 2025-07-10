@@ -73,11 +73,24 @@ const LoginPage: React.FC = () => {
         dateOfBirth: registerDateOfBirth,
       });
       setRegisterSuccess(
-        "Đăng ký thành công! Vui lòng kiểm tra email để xác thực."
+        "Registration successful! Please check your email to verify your account."
       );
       setShowVerifyBtn(true);
+
+      // Clear form after successful registration with a small delay
+      setTimeout(() => {
+        setRegisterUsername("");
+        setRegisterPassword("");
+        setRegisterName("");
+        setRegisterEmail("");
+        setRegisterGender("male");
+        setRegisterDateOfBirth("");
+        setYear("");
+        setMonth("");
+        setDay("");
+      }, 1500); // Clear form after 1.5 seconds
     } catch (err: any) {
-      setRegisterError(err.response?.data?.message || "Đăng ký thất bại!");
+      setRegisterError(err.response?.data?.message || "Registration failed!");
     }
   };
 
@@ -94,9 +107,14 @@ const LoginPage: React.FC = () => {
         username: loginUsername,
         password: loginPassword,
       });
-      setLoginSuccess("Đăng nhập thành công!");
+      setLoginSuccess("Login successful!");
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
+
+      // Clear login form
+      setLoginUsername("");
+      setLoginPassword("");
+
       setTimeout(() => {
         const role = res.data.user?.role;
         console.log("ROLE:", role);
@@ -109,7 +127,7 @@ const LoginPage: React.FC = () => {
         }
       }, 1200);
     } catch (err: any) {
-      setLoginError(err.response?.data?.message || "Đăng nhập thất bại!");
+      setLoginError(err.response?.data?.message || "Login failed!");
     }
   };
 
@@ -136,9 +154,13 @@ const LoginPage: React.FC = () => {
           }
         );
 
-        setLoginSuccess("Đăng nhập Google thành công!");
+        setLoginSuccess("Google login successful!");
         localStorage.setItem("token", res.data.token);
         localStorage.setItem("user", JSON.stringify(res.data.user));
+
+        // Clear login form
+        setLoginUsername("");
+        setLoginPassword("");
 
         setTimeout(() => {
           const role = res.data.user?.role;
@@ -152,13 +174,18 @@ const LoginPage: React.FC = () => {
         }, 1200);
       } catch (backendError: any) {
         // Nếu backend chưa hỗ trợ Google login, tạm thời chuyển về trang chủ
-        setLoginSuccess("Đăng nhập Google thành công!");
+        setLoginSuccess("Google login successful!");
+
+        // Clear login form
+        setLoginUsername("");
+        setLoginPassword("");
+
         setTimeout(() => {
           navigate("/");
         }, 1200);
       }
     } catch (error: any) {
-      setLoginError("Đăng nhập Google thất bại!");
+      setLoginError("Google login failed!");
       console.error("Google login error:", error);
     } finally {
       setGoogleLoading(false);
@@ -213,22 +240,18 @@ const LoginPage: React.FC = () => {
             <button type="submit" className="login-btn">
               Login
             </button>
-            {loginError && (
-              <div
-                className="login-token-notice"
-                style={{ color: "#d32f2f", background: "#ffebee" }}
-              >
-                {loginError}
-              </div>
-            )}
-            {loginSuccess && (
-              <div
-                className="login-token-notice"
-                style={{ color: "#388e3c", background: "#e8f5e9" }}
-              >
-                {loginSuccess}
-              </div>
-            )}
+            <div className="login-notification-area">
+              {loginError && (
+                <div className="login-token-notice login-error">
+                  {loginError}
+                </div>
+              )}
+              {loginSuccess && (
+                <div className="login-token-notice login-success">
+                  {loginSuccess}
+                </div>
+              )}
+            </div>
             <p>or login with social platforms</p>
             <div
               className="login-social-icons"
@@ -288,7 +311,7 @@ const LoginPage: React.FC = () => {
                     opacity: googleLoading ? 0.6 : 1,
                   }}
                 >
-                  {googleLoading ? "Đang đăng nhập..." : "Login with Google"}
+                  {googleLoading ? "Logging in..." : "Login with Google"}
                 </span>
               </button>
             </div>
@@ -426,22 +449,18 @@ const LoginPage: React.FC = () => {
             <button type="submit" className="login-btn">
               Register
             </button>
-            {registerError && (
-              <div
-                className="login-token-notice"
-                style={{ color: "#d32f2f", background: "#ffebee" }}
-              >
-                {registerError}
-              </div>
-            )}
-            {registerSuccess && (
-              <div
-                className="login-token-notice"
-                style={{ color: "#388e3c", background: "#e8f5e9" }}
-              >
-                {registerSuccess}
-              </div>
-            )}
+            <div className="login-notification-area">
+              {registerError && (
+                <div className="login-token-notice login-error">
+                  {registerError}
+                </div>
+              )}
+              {registerSuccess && (
+                <div className="login-token-notice login-success">
+                  {registerSuccess}
+                </div>
+              )}
+            </div>
           </form>
         </div>
         <div className="login-toggle-box">

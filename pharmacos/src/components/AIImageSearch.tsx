@@ -112,6 +112,16 @@ const AIImageSearch = ({
     setResults([]);
 
     try {
+      const progressInterval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + Math.random() * 15;
+        });
+      }, 200);
+
       // Prepare form data
       const formData = new FormData();
       formData.append("image", file);
@@ -125,12 +135,18 @@ const AIImageSearch = ({
         }
       );
 
+      // Clear interval and complete progress
+      clearInterval(progressInterval);
+      setProgress(100);
+
+      // Small delay to show 100% completion
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setIsProcessing(false);
+
       if (!response.ok) {
         throw new Error("Failed to search by image");
       }
       const data = await response.json();
-      setProgress(100);
-      setIsProcessing(false);
 
       setGeminiAnalysis(data.geminiAnalysis || null);
       if (data.success) {
@@ -153,6 +169,7 @@ const AIImageSearch = ({
         setResults([]);
       }
     } catch (err: any) {
+      setProgress(100); // Complete progress even on error
       setIsProcessing(false);
       setError(err.message || "An error occurred during search.");
     }
@@ -253,7 +270,9 @@ const AIImageSearch = ({
                       <span className="text-sm font-medium">
                         Analyzing image...
                       </span>
-                      <span className="text-sm font-medium">{progress}%</span>
+                      <span className="text-sm font-medium">
+                        {Math.round(progress)}%
+                      </span>
                     </div>
                     <Progress value={progress} className="h-2" />
                     <p className="text-sm text-gray-500 text-center mt-2">
@@ -295,7 +314,7 @@ const AIImageSearch = ({
                                 </h4>
                                 <div className="flex justify-between items-center mt-1">
                                   <span className="font-bold">
-                                    ${product.price.toFixed(2)}
+                                    {product.price.toLocaleString("vi-VN")}đ
                                   </span>
                                   <Button
                                     size="sm"

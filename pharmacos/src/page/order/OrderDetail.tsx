@@ -13,7 +13,6 @@ import {
   List,
   Avatar,
   message,
-  Progress,
 } from "antd";
 import {
   HomeOutlined,
@@ -59,8 +58,6 @@ const OrderDetail = () => {
   const { id } = useParams();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [paymentTimeLeft, setPaymentTimeLeft] = useState<number>(0);
-  const [paymentExpired, setPaymentExpired] = useState(false);
   const navigate = useNavigate();
   const { setCartItems } = useCart();
 
@@ -77,15 +74,6 @@ const OrderDetail = () => {
       .then((data) => {
         if (data?.order) {
           setOrder({ ...data.order, items: data.items });
-
-          // Check payment status for online orders
-          if (
-            (data.order.paymentMethod === "online" ||
-              data.order.paymentMethod === "bank") &&
-            data.order.paymentStatus === "pending"
-          ) {
-            checkPaymentStatus(id);
-          }
         } else {
           setOrder(null);
         }
@@ -93,61 +81,6 @@ const OrderDetail = () => {
       })
       .catch(() => setLoading(false));
   }, [id]);
-
-  const checkPaymentStatus = async (orderId: string) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        `http://localhost:10000/api/payments/status/${orderId}`,
-        {
-          headers: {
-            Authorization: token ? `Bearer ${token}` : "",
-          },
-        }
-      );
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.data) {
-          setPaymentTimeLeft(result.data.timeLeft || 0);
-          setPaymentExpired(result.data.paymentExpired || false);
-
-          // Start countdown if payment is still active
-          if (
-            result.data.hasActivePayment &&
-            result.data.timeLeft > 0 &&
-            !paymentExpired
-          ) {
-            startCountdown(result.data.timeLeft);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error checking payment status:", error);
-    }
-  };
-
-  const startCountdown = (initialTime: number) => {
-    let timeLeft = initialTime;
-    const timer = setInterval(() => {
-      timeLeft -= 1;
-      setPaymentTimeLeft(timeLeft);
-
-      if (timeLeft <= 0) {
-        clearInterval(timer);
-        setPaymentExpired(true);
-        message.warning("Payment time has expired!");
-      }
-    }, 1000);
-
-    return () => clearInterval(timer);
-  };
-
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-  };
 
   if (loading) {
     return (
@@ -173,7 +106,7 @@ const OrderDetail = () => {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Not logged in");
 
-      // Get current cart items and remove them (since there's no DELETE /cart/items API)
+      // Lấy lại toàn bộ cart và xóa từng item (vì không có API DELETE /cart/items)
       const cartData = await apiFetch("http://localhost:10000/api/cart", {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -191,7 +124,7 @@ const OrderDetail = () => {
         )
       );
 
-      // Get product information
+      // Lấy thông tin sản phẩm
       const res = await fetch("http://localhost:10000/api/products");
       const data = await res.json();
       const products = data.products || [];
@@ -204,8 +137,7 @@ const OrderDetail = () => {
 
         const newItem = {
           productId,
-          name:
-            product?.name || item.productId?.name || item.name || "Product",
+          name: product?.name || item.productId?.name || item.name || "Product",
           image:
             product?.images?.[0]?.url ||
             item.productId?.images?.[0]?.url ||
@@ -244,11 +176,11 @@ const OrderDetail = () => {
       setCartItems(addedItems);
       // Đồng bộ lại localStorage để giữ cart khi reload trang
       localStorage.setItem("cart", JSON.stringify(addedItems));
-      message.success("Products added to cart successfully");
+      message.success("Products have been added to cart again");
       navigate("/cart");
     } catch (error) {
       console.error("Reorder error:", error);
-      message.error("Cannot reorder. Please try again later.");
+      message.error("Unable to reorder.");
     }
   };
   const apiFetch = async (url: string, options: RequestInit = {}) => {
@@ -323,13 +255,7 @@ const OrderDetail = () => {
                 marginBottom: 12,
               }}
             >
-              <span
-                style={{
-                  fontWeight: 700,
-                  fontSize: 20,
-                  color: "#1a237e",
-                }}
-              >
+              <span style={{ fontWeight: 700, fontSize: 20, color: "#1a237e" }}>
                 Order {dayjs(order.orderDate).format("DD/MM/YYYY")}
               </span>
               <Tag
@@ -348,11 +274,7 @@ const OrderDetail = () => {
               </span>
               <Tooltip title="Copy order ID">
                 <CopyOutlined
-                  style={{
-                    marginLeft: 4,
-                    color: "#1677ff",
-                    cursor: "pointer",
-                  }}
+                  style={{ marginLeft: 4, color: "#1677ff", cursor: "pointer" }}
                   onClick={() => navigator.clipboard.writeText(order.id)}
                 />
               </Tooltip>
@@ -542,8 +464,8 @@ const OrderDetail = () => {
                       src={
                         item.productId?.images?.length
                           ? item.productId.images.find(
-                            (img: any) => img.isPrimary
-                          )?.url || item.productId.images[0].url
+                              (img: any) => img.isPrimary
+                            )?.url || item.productId.images[0].url
                           : "https://via.placeholder.com/80x80?text=No+Image"
                       }
                       alt={item.productId?.name}
@@ -642,52 +564,6 @@ const OrderDetail = () => {
             }}
             styles={{ body: { padding: 24 } }}
           >
-            {/* Payment Timer for Online Orders */}
-            {(order.paymentMethod === "online" ||
-              order.paymentMethod === "bank") &&
-              order.paymentStatus === "pending" &&
-              !paymentExpired &&
-              paymentTimeLeft > 0 && (
-                <div
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%)",
-                    padding: "16px",
-                    borderRadius: 12,
-                    marginBottom: 16,
-                    border: "1px solid #ffc107",
-                    textAlign: "center",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      fontSize: 14,
-                      color: "#856404",
-                      marginBottom: 8,
-                    }}
-                  >
-                    ⏰ Payment time remaining
-                  </div>
-                  <div
-                    style={{
-                      fontWeight: 700,
-                      fontSize: 20,
-                      color: "#d32f2f",
-                      marginBottom: 8,
-                    }}
-                  >
-                    {formatTime(paymentTimeLeft)}
-                  </div>
-                  <Progress
-                    percent={Math.max(0, (paymentTimeLeft / 300) * 100)}
-                    showInfo={false}
-                    strokeColor="#ff4d4f"
-                    size="small"
-                  />
-                </div>
-              )}
-
             {/* Payment Status Banner */}
             <div
               style={{
@@ -715,7 +591,7 @@ const OrderDetail = () => {
               >
                 {order.paymentStatus === "success"
                   ? "✅ Paid"
-                  : "⏳ Payment Pending"}
+                  : "⏳ Not paid yet"}
               </span>
               <div
                 style={{
@@ -730,10 +606,10 @@ const OrderDetail = () => {
                 {order.paymentMethod === "cash"
                   ? "Cash"
                   : order.paymentMethod === "bank"
-                    ? "Bank Transfer"
-                    : order.paymentMethod === "online"
-                      ? "Online Payment"
-                      : "Cash on Delivery"}
+                  ? "Bank transfer"
+                  : order.paymentMethod === "online"
+                  ? "Online payment"
+                  : "Cash on delivery"}
               </div>
               {order.paymentStatus === "pending" && (
                 <div
@@ -745,7 +621,7 @@ const OrderDetail = () => {
                 >
                   {order.paymentMethod === "cash"
                     ? "Please prepare cash for delivery"
-                    : "Please make payment to complete your order"}
+                    : "Please pay to complete the order"}
                 </div>
               )}
             </div>
@@ -786,14 +662,12 @@ const OrderDetail = () => {
                 />
                 <span style={{ fontWeight: 500 }}>
                   {order.paymentMethod === "cash"
-                    ? "Cash (Cash on delivery)"
-                    : order.paymentMethod === "cod"
-                      ? "COD (Cash on delivery)"
-                      : order.paymentMethod === "bank"
-                        ? "Bank transfer"
-                        : order.paymentMethod === "online"
-                          ? "Online payment"
-                          : "Cash on delivery"}
+                    ? "Cash on delivery"
+                    : order.paymentMethod === "bank"
+                    ? "Bank transfer"
+                    : order.paymentMethod === "online"
+                    ? "Online payment"
+                    : "Cash on delivery"}
                 </span>
               </Descriptions.Item>
               <Descriptions.Item label="Payment status">
@@ -805,144 +679,90 @@ const OrderDetail = () => {
                 </Tag>
               </Descriptions.Item>
             </Descriptions>
-
             <div style={{ textAlign: "center", marginTop: 24 }}>
               {order.paymentStatus === "pending" &&
-                order.status !== "cancelled" ? (
+              order.status !== "cancelled" ? (
                 <div
                   style={{
                     display: "flex",
-                    flexDirection: "column",
                     gap: 12,
-                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
-                  {/* Only show payment button for non-COD orders and non-expired payments */}
-                  {order.paymentMethod !== "cash" &&
-                    order.paymentMethod !== "cod" &&
-                    !paymentExpired &&
-                    paymentTimeLeft > 0 &&
-                    !(order.paymentMethod === "online" || order.paymentMethod === "bank") ||
-                    ((order.paymentMethod === "online" || order.paymentMethod === "bank") &&
-                      !paymentExpired && paymentTimeLeft > 0) && (
-                      <Button
-                        type="primary"
-                        icon={<CreditCardOutlined />}
-                        style={{
-                          borderRadius: 24,
-                          padding: "0 32px",
-                          fontWeight: 600,
-                          fontSize: 16,
-                          height: 44,
-                          background:
-                            "linear-gradient(90deg, #52c41a 0%, #73d13d 100%)",
-                          border: "none",
-                          boxShadow: "0 2px 8px 0 rgba(82, 196, 26, 0.3)",
-                          width: 200,
-                        }}
-                        onClick={async () => {
-                          try {
-                            // Direct fetch to handle pending payment properly
-                            const token = localStorage.getItem("token");
-                            const response = await fetch(
-                              "http://localhost:10000/api/payments/create",
-                              {
-                                method: "POST",
-                                headers: {
-                                  "Content-Type": "application/json",
-                                  ...(token && {
-                                    Authorization: `Bearer ${token}`,
-                                  }),
-                                },
-                                body: JSON.stringify({
-                                  orderId: order.id,
-                                  paymentMethod: order.paymentMethod || "bank",
-                                }),
-                              }
-                            );
-
-                            const result = await response.json();
-
-                            if (result.expired) {
-                              message.error("Payment time has expired!");
-                              setPaymentExpired(true);
-                              return;
-                            }
-
-                            // If has paymentUrl (even with error for pending payment), redirect
-                            if (result.data?.paymentUrl) {
-                              window.location.href = result.data.paymentUrl;
-                            } else {
-                              message.error(
-                                "Unable to create payment link. Please contact support."
-                              );
-                            }
-                          } catch (error) {
-                            console.error("Payment error:", error);
-                            message.error("An error occurred during payment creation.");
-                          }
-                        }}
-                      >
-                        Pay Now
-                      </Button>
-                    )}
-
-                  {/* Show COD message for COD/cash orders */}
-                  {(order.paymentMethod === "cash" || order.paymentMethod === "cod") && (
-                    <div
+                  {order.paymentMethod !== "cash" && (
+                    <Button
+                      type="primary"
+                      icon={<CreditCardOutlined />}
                       style={{
-                        background: "linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%)",
-                        padding: "16px 24px",
-                        borderRadius: 16,
-                        border: "2px solid #1677ff",
-                        color: "#1677ff",
+                        borderRadius: 24,
+                        padding: "0 32px",
                         fontWeight: 600,
                         fontSize: 16,
-                        textAlign: "center",
-                        width: 300,
-                        boxShadow: "0 4px 12px rgba(22, 119, 255, 0.15)",
+                        height: 44,
+                        background:
+                          "linear-gradient(90deg, #52c41a 0%, #73d13d 100%)",
+                        border: "none",
+                        boxShadow: "0 2px 8px 0 rgba(82, 196, 26, 0.3)",
+                      }}
+                      onClick={async () => {
+                        try {
+                          // Direct fetch to handle pending payment properly
+                          const token = localStorage.getItem("token");
+                          const response = await fetch(
+                            "http://localhost:10000/api/payments/create",
+                            {
+                              method: "POST",
+                              headers: {
+                                "Content-Type": "application/json",
+                                ...(token && {
+                                  Authorization: `Bearer ${token}`,
+                                }),
+                              },
+                              body: JSON.stringify({
+                                orderId: order.id,
+                                paymentMethod: order.paymentMethod || "bank",
+                              }),
+                            }
+                          );
+
+                          const result = await response.json();
+
+                          // If has paymentUrl (even with error for pending payment), redirect
+                          if (result.data?.paymentUrl) {
+                            window.location.href = result.data.paymentUrl;
+                          } else {
+                            message.error(
+                              "Unable to create payment link. Please contact support."
+                            );
+                          }
+                        } catch (error) {
+                          console.error("Payment error:", error);
+                          message.error(
+                            "An error occurred while creating payment."
+                          );
+                        }
                       }}
                     >
-                      💵 You will pay in cash upon delivery
+                      Pay now
+                    </Button>
+                  )}
+                  {order.paymentMethod === "cash" && (
+                    <div
+                      style={{
+                        background: "#f0f8ff",
+                        padding: "12px 16px",
+                        borderRadius: 12,
+                        border: "1px solid #1677ff",
+                        color: "#1677ff",
+                        fontWeight: 500,
+                        fontSize: 14,
+                        textAlign: "center",
+                        marginBottom: 12,
+                      }}
+                    >
+                      💵 You will pay with cash upon delivery
                     </div>
                   )}
-
-                  {/* Payment Expired Message */}
-                  {(order.paymentMethod === "online" ||
-                    order.paymentMethod === "bank") &&
-                    (paymentExpired || (order.paymentStatus === "pending" && paymentTimeLeft <= 0)) && (
-                      <div
-                        style={{
-                          background:
-                            "linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)",
-                          padding: "16px",
-                          borderRadius: 12,
-                          marginBottom: 16,
-                          border: "1px solid #f44336",
-                          textAlign: "center",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontWeight: 600,
-                            fontSize: 16,
-                            color: "#d32f2f",
-                          }}
-                        >
-                          ⏰ Payment time has expired
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 14,
-                            color: "#d32f2f",
-                            marginTop: 4,
-                          }}
-                        >
-                          This order can no longer be paid online
-                        </div>
-                      </div>
-                    )}
-
                   <Button
                     icon={<ShoppingCartOutlined />}
                     style={{
@@ -956,26 +776,32 @@ const OrderDetail = () => {
                       border: "none",
                       boxShadow: "0 2px 8px 0 rgba(60,120,200,0.10)",
                       color: "white",
-                      width: 200,
                     }}
                     onClick={() =>
                       reorderFromOrderDetail(order.items, navigate)
                     }
                   >
-                    Buy Again
+                    Buy again
                   </Button>
                 </div>
               ) : (
-                <div
+                <Button
+                  type="primary"
+                  icon={<ShoppingCartOutlined />}
                   style={{
-                    textAlign: "center",
-                    color: "#888",
+                    borderRadius: 24,
+                    padding: "0 32px",
+                    fontWeight: 600,
                     fontSize: 16,
-                    marginTop: 16,
+                    height: 44,
+                    background: "linear-gradient(90deg, rgb(31, 14, 189) 100%)",
+                    border: "none",
+                    boxShadow: "0 2px 8px 0 rgba(60,120,200,0.10)",
                   }}
+                  onClick={() => reorderFromOrderDetail(order.items, navigate)}
                 >
-                  No payment required for this order.
-                </div>
+                  Reorder
+                </Button>
               )}
             </div>
           </Card>

@@ -21,8 +21,8 @@
 }
 
 .login-container h1 {
-  font-size: 36px;
-  margin: -10px 0;
+  font-size: 32px;
+  margin: -5px 0 20px 0;
 }
 
 .login-container p {
@@ -32,6 +32,7 @@
 
 form {
   width: 100%;
+  position: relative;
 }
 
 .login-form-box {
@@ -39,12 +40,14 @@ form {
   right: 0;
   width: 50%;
   height: 100%;
+  max-height: 100vh;
+  overflow-y: auto;
   background: #fff;
   display: flex;
   align-items: center;
   color: #333;
   text-align: center;
-  padding: 40px;
+  padding: 30px;
   z-index: 1;
   transition: 0.6s ease-in-out 1.2s, visibility 0s 1s;
 }
@@ -56,6 +59,8 @@ form {
 .login-form-box.login-register {
   min-height: 600px;
   height: auto;
+  max-height: 90vh;
+  overflow-y: auto;
   visibility: hidden;
 }
 
@@ -69,8 +74,8 @@ form {
 
 .login-input-box {
   position: relative;
-  margin: 30px 0;
-  padding-top: 10px;
+  margin: 25px 0;
+  padding-top: 8px;
 }
 
 .login-input-box input {
@@ -130,7 +135,6 @@ form {
   font-size: 16px;
   color: #fff;
   font-weight: 600;
-
 }
 
 .login-social-icons a {
@@ -250,14 +254,77 @@ form {
 }
 
 .login-token-notice {
-  margin-top: 22px;
-  color: #388e3c;
-  background: #e8f5e9;
-  border-radius: 12px;
-  padding: 16px 20px;
-  font-size: 15px;
+  margin: 0;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 13px;
   font-weight: 500;
   text-align: center;
+  position: relative;
+  z-index: 5;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  border: none;
+  animation: slideInNotice 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  backdrop-filter: blur(10px);
+
+  /* Default styling - will be overridden by specific classes */
+  background: linear-gradient(135deg, #7494ec 0%, #6c7ce7 100%);
+  color: #ffffff;
+  border-left: 4px solid #5b73e8;
+}
+
+/* Create a fixed space for notification to prevent jumping */
+.login-notification-area {
+  min-height: 60px;
+  margin-top: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Success styling */
+.login-token-notice.login-success {
+  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+  color: #ffffff;
+  border-left: 4px solid #2e7d32;
+}
+
+.login-token-notice.login-success::before {
+  content: "✓";
+  display: inline-block;
+  margin-right: 8px;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+/* Error styling */
+.login-token-notice.login-error {
+  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+  color: #ffffff;
+  border-left: 4px solid #c62828;
+}
+
+.login-token-notice.login-error::before {
+  content: "⚠";
+  display: inline-block;
+  margin-right: 8px;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+@keyframes slideInNotice {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateY(-5px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @media screen and (max-width: 650px) {
@@ -269,6 +336,35 @@ form {
     bottom: 0;
     width: 100%;
     height: 70%;
+    padding: 20px;
+  }
+
+  .login-notification-area {
+    min-height: 50px;
+    margin-top: 12px;
+  }
+
+  .login-token-notice {
+    padding: 10px 14px;
+    font-size: 12px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .login-token-notice.login-success::before,
+  .login-token-notice.login-error::before {
+    font-size: 13px;
+    margin-right: 5px;
+  }
+
+  .login-container h1 {
+    font-size: 28px;
+    margin: 0 0 15px 0;
+  }
+
+  .login-input-box {
+    margin: 20px 0;
+    padding-top: 5px;
   }
 
   .login-container.login-active .login-form-box {
