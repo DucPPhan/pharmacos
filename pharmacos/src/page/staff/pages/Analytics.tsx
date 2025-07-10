@@ -74,6 +74,11 @@ export default function Analytics() {
           status: (item.stockQuantity || 0) < 50 ? 'Low Stock' : 'In Stock',
         })));
         setLowStockCount(allProducts.filter(item => (item.stockQuantity || 0) < 50).length);
+        // SỬA: Hiển thị tổng số sản phẩm (product) thay vì tổng số lượng tồn kho
+        setStats(prev => ({
+          ...prev,
+          inventoryCount: allProducts.length.toString(),
+        }));
       } catch (error) {
         setStats({
           totalSales: '0',
