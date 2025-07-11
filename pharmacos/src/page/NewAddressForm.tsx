@@ -52,7 +52,7 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
       })
       .catch((error) => {
         console.error("Failed to fetch provinces:", error);
-        message.error("Không thể tải dữ liệu tỉnh/thành phố");
+        message.error("Failed to load province/city data");
       });
   }, []);
 
@@ -98,34 +98,11 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
 
   useEffect(() => {
     if (initialValues) {
-      // Create a copy of initialValues to work with
-      const formValues = { ...initialValues };
-
-      // Type-safe handling of addressType conversion
-      if (formValues.addressType) {
-        // Cast to string to avoid type errors during comparison
-        const addressTypeStr = String(formValues.addressType);
-
-        // Convert to the correct enum value
-        if (
-          addressTypeStr === "Home" ||
-          addressTypeStr.toLowerCase().includes("nhà")
-        ) {
-          formValues.addressType = "Nhà riêng";
-        } else if (
-          addressTypeStr === "Office" ||
-          addressTypeStr.toLowerCase().includes("văn")
-        ) {
-          formValues.addressType = "Văn phòng";
-        } else if (
-          addressTypeStr !== "Nhà riêng" &&
-          addressTypeStr !== "Văn phòng"
-        ) {
-          // Default if not a valid value
-          formValues.addressType = "Nhà riêng";
-        }
+      const formValues: Partial<AddressData> = { ...initialValues };
+      // Always use "Home" or "Office"
+      if (formValues.addressType !== "Home" && formValues.addressType !== "Office") {
+        formValues.addressType = "Home";
       }
-
       form.setFieldsValue(formValues);
 
       if (initialValues.city && provinces.length > 0) {
@@ -144,11 +121,10 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
         }
       }
     } else if (userProfile.name || userProfile.phone) {
-      // If no initialValues but we have user profile, use that
       form.setFieldsValue({
         name: userProfile.name || form.getFieldValue("name") || "",
         phone: userProfile.phone || form.getFieldValue("phone") || "",
-        addressType: "Nhà riêng",
+        addressType: "Home",
         isDefault: false,
       });
     }
@@ -190,11 +166,10 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
         district: values.district,
         ward: values.ward,
         address: values.address,
-        // Force correct enum values
         addressType:
-          values.addressType === "Nhà riêng" || values.addressType === "Văn phòng"
+          values.addressType === "Home" || values.addressType === "Office"
             ? values.addressType
-            : "Nhà riêng", // Default to this value if invalid
+            : "Home",
         isDefault: values.isDefault || false,
       };
 
@@ -223,14 +198,14 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
   return (
     <div className="py-4 new-address-form-container">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium">Thêm địa chỉ mới</h3>
+        <h3 className="text-lg font-medium">Add New Address</h3>
       </div>
 
       <Form
         form={form}
         layout="vertical"
         initialValues={{
-          addressType: "Nhà riêng",
+          addressType: "Home",
           isDefault: false,
           name: userProfile.name || "",
           phone: userProfile.phone || "",
@@ -239,34 +214,34 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
         className="address-form"
       >
         <Form.Item
-          label="Họ tên người nhận"
+          label="Recipient's Name"
           name="name"
           rules={[
-            { required: true, message: "Vui lòng nhập họ tên người nhận!" },
+            { required: true, message: "Please enter recipient's name!" },
           ]}
         >
-          <Input size="large" placeholder="Họ tên người nhận" />
+          <Input size="large" placeholder="Recipient's Name" />
         </Form.Item>
 
         <Form.Item
-          label="Số điện thoại"
+          label="Phone Number"
           name="phone"
           rules={[
-            { required: true, message: "Vui lòng nhập số điện thoại!" },
-            { pattern: phoneRegex, message: "Số điện thoại không hợp lệ!" },
+            { required: true, message: "Please enter phone number!" },
+            { pattern: phoneRegex, message: "Invalid phone number!" },
           ]}
         >
-          <Input size="large" maxLength={10} placeholder="Số điện thoại" />
+          <Input size="large" maxLength={10} placeholder="Phone Number" />
         </Form.Item>
 
         <Form.Item
-          label="Tỉnh/Thành phố"
+          label="Province/City"
           name="city"
-          rules={[{ required: true, message: "Vui lòng chọn tỉnh/thành phố!" }]}
+          rules={[{ required: true, message: "Please select province/city!" }]}
         >
           <Select
             size="large"
-            placeholder="Chọn tỉnh/thành phố"
+            placeholder="Select province/city"
             showSearch
             onChange={handleCityChange}
             filterOption={(input, option) =>
@@ -291,13 +266,13 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
         </Form.Item>
 
         <Form.Item
-          label="Quận/Huyện"
+          label="District"
           name="district"
-          rules={[{ required: true, message: "Vui lòng chọn quận/huyện!" }]}
+          rules={[{ required: true, message: "Please select district!" }]}
         >
           <Select
             size="large"
-            placeholder="Chọn quận/huyện"
+            placeholder="Select district"
             showSearch
             onChange={handleDistrictChange}
             disabled={districts.length === 0}
@@ -323,21 +298,21 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
             ) : (
               <Option value="" disabled>
                 {form.getFieldValue("city")
-                  ? "Không có dữ liệu"
-                  : "Vui lòng chọn tỉnh/thành phố trước"}
+                  ? "No data available"
+                  : "Please select province/city first"}
               </Option>
             )}
           </Select>
         </Form.Item>
 
         <Form.Item
-          label="Phường/Xã"
+          label="Ward"
           name="ward"
-          rules={[{ required: true, message: "Vui lòng chọn phường/xã!" }]}
+          rules={[{ required: true, message: "Please select ward!" }]}
         >
           <Select
             size="large"
-            placeholder="Chọn phường/xã"
+            placeholder="Select ward"
             showSearch
             disabled={wards.length === 0}
             filterOption={(input, option) =>
@@ -362,37 +337,37 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
             ) : (
               <Option value="" disabled>
                 {form.getFieldValue("district")
-                  ? "Không có dữ liệu"
-                  : "Vui lòng chọn quận/huyện trước"}
+                  ? "No data available"
+                  : "Please select district first"}
               </Option>
             )}
           </Select>
         </Form.Item>
 
         <Form.Item
-          label="Địa chỉ chi tiết"
+          label="Detailed Address"
           name="address"
           rules={[
-            { required: true, message: "Vui lòng nhập địa chỉ chi tiết!" },
-            { min: 5, message: "Địa chỉ phải có ít nhất 5 ký tự!" },
+            { required: true, message: "Please enter detailed address!" },
+            { min: 5, message: "Address must be at least 5 characters!" },
           ]}
         >
           <Input.TextArea
             rows={2}
             size="large"
-            placeholder="Số nhà, tên đường, tòa nhà,..."
+            placeholder="House number, street name, building, etc."
           />
         </Form.Item>
 
-        <Form.Item label="Loại địa chỉ" name="addressType">
+        <Form.Item label="Address Type" name="addressType">
           <Radio.Group>
-            <Radio.Button value="Nhà riêng">Nhà riêng</Radio.Button>
-            <Radio.Button value="Văn phòng">Văn phòng</Radio.Button>
+            <Radio.Button value="Home">Home</Radio.Button>
+            <Radio.Button value="Office">Office</Radio.Button>
           </Radio.Group>
         </Form.Item>
 
         <Form.Item
-          label="Đặt làm địa chỉ mặc định"
+          label="Set as Default Address"
           name="isDefault"
           valuePropName="checked"
         >
@@ -400,7 +375,7 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
         </Form.Item>
 
         <div className="flex justify-end gap-3 mt-6">
-          <Button onClick={onCancel}>Hủy bỏ</Button>
+          <Button onClick={onCancel}>Cancel</Button>
           <Button
             type="primary"
             onClick={handleSubmit}
@@ -408,7 +383,7 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
             icon={<SaveOutlined />}
             style={{ background: "#7494ec" }}
           >
-            Lưu địa chỉ
+            Save Address
           </Button>
         </div>
       </Form>
@@ -417,3 +392,4 @@ const NewAddressForm: React.FC<NewAddressFormProps> = ({
 };
 
 export default NewAddressForm;
+

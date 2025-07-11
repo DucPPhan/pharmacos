@@ -145,7 +145,7 @@ const addAddress = async (data: Partial<AddressInfo>) => {
   const token = localStorage.getItem("token");
   const url = "http://localhost:10000/api/customers/addresses";
 
-  // Create a sanitized copy with valid addressType
+  // Use the improved ensureValidAddressType function to handle Vietnamese values
   const sanitizedData = {
     ...data,
     addressType: ensureValidAddressType(data.addressType)
@@ -193,13 +193,20 @@ const addAddress = async (data: Partial<AddressInfo>) => {
 const updateAddress = async (id: string, data: Partial<AddressInfo>) => {
   const token = localStorage.getItem("token");
   const url = `http://localhost:10000/api/customers/addresses/${id}`;
+
+  // Use the improved ensureValidAddressType function to handle Vietnamese values
+  const sanitizedData = {
+    ...data,
+    addressType: ensureValidAddressType(data.addressType)
+  };
+
   const res = await fetch(url, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify(sanitizedData),
   });
   if (!res.ok) throw new Error("Failed to update address");
   return await res.json();
@@ -301,7 +308,6 @@ const AddressBook: React.FC = () => {
     setEditing(null);
     form.resetFields();
 
-    // Prefill with user's profile information if available
     form.setFieldsValue({
       name: user?.name || "",
       phone: user?.phone || "",
@@ -309,7 +315,7 @@ const AddressBook: React.FC = () => {
       district: undefined,
       ward: undefined,
       address: "",
-      addressType: "Nhà riêng",
+      addressType: "Home",
       isDefault: false,
     });
 
@@ -320,7 +326,10 @@ const AddressBook: React.FC = () => {
   const handleEdit = (addr: AddressInfo) => {
     setShowForm(true);
     setEditing(addr);
-    form.setFieldsValue(addr);
+    // Always map addressType to backend value for form
+    let mappedType = addr.addressType;
+    if (mappedType !== "Home" && mappedType !== "Office") mappedType = "Home";
+    form.setFieldsValue({ ...addr, addressType: mappedType });
     const province = provinces.find((p) => p.name === addr.city);
     setDistricts(province ? province.districts : []);
     const district = province?.districts.find((d) => d.name === addr.district);
@@ -353,18 +362,10 @@ const AddressBook: React.FC = () => {
       const values = await form.validateFields();
       setLoading(true);
 
-      // Ensure all required fields are present and properly formatted
-      if (!values.name || !values.phone || !values.city ||
-        !values.district || !values.ward || !values.address) {
-        throw new Error("Please fill in all required fields");
-      }
+      // Always map addressType to backend value
+      let mappedType = values.addressType;
+      if (mappedType !== "Home" && mappedType !== "Office") mappedType = "Home";
 
-      // Make sure phone matches required format
-      if (!phoneRegex.test(values.phone)) {
-        throw new Error("Phone number must be 10 digits starting with 03, 05, 07, 08, or 09");
-      }
-
-      // Convert and sanitize data
       const addressData = {
         name: values.name.trim(),
         phone: values.phone.trim(),
@@ -372,8 +373,7 @@ const AddressBook: React.FC = () => {
         district: values.district,
         ward: values.ward,
         address: values.address.trim(),
-        // Use our robust validation helper
-        addressType: ensureValidAddressType(values.addressType),
+        addressType: mappedType,
         isDefault: Boolean(values.isDefault),
       };
 
@@ -617,11 +617,11 @@ const AddressBook: React.FC = () => {
                 <Form.Item
                   label="Address Type"
                   name="addressType"
-                  initialValue="Nhà riêng"
+                  initialValue="Home"
                 >
                   <Radio.Group>
-                    <Radio.Button value="Nhà riêng">Nhà riêng</Radio.Button>
-                    <Radio.Button value="Văn phòng">Văn phòng</Radio.Button>
+                    <Radio.Button value="Home">Home</Radio.Button>
+                    <Radio.Button value="Office">Office</Radio.Button>
                   </Radio.Group>
                 </Form.Item>
                 <Form.Item
@@ -781,7 +781,11 @@ const AddressBook: React.FC = () => {
                       }}
                     >
                       <HomeOutlined style={{ marginRight: 4 }} />
-                      {addr.addressType}
+                      {addr.addressType === "Nhà riêng"
+                        ? "Home"
+                        : addr.addressType === "Văn phòng"
+                          ? "Office"
+                          : addr.addressType}
                     </span>
                   </div>
                   <div>
@@ -811,5 +815,7 @@ const AddressBook: React.FC = () => {
     </Card>
   );
 };
+
+
 
 export default AddressBook;

@@ -170,7 +170,7 @@ export interface AddressData {
   district: string; // Quận/Huyện
   ward: string; // Phường/Xã
   address: string; // Địa chỉ chi tiết
-  addressType: "Nhà riêng" | "Văn phòng"; // Loại địa chỉ - MUST match backend enum exactly
+  addressType: "Home" | "Office"; // Loại địa chỉ - MUST match backend enum exactly
   isDefault?: boolean; // Đặt làm địa chỉ mặc định
 }
 
@@ -199,7 +199,7 @@ export interface ApiResponse<T> {
 export const getCustomerAddresses = async (): Promise<AddressResponse[]> => {
   const token = localStorage.getItem("token");
   if (!token) {
-    throw new Error("Vui lòng đăng nhập để xem địa chỉ");
+    throw new Error("Please log in to view addresses");
   }
 
   const response = await fetch(`${API_URL}/customers/addresses`, {
@@ -211,53 +211,45 @@ export const getCustomerAddresses = async (): Promise<AddressResponse[]> => {
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.message || "Không thể lấy danh sách địa chỉ");
+    throw new Error(error.message || "Unable to fetch address list");
   }
 
   return response.json();
 };
 
 // Helper function to ensure valid addressType values
-export function ensureValidAddressType(
-  addressType: any
-): "Nhà riêng" | "Văn phòng" {
-  if (addressType === "Nhà riêng" || addressType === "Văn phòng") {
+export function ensureValidAddressType(addressType: any): "Home" | "Office" {
+  if (addressType === "Home" || addressType === "Office") {
     return addressType;
   }
-
-  // Handle English values or any other format
   const addressStr = String(addressType || "").toLowerCase();
-  if (
-    addressStr.includes("office") ||
-    addressStr.includes("văn") ||
-    addressStr === "văn phòng"
-  ) {
-    return "Văn phòng";
+  if (addressStr.includes("office") || addressStr === "office" || addressStr.includes("văn phòng") || addressStr === "văn phòng") {
+    return "Office";
   }
-
-  // Default to "Nhà riêng" for all other cases
-  return "Nhà riêng";
+  if (addressStr.includes("home") || addressStr === "home" || addressStr.includes("nhà riêng") || addressStr === "nhà riêng") {
+    return "Home";
+  }
+  return "Home"; // Default to Home
 }
 
 // Validation function to ensure valid address type values
 const validateAddressData = (data: AddressData): AddressData => {
-  // Ensure addressType is one of the valid backend enum values
-  if (data.addressType !== "Nhà riêng" && data.addressType !== "Văn phòng") {
+  if (data.addressType !== "Home" && data.addressType !== "Office") {
     return {
       ...data,
-      addressType: "Nhà riêng", // Default to a known valid value
+      addressType: "Home",
     };
   }
   return data;
 };
 
-// Thêm địa chỉ mới
+// Add new address
 export const createCustomerAddress = async (
   addressData: AddressData
 ): Promise<ApiResponse<AddressResponse>> => {
   const token = localStorage.getItem("token");
   if (!token) {
-    throw new Error("Vui lòng đăng nhập để thêm địa chỉ");
+    throw new Error("Please log in to add address");
   }
 
   // Create a sanitized copy to ensure the correct format
@@ -290,17 +282,17 @@ export const createCustomerAddress = async (
     }
 
     if (!response.ok) {
-      throw new Error(result.message || "Không thể thêm địa chỉ");
+      throw new Error(result.message || "Unable to add address");
     }
 
     return result;
   } catch (error: any) {
     console.error("Error in createCustomerAddress:", error);
-    throw new Error(error.message || "Không thể thêm địa chỉ");
+    throw new Error(error.message || "Unable to add address");
   }
 };
 
-// Cập nhật địa chỉ
+// Update address
 export const updateCustomerAddress = async (
   id: string,
   addressData: AddressData
@@ -310,7 +302,7 @@ export const updateCustomerAddress = async (
 
   const token = localStorage.getItem("token");
   if (!token) {
-    throw new Error("Vui lòng đăng nhập để cập nhật địa chỉ");
+    throw new Error("Please log in to update address");
   }
 
   const response = await fetch(`${API_URL}/customers/addresses/${id}`, {
@@ -324,19 +316,19 @@ export const updateCustomerAddress = async (
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.message || "Không thể cập nhật địa chỉ");
+    throw new Error(error.message || "Unable to update address");
   }
 
   return response.json();
 };
 
-// Xóa địa chỉ
+// Delete address
 export const deleteCustomerAddress = async (
   addressId: string
 ): Promise<{ message: string }> => {
   const token = localStorage.getItem("token");
   if (!token) {
-    throw new Error("Vui lòng đăng nhập để xóa địa chỉ");
+    throw new Error("Please log in to delete address");
   }
 
   const response = await fetch(`${API_URL}/customers/addresses/${addressId}`, {
@@ -349,7 +341,7 @@ export const deleteCustomerAddress = async (
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.message || "Không thể xóa địa chỉ");
+    throw new Error(error.message || "Unable to delete address");
   }
 
   return response.json();

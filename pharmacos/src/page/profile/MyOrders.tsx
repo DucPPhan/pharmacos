@@ -181,7 +181,7 @@ const MyOrders: React.FC = () => {
   const startCountdown = (orderId: string, initialTime: number) => {
     let timeLeft = initialTime;
 
-    const timer = setInterval(() => {
+    const timer = setInterval(async () => {
       timeLeft -= 1;
 
       setPaymentTimers((prev) => ({
@@ -205,6 +205,27 @@ const MyOrders: React.FC = () => {
           description: `Payment time has expired for order #${orderId}`,
           variant: "destructive",
         });
+
+        // Auto cancel the order when countdown ends
+        try {
+          const token = localStorage.getItem("token");
+          await fetch(`http://localhost:10000/api/orders/${orderId}/cancel`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({
+              reason: "Payment expired",
+            }),
+          });
+          // Wait a bit for backend to update status before fetching
+          setTimeout(async () => {
+            setOrders(await fetchOrders());
+          }, 700);
+        } catch (e) {
+          console.error("Auto-cancel order failed:", e);
+        }
       }
     }, 1000);
 
@@ -432,15 +453,15 @@ const MyOrders: React.FC = () => {
                             order.paymentStatus === "success"
                               ? "green"
                               : order.paymentStatus === "pending"
-                              ? "orange"
-                              : "red",
+                                ? "orange"
+                                : "red",
                         }}
                       >
                         {order.paymentStatus === "success"
                           ? "Paid"
                           : order.paymentStatus === "pending"
-                          ? "Not paid yet"
-                          : order.paymentStatus}
+                            ? "Not paid yet"
+                            : order.paymentStatus}
                       </span>
                     </div>
                     <Tag
@@ -564,7 +585,7 @@ const MyOrders: React.FC = () => {
                               percent={Math.max(
                                 0,
                                 (paymentTimers[order.id || order._id] / 300) *
-                                  100
+                                100
                               )}
                               showInfo={false}
                               strokeColor="#ff4d4f"
@@ -675,25 +696,25 @@ const MyOrders: React.FC = () => {
                         {/* Show COD message for COD orders */}
                         {(order.paymentMethod === "cod" ||
                           order.paymentMethod === "cash") && (
-                          <div
-                            style={{
-                              background:
-                                "linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%)",
-                              padding: "12px 16px",
-                              borderRadius: 8,
-                              border: "1px solid #1677ff",
-                              color: "#1677ff",
-                              fontSize: 13,
-                              fontWeight: 600,
-                              textAlign: "center",
-                              boxShadow: "0 2px 6px rgba(22, 119, 255, 0.1)",
-                              flex: 1,
-                              minWidth: 200,
-                            }}
-                          >
-                            💵 COD - Cash on Delivery
-                          </div>
-                        )}
+                            <div
+                              style={{
+                                background:
+                                  "linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%)",
+                                padding: "12px 16px",
+                                borderRadius: 8,
+                                border: "1px solid #1677ff",
+                                color: "#1677ff",
+                                fontSize: 13,
+                                fontWeight: 600,
+                                textAlign: "center",
+                                boxShadow: "0 2px 6px rgba(22, 119, 255, 0.1)",
+                                flex: 1,
+                                minWidth: 200,
+                              }}
+                            >
+                              💵 COD - Cash on Delivery
+                            </div>
+                          )}
 
                         {/* Show payment expired message for online/bank orders */}
                         {(order.paymentMethod === "online" ||
