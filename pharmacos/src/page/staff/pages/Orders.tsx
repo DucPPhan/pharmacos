@@ -328,6 +328,48 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onUpdateStatus }) => {
                 </div>
               )}
 
+              {order.paymentMethod === "cod" && order.paymentStatus !== "success" && order.status !== "completed" && order.status !== "cancelled" && (
+                <button
+                  className="w-full text-left px-4 py-3 rounded-lg border-2 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 mb-2"
+                  onClick={async () => {
+                    try {
+                      const token = localStorage.getItem("token");
+                      // 1. Update paymentStatus to success
+                      const paymentRes = await fetch(
+                        `http://localhost:10000/api/orders/${order._id}/payment-status`,
+                        {
+                          method: "PATCH",
+                          headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                          },
+                          body: JSON.stringify({ paymentStatus: "success" }),
+                        }
+                      );
+                      if (!paymentRes.ok) throw new Error("Failed to update payment status");
+                      // 2. Update status to completed
+                      const statusRes = await fetch(
+                        `http://localhost:10000/api/orders/${order._id}/update-status`,
+                        {
+                          method: "PATCH",
+                          headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                          },
+                          body: JSON.stringify({ status: "completed" }),
+                        }
+                      );
+                      if (!statusRes.ok) throw new Error("Failed to update order status");
+                      onUpdateStatus(order._id, "completed");
+                    } catch (err) {
+                      alert("Failed to mark as paid and completed");
+                    }
+                  }}
+                >
+                  Mark as Paid & Completed
+                </button>
+              )}
+
               <div className="mt-4 text-xs text-gray-500">
                 Last updated:{" "}
                 {format(new Date(order.updatedAt), "MMM dd, yyyy HH:mm")}
