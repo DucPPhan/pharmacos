@@ -202,7 +202,7 @@ const MyOrders: React.FC = () => {
         });
         toast({
           title: "Payment Expired",
-          description: `Payment time has expired for order #${orderId}`,
+          description: `Payment time has expired for order`,
           variant: "destructive",
         });
 
@@ -216,21 +216,30 @@ const MyOrders: React.FC = () => {
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
             body: JSON.stringify({
-              reason: "Payment expired",
+              reason: "Order cancelled due to non-payment",
             }),
           });
           // Wait a bit for backend to update status before fetching
           setTimeout(async () => {
-            setOrders(await fetchOrders());
-          }, 700);
+            const updatedOrders = await fetchOrders();
+            setOrders(updatedOrders);
+            updatedOrders.forEach((order: any) => {
+              if (
+                (order.paymentMethod === "online" ||
+                  order.paymentMethod === "bank") &&
+                order.paymentStatus === "pending"
+              ) {
+                checkPaymentTimeout(order.id || order._id);
+              }
+            });
+          }, 1000);
         } catch (e) {
           console.error("Auto-cancel order failed:", e);
         }
       }
     }, 1000);
 
-    // Store timer reference to clean up later if needed
-    return timer;
+    // No need to return timer reference, auto-cancel logic is handled above
   };
 
   const formatTime = (seconds: number) => {
