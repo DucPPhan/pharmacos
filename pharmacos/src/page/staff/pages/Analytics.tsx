@@ -7,6 +7,23 @@ import { TrendingUpIcon, PackageIcon, BoxesIcon } from 'lucide-react';
 import { staffAnalyticsApi } from '@/lib/api';
 import { apiFetch } from '@/lib/api';
 
+// Thêm hàm formatVND giống bên Orders
+const formatVND = (value: number | string) =>
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value));
+
+// Hàm tính tổng giá trị các đơn hàng completed
+function getTotalCompletedAmount(orders: any[]): number {
+  return orders
+    .filter(order => order.status === "completed")
+    .reduce((sum, order) => {
+      const calculatedTotal = order.items?.reduce(
+        (s: number, item: any) => s + item.quantity * item.unitPrice,
+        0
+      ) || 0;
+      return sum + calculatedTotal;
+    }, 0);
+}
+
 export default function Analytics() {
   const [stats, setStats] = useState({
     totalSales: '0',
@@ -20,6 +37,7 @@ export default function Analytics() {
   const [productsData, setProductsData] = useState([]);
   const [inventoryData, setInventoryData] = useState([]);
   const [lowStockCount, setLowStockCount] = useState(0);
+  const [orders, setOrders] = useState<any[]>([]);
 
   useEffect(() => {
     async function fetchStats() {
@@ -83,6 +101,13 @@ export default function Analytics() {
           ...prev,
           inventoryCount: allProducts.length.toString(),
         }));
+        // Fetch orders để lấy tổng completed
+        const token = localStorage.getItem("token");
+        const ordersRes = await apiFetch("http://localhost:10000/api/orders/my-orders", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const ordersData = Array.isArray(ordersRes) ? ordersRes : ordersRes?.orders || [];
+        setOrders(ordersData);
       } catch (error) {
         setStats({
           totalSales: '0',
@@ -96,6 +121,7 @@ export default function Analytics() {
         setProductsData([]);
         setInventoryData([]);
         setLowStockCount(0);
+        setOrders([]);
       }
     }
     fetchStats();
@@ -107,7 +133,7 @@ export default function Analytics() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <AnalyticsCard
           title="Total Sales"
-          value={stats.totalSales + ' ₫'}
+          value={formatVND(getTotalCompletedAmount(orders))}
           change={stats.salesChange}
           changeType="increase"
           icon={TrendingUpIcon}
