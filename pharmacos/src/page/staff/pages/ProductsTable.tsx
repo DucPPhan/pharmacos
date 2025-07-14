@@ -15,6 +15,8 @@ interface ProductsTableProps {
   products: Product[];
 }
 
+const formatVND = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+
 export default function ProductsTable({ products }: ProductsTableProps) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -72,7 +74,7 @@ export default function ProductsTable({ products }: ProductsTableProps) {
                   {product.sales.toLocaleString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                  ${product.revenue.toLocaleString()}
+                  {formatVND(product.revenue)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-1">

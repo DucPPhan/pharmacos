@@ -4,6 +4,8 @@ interface SalesChartProps {
   data: Array<{ month: string; sales: number; orders: number }>;
 }
 
+const formatVND = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+
 export default function SalesChart({ data }: SalesChartProps) {
   const maxSales = Math.max(...data.map(d => d.sales));
 
@@ -25,7 +27,7 @@ export default function SalesChart({ data }: SalesChartProps) {
               </div>
               <div className="text-right min-w-0">
                 <p className="text-sm font-semibold text-gray-900">
-                  ${item.sales.toLocaleString()}
+                  {formatVND(item.sales)}
                 </p>
                 <p className="text-xs text-gray-500">
                   {item.orders} orders
