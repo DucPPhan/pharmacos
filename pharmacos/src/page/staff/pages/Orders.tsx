@@ -213,8 +213,8 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onUpdateStatus }) => {
                           order.paymentStatus === "success"
                             ? "bg-green-100 text-green-800 px-2 py-1 rounded"
                             : order.paymentStatus === "pending"
-                            ? "bg-yellow-100 text-yellow-800 px-2 py-1 rounded"
-                            : "bg-red-100 text-red-800 px-2 py-1 rounded"
+                              ? "bg-yellow-100 text-yellow-800 px-2 py-1 rounded"
+                              : "bg-red-100 text-red-800 px-2 py-1 rounded"
                         }>
                           {order.paymentStatus || "N/A"}
                         </span>
@@ -309,10 +309,9 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onUpdateStatus }) => {
                       onClick={() => onUpdateStatus(order._id, status)}
                       className={`
                         w-full text-left px-4 py-3 rounded-lg border-2 transition-colors capitalize
-                        ${
-                          status === "cancelled"
-                            ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                            : "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                        ${status === "cancelled"
+                          ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                          : "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
                         }
                       `}
                     >
@@ -487,6 +486,20 @@ export function Orders() {
     cancelled: orders.filter((o) => o.status === "cancelled").length,
   };
 
+  // Hàm tính tổng giá trị các đơn hàng completed
+  function getTotalCompletedAmount(orders: Order[]): number {
+    return orders
+      .filter(order => order.status === "completed")
+      .reduce((sum, order) => {
+        // Tính lại tổng từ items nếu cần, hoặc dùng order.totalAmount nếu đã đúng
+        const calculatedTotal = order.items.reduce(
+          (s, item) => s + item.quantity * item.unitPrice,
+          0
+        );
+        return sum + calculatedTotal;
+      }, 0);
+  }
+
   const handleStatusChange = (orderId: string, status: OrderStatus) => {
     setPendingStatusChange({ orderId, status });
   };
@@ -605,6 +618,8 @@ export function Orders() {
         </div>
       </div>
 
+
+
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -688,11 +703,10 @@ export function Orders() {
           }).map((_, i) => (
             <button
               key={i}
-              className={`px-3 py-1 rounded ${
-                page === i + 1
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 hover:bg-gray-200"
-              }`}
+              className={`px-3 py-1 rounded ${page === i + 1
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 hover:bg-gray-200"
+                }`}
               onClick={() => setPage(i + 1)}
             >
               {i + 1}
