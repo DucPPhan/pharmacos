@@ -697,7 +697,7 @@ const Cart = () => {
 
       toast({
         title: "Success",
-        description: "Địa chỉ đã được xóa thành công!",
+        description: "Address deleted successfully!",
       });
 
       // If the deleted address was selected, clear selection
@@ -718,7 +718,7 @@ const Cart = () => {
       toast({
         title: "Error",
         description:
-          error.message || "Không thể xóa địa chỉ. Vui lòng thử lại.",
+          error.message || "Failed to delete address. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -785,77 +785,76 @@ const Cart = () => {
                 <CardContent className="space-y-4">
                   {isCartLoading
                     ? Array.from({ length: 2 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center space-x-4 animate-pulse"
-                        >
-                          <div className="h-24 w-24 rounded-md bg-gray-200"></div>
-                          <div className="flex-1 space-y-2">
-                            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                          </div>
-                          <div className="h-8 w-24 bg-gray-200 rounded-md"></div>
+                      <div
+                        key={i}
+                        className="flex items-center space-x-4 animate-pulse"
+                      >
+                        <div className="h-24 w-24 rounded-md bg-gray-200"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
                         </div>
-                      ))
+                        <div className="h-8 w-24 bg-gray-200 rounded-md"></div>
+                      </div>
+                    ))
                     : cartItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className={`flex items-center space-x-4 p-3 rounded-lg border transition-colors ${
-                            selectedItems.has(item.id)
-                              ? "border-blue-200 bg-blue-50"
-                              : "border-gray-200 bg-white"
+                      <div
+                        key={item.id}
+                        className={`flex items-center space-x-4 p-3 rounded-lg border transition-colors ${selectedItems.has(item.id)
+                          ? "border-blue-200 bg-blue-50"
+                          : "border-gray-200 bg-white"
                           }`}
-                        >
-                          <input
-                            type="checkbox"
-                            id={`item-${item.id}`}
-                            checked={selectedItems.has(item.id)}
-                            onChange={() => handleSelectItem(item.id)}
-                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="h-24 w-24 rounded-md object-cover"
-                          />
-                          <div className="flex-1">
-                            <h3 className="font-medium">{item.name}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {formatVND(item.price)}
-                            </p>
-                          </div>
-                          <div className="flex items-center border rounded-md">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => updateQuantity(item.id, -1)}
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <span className="w-8 text-center">
-                              {item.quantity}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => updateQuantity(item.id, 1)}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                          </div>
+                      >
+                        <input
+                          type="checkbox"
+                          id={`item-${item.id}`}
+                          checked={selectedItems.has(item.id)}
+                          onChange={() => handleSelectItem(item.id)}
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="h-24 w-24 rounded-md object-cover"
+                        />
+                        <div className="flex-1">
+                          <h3 className="font-medium">{item.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {formatVND(item.price)}
+                          </p>
+                        </div>
+                        <div className="flex items-center border rounded-md">
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() =>
-                              handleDeleteSingle(item.id, item.name)
-                            }
+                            className="h-8 w-8"
+                            onClick={() => updateQuantity(item.id, -1)}
                           >
-                            <Trash2 className="h-4 w-4 text-muted-foreground" />
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <span className="w-8 text-center">
+                            {item.quantity}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => updateQuantity(item.id, 1)}
+                          >
+                            <Plus className="h-3 w-3" />
                           </Button>
                         </div>
-                      ))}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            handleDeleteSingle(item.id, item.name)
+                          }
+                        >
+                          <Trash2 className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      </div>
+                    ))}
                 </CardContent>
               </Card>
             </div>
@@ -910,8 +909,8 @@ const Cart = () => {
                     {isProfileLoading
                       ? "Loading..."
                       : selectedItems.size === 0
-                      ? "Select items to checkout"
-                      : "Proceed to Checkout"}
+                        ? "Select items to checkout"
+                        : "Proceed to Checkout"}
                   </Button>
                 </CardFooter>
               </Card>
@@ -987,11 +986,10 @@ const Cart = () => {
                 {userAddresses.map((addr) => (
                   <div
                     key={addr._id}
-                    className={`border rounded-md p-3 cursor-pointer ${
-                      addr._id === selectedAddressId
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200"
-                    }`}
+                    className={`border rounded-md p-3 cursor-pointer ${addr._id === selectedAddressId
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200"
+                      }`}
                     onClick={() => handleAddressSelection(addr._id || "")}
                     role="radio"
                     aria-checked={addr._id === selectedAddressId}
@@ -1007,9 +1005,8 @@ const Cart = () => {
                           className="h-4 w-4 text-blue-600"
                           id={`address-${addr._id}`}
                           name="selected-address"
-                          aria-label={`Địa chỉ: ${addr.name}, ${
-                            addr.phone
-                          }, ${getFullAddress(addr)}`}
+                          aria-label={`Địa chỉ: ${addr.name}, ${addr.phone
+                            }, ${getFullAddress(addr)}`}
                         />
                       </div>
                       <div className="ml-3 flex-grow">
@@ -1077,11 +1074,10 @@ const Cart = () => {
                 </div>
 
                 <div
-                  className={`border rounded-md p-3 cursor-pointer ${
-                    useManualAddress
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200"
-                  }`}
+                  className={`border rounded-md p-3 cursor-pointer ${useManualAddress
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-gray-200"
+                    }`}
                   onClick={() => handleAddressSelection("manual")}
                   role="radio"
                   aria-checked={useManualAddress}
@@ -1322,20 +1318,20 @@ const Cart = () => {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xác nhận xóa địa chỉ</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Delete Address</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc chắn muốn xóa địa chỉ của "{addressToDelete?.name}"?
+              Are you sure you want to delete the address of "{addressToDelete?.name}"?
               <br />
-              Hành động này không thể hoàn tác.
+              This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Hủy bỏ</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteAddress}
               className="bg-red-600 hover:bg-red-700"
             >
-              Xóa địa chỉ
+              Delete Address
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

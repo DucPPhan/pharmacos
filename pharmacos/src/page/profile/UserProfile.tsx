@@ -583,13 +583,13 @@ const MENU_CONFIG = [
     key: "donhang",
     icon: <ShoppingCartOutlined style={{ fontSize: 20 }} />,
     label: "My Orders",
-    path: "/profile/don-hang-cua-toi",
+    path: "/profile/my-orders",
   },
   {
     key: "donthuoc",
     icon: <FileTextOutlined style={{ fontSize: 20 }} />,
     label: "Purchase History",
-    path: "/profile/lich-su-mua-hang",
+    path: "/profile/purchase-history",
   },
   {
     key: "addressbook",
@@ -607,8 +607,8 @@ const MENU_CONFIG = [
 ];
 
 const getMenuKeyByPath = (pathname: string) => {
-  if (pathname.endsWith("/don-hang-cua-toi")) return "donhang";
-  if (pathname.endsWith("/lich-su-mua-hang")) return "donthuoc";
+  if (pathname.endsWith("/my-orders")) return "donhang";
+  if (pathname.endsWith("/purchase-history")) return "donthuoc";
   if (pathname.endsWith("/address-book")) return "addressbook";
   return "thongtincanhan";
 };
@@ -669,12 +669,12 @@ const UserProfile: React.FC = () => {
   const handleMenuClick = (e: any) => {
     if (e.key === "logout") {
       Modal.confirm({
-        title: "Bạn có chắc chắn muốn đăng xuất?",
-        content: "Bạn sẽ cần đăng nhập lại để tiếp tục sử dụng dịch vụ.",
+        title: "Are you sure you want to log out?",
+        content: "You will need to log in again to continue using the service.",
         okText: (
-          <span style={{ color: "#fff", fontWeight: 700 }}>Đăng xuất</span>
+          <span style={{ color: "#fff", fontWeight: 700 }}>Log out</span>
         ),
-        cancelText: "Hủy",
+        cancelText: "Cancel",
         okButtonProps: {
           style: {
             background: "linear-gradient(90deg, #1677ff 0%, #7494ec 100%)",
@@ -795,8 +795,8 @@ const UserProfile: React.FC = () => {
             ) : (
               <Routes>
                 <Route path="" element={renderPersonalInfo()} />
-                <Route path="don-hang-cua-toi" element={<MyOrders />} />
-                <Route path="lich-su-mua-hang" element={<PurchaseHistory />} />
+                <Route path="my-orders" element={<MyOrders />} />
+                <Route path="purchase-history" element={<PurchaseHistory />} />
                 <Route path="address-book" element={<AddressBook />} />
                 <Route path="*" element={<Navigate to="" replace />} />
               </Routes>

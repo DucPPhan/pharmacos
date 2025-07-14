@@ -84,10 +84,10 @@ const fetchProfile = async (): Promise<UserInfo> => {
     // Fix the address type to match backend expectations
     addressType:
       data.addressType === "Home"
-        ? "Nhà riêng"
+        ? "Home"
         : data.addressType === "Office"
-          ? "Văn phòng"
-          : data.addressType || "Nhà riêng",
+          ? "Office"
+          : data.addressType || "Home",
     isDefault: !!data.isDefault,
   };
 };
@@ -145,13 +145,9 @@ const addAddress = async (data: Partial<AddressInfo>) => {
   const token = localStorage.getItem("token");
   const url = "http://localhost:10000/api/customers/addresses";
 
-  // Use the improved ensureValidAddressType function to handle Vietnamese values
-  const sanitizedData = {
-    ...data,
-    addressType: ensureValidAddressType(data.addressType)
-  };
+  // Data is already mapped in handleSave, so just send it
+  const sanitizedData = { ...data };
 
-  // Log the data being sent for debugging
   console.log("Adding address with data:", JSON.stringify(sanitizedData, null, 2));
 
   try {
@@ -164,7 +160,6 @@ const addAddress = async (data: Partial<AddressInfo>) => {
       body: JSON.stringify(sanitizedData),
     });
 
-    // Read the response text first so we can log it
     const responseText = await res.text();
     console.log(`Server response (${res.status}):`, responseText);
 
@@ -172,9 +167,10 @@ const addAddress = async (data: Partial<AddressInfo>) => {
       // Try to parse as JSON if possible
       try {
         const errorData = JSON.parse(responseText);
+        // Log the errorData for debugging
+        console.error("Backend errorData:", errorData);
         throw new Error(errorData.message || "Failed to add address");
       } catch (parseError) {
-        // If not JSON or other error parsing
         throw new Error(`Server error (${res.status}): ${responseText || "Unknown error"}`);
       }
     }
@@ -194,11 +190,8 @@ const updateAddress = async (id: string, data: Partial<AddressInfo>) => {
   const token = localStorage.getItem("token");
   const url = `http://localhost:10000/api/customers/addresses/${id}`;
 
-  // Use the improved ensureValidAddressType function to handle Vietnamese values
-  const sanitizedData = {
-    ...data,
-    addressType: ensureValidAddressType(data.addressType)
-  };
+  // Data is already mapped in handleSave, so just send it
+  const sanitizedData = { ...data };
 
   const res = await fetch(url, {
     method: "PATCH",
@@ -208,7 +201,11 @@ const updateAddress = async (id: string, data: Partial<AddressInfo>) => {
     },
     body: JSON.stringify(sanitizedData),
   });
-  if (!res.ok) throw new Error("Failed to update address");
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error("Failed to update address:", res.status, errText);
+    throw new Error("Failed to update address");
+  }
   return await res.json();
 };
 
@@ -315,7 +312,7 @@ const AddressBook: React.FC = () => {
       district: undefined,
       ward: undefined,
       address: "",
-      addressType: "Home",
+      addressType: "Home", // always use frontend value
       isDefault: false,
     });
 
@@ -326,10 +323,8 @@ const AddressBook: React.FC = () => {
   const handleEdit = (addr: AddressInfo) => {
     setShowForm(true);
     setEditing(addr);
-    // Always map addressType to backend value for form
-    let mappedType = addr.addressType;
-    if (mappedType !== "Home" && mappedType !== "Office") mappedType = "Home";
-    form.setFieldsValue({ ...addr, addressType: mappedType });
+    // Always map addressType to frontend value for form
+    form.setFieldsValue({ ...addr, addressType: addr.addressType || "Home" });
     const province = provinces.find((p) => p.name === addr.city);
     setDistricts(province ? province.districts : []);
     const district = province?.districts.find((d) => d.name === addr.district);
@@ -363,9 +358,6 @@ const AddressBook: React.FC = () => {
       setLoading(true);
 
       // Always map addressType to backend value
-      let mappedType = values.addressType;
-      if (mappedType !== "Home" && mappedType !== "Office") mappedType = "Home";
-
       const addressData = {
         name: values.name.trim(),
         phone: values.phone.trim(),
@@ -373,7 +365,7 @@ const AddressBook: React.FC = () => {
         district: values.district,
         ward: values.ward,
         address: values.address.trim(),
-        addressType: mappedType,
+        addressType: values.addressType, // luôn là "Home" hoặc "Office"
         isDefault: Boolean(values.isDefault),
       };
 
@@ -448,7 +440,7 @@ const AddressBook: React.FC = () => {
                 form={form}
                 layout="vertical"
                 initialValues={
-                  editing || { addressType: "Nhà riêng", isDefault: false }
+                  editing || { addressType: "Home", isDefault: false }
                 }
                 className="user-profile-form"
                 onFinish={handleSave}
@@ -781,11 +773,7 @@ const AddressBook: React.FC = () => {
                       }}
                     >
                       <HomeOutlined style={{ marginRight: 4 }} />
-                      {addr.addressType === "Nhà riêng"
-                        ? "Home"
-                        : addr.addressType === "Văn phòng"
-                          ? "Office"
-                          : addr.addressType}
+                      {addr.addressType}
                     </span>
                   </div>
                   <div>
