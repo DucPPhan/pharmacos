@@ -26,7 +26,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { staffApi } from "../staff/services/api";
 import { useCart } from "@/contexts/CartContext";
 
-const formatVND = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+const formatVND = (value: number) =>
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+    value
+  );
 
 const ProductsPage: React.FC = () => {
   const location = useLocation();
@@ -91,10 +94,15 @@ const ProductsPage: React.FC = () => {
 
             if (favRes.ok) {
               const favData = await favRes.json();
-              // Extract product IDs from favorites data
-              const favoriteIds = favData.data.map(
-                (fav) => fav.product._id || fav.product.id
-              );
+              // Extract product IDs from favorites data, filter out null products
+              const favoriteIds = favData.data
+                .filter(
+                  (fav) => fav.product !== null && fav.product !== undefined
+                )
+                .map((fav) => fav.product._id || fav.product.id)
+                .filter((id) => id !== null && id !== undefined);
+
+              console.log("Loaded favorites:", favoriteIds);
               setUserFavorites(favoriteIds);
             }
           } catch (error) {
@@ -271,7 +279,12 @@ const ProductsPage: React.FC = () => {
   const handleFavoriteToggle = (productId: string, isFavorite: boolean) => {
     if (isFavorite) {
       // Add to favorites
-      setUserFavorites((prev) => [...prev, productId]);
+      setUserFavorites((prev) => {
+        if (!prev.includes(productId)) {
+          return [...prev, productId];
+        }
+        return prev;
+      });
     } else {
       // Remove from favorites
       setUserFavorites((prev) => prev.filter((id) => id !== productId));

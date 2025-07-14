@@ -31,9 +31,9 @@ import AIImageSearch from "../../components/AIImageSearch";
 import ProductGrid from "../../components/ProductGrid";
 import CategoryNav from "./CategoryNav";
 import { useCart } from "@/contexts/CartContext";
-import { favoritesApi } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { BlogRandomSection } from "../Blog/BlogRandomSection";
+import { useToast } from "@/components/ui/use-toast";
 
 const categories = [
   {
@@ -203,13 +203,14 @@ const Home = () => {
   const isLoggedIn = !!localStorage.getItem("token");
   const [showNavButtons, setShowNavButtons] = useState(true);
   const bannerRef = useRef(null);
-  const [apiProducts, setApiProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const [favoriteProducts, setFavoriteProducts] = useState([]);
+  const [apiProducts, setApiProducts] = useState<any[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
+  const [favoriteProducts, setFavoriteProducts] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingFavorites, setLoadingFavorites] = useState(true);
   const { addToCart } = useCart();
   const [userFavorites, setUserFavorites] = useState<string[]>([]);
+  const { toast } = useToast();
 
   // Auto rotate banners
   useEffect(() => {
@@ -261,19 +262,22 @@ const Home = () => {
     fetchProducts();
   }, []);
 
-  // Thêm effect để xử lý filteredProducts từ apiProducts và userFavorites
+  // Process products with favorites - similar to ProductsPage.tsx
   useEffect(() => {
+    let filtered = [...apiProducts];
+
     // Mark favorite products
-    const filtered = apiProducts.map((product) => {
+    filtered = filtered.map((product) => ({
+      ...product,
+      isFavorite: userFavorites.includes(product._id),
+    }));
+
+    const processedProducts = filtered.map((product) => {
       let image = "";
       if (Array.isArray(product.images) && product.images.length > 0) {
         const primary = product.images.find((img) => img.isPrimary);
         image = primary ? primary.url : product.images[0].url;
       }
-      const isNew =
-        product.createdAt &&
-        new Date().getTime() - new Date(product.createdAt).getTime() <
-          14 * 24 * 60 * 60 * 1000;
 
       return {
         id: product._id || product.id,
@@ -282,32 +286,29 @@ const Home = () => {
         image,
         category: product.category,
         inStock: product.stockQuantity > 0,
-        rating: product.aiFeatures?.recommendationScore
-          ? parseFloat(product.aiFeatures.recommendationScore)
-          : undefined,
-        isNew: isNew,
-        discount: product.discount || 0,
-        isFavorite: userFavorites.includes(product._id || product.id),
+        rating:
+          product.reviews?.reduce(
+            (acc: number, r: any) => acc + (r.rating || 0),
+            0
+          ) / (product.reviews?.length || 1),
+        brand: product.brand,
+        isFavorite: userFavorites.includes(product._id),
       };
     });
 
-    setFilteredProducts(filtered);
+    setFilteredProducts(processedProducts);
   }, [apiProducts, userFavorites]);
 
-  // Cập nhật favoriteProducts ngay khi userFavorites hoặc apiProducts thay đổi
+  // Update favoriteProducts when userFavorites or apiProducts change
   useEffect(() => {
     const favorites = apiProducts
-      .filter((product) => userFavorites.includes(product._id || product.id))
+      .filter((product) => userFavorites.includes(product._id))
       .map((product) => {
         let image = "";
         if (Array.isArray(product.images) && product.images.length > 0) {
           const primary = product.images.find((img) => img.isPrimary);
           image = primary ? primary.url : product.images[0].url;
         }
-        const isNew =
-          product.createdAt &&
-          new Date().getTime() - new Date(product.createdAt).getTime() <
-            14 * 24 * 60 * 60 * 1000;
 
         return {
           id: product._id || product.id,
@@ -316,11 +317,12 @@ const Home = () => {
           image,
           category: product.category,
           inStock: product.stockQuantity > 0,
-          rating: product.aiFeatures?.recommendationScore
-            ? parseFloat(product.aiFeatures.recommendationScore)
-            : undefined,
-          isNew: isNew,
-          discount: product.discount || 0,
+          rating:
+            product.reviews?.reduce(
+              (acc: number, r: any) => acc + (r.rating || 0),
+              0
+            ) / (product.reviews?.length || 1),
+          brand: product.brand,
           isFavorite: true,
         };
       });
@@ -338,51 +340,23 @@ const Home = () => {
 
       setLoadingFavorites(true);
       try {
-        const response = await favoritesApi.getFavorites();
-        if (response && response.data) {
-          // Extract the product IDs for the userFavorites state
-          const favoriteIds = response.data.map(
-            (fav) => fav.product._id || fav.product.id
-          );
+        const token = localStorage.getItem("token");
+        const favRes = await fetch("http://localhost:10000/api/favorites", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (favRes.ok) {
+          const favData = await favRes.json();
+          // Extract product IDs from favorites data, filter out null products
+          const favoriteIds = favData.data
+            .filter((fav) => fav.product !== null && fav.product !== undefined)
+            .map((fav) => fav.product._id || fav.product.id)
+            .filter((id) => id !== null && id !== undefined);
+
           setUserFavorites(favoriteIds);
-
-          // Format favorite products data for display
-          const formattedFavorites = response.data.map((item) => {
-            const product = item.product;
-            let image = "";
-            if (Array.isArray(product.images) && product.images.length > 0) {
-              const primary = product.images.find((img) => img.isPrimary);
-              image = primary ? primary.url : product.images[0].url;
-            }
-            const isNew =
-              product.createdAt &&
-              new Date().getTime() - new Date(product.createdAt).getTime() <
-                14 * 24 * 60 * 60 * 1000;
-
-            return {
-              id: product._id || product.id,
-              name: product.name,
-              price: product.price,
-              image,
-              category: product.category,
-              inStock: product.stockQuantity > 0,
-              rating: product.aiFeatures?.recommendationScore
-                ? parseFloat(product.aiFeatures.recommendationScore)
-                : undefined,
-              isNew: isNew,
-              discount: product.discount || 0,
-              isFavorite: true,
-            };
-          });
-
-          setFavoriteProducts(formattedFavorites);
-        } else {
-          setFavoriteProducts([]);
-          setUserFavorites([]);
         }
       } catch (error) {
-        console.error("Failed to fetch favorites:", error);
-        setFavoriteProducts([]);
+        console.error("Error fetching favorites:", error);
         setUserFavorites([]);
       } finally {
         setLoadingFavorites(false);
@@ -401,6 +375,7 @@ const Home = () => {
   };
 
   const handleAddToCart = (product, quantity) => {
+    // Add the product to the cart context
     addToCart(
       {
         id: product.id,
@@ -412,19 +387,25 @@ const Home = () => {
       },
       quantity
     );
+
+    // Show a toast notification
+    toast({
+      title: "Added to cart",
+      description: `${quantity} × ${product.name} added to your cart`,
+      duration: 3000,
+    });
   };
 
   // Handle favorite toggle
-  const handleFavoriteToggle = async (productId, isFavorite) => {
-    if (!isLoggedIn) {
-      navigate("/login");
-      return;
-    }
-
-    // Đơn giản hóa xử lý giống như trong ProductsPage.tsx
+  const handleFavoriteToggle = (productId: string, isFavorite: boolean) => {
     if (isFavorite) {
       // Add to favorites
-      setUserFavorites((prev) => [...prev, productId]);
+      setUserFavorites((prev) => {
+        if (!prev.includes(productId)) {
+          return [...prev, productId];
+        }
+        return prev;
+      });
     } else {
       // Remove from favorites
       setUserFavorites((prev) => prev.filter((id) => id !== productId));

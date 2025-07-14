@@ -376,11 +376,14 @@ const ProductGrid = ({
               typeof product.discount === "number" && !isNaN(product.discount);
             const discountedPrice =
               hasValidPrice && hasValidDiscount && product.discount
-                ? (product.price * (1 - product.discount / 100))
+                ? product.price * (1 - product.discount / 100)
                 : null;
             // Format price as VND
             const formatVND = (value: number) =>
-              new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);
+              new Intl.NumberFormat("vi-VN", {
+                style: "currency",
+                currency: "VND",
+              }).format(value);
 
             const isHovered =
               hoverStates[product.id] || getQuantity(product.id) > 1;
@@ -450,11 +453,11 @@ const ProductGrid = ({
                   <div className="mt-4 mb-2">
                     {discountedPrice !== null ? (
                       <div className="flex items-baseline gap-2">
-                        <span className="font-bold">{formatVND(discountedPrice)}</span>
+                        <span className="font-bold">
+                          {formatVND(discountedPrice)}
+                        </span>
                         <span className="text-sm text-gray-500 line-through">
-                          {hasValidPrice
-                            ? formatVND(product.price)
-                            : "N/A"}
+                          {hasValidPrice ? formatVND(product.price) : "N/A"}
                         </span>
                       </div>
                     ) : (
