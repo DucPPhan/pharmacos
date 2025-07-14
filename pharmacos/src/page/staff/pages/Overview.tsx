@@ -27,6 +27,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { formatCurrency } from "@/lib/utils";
 
 export function Overview() {
   const [isLoading, setIsLoading] = useState(true);
@@ -125,13 +126,11 @@ export function Overview() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Total Revenue"
-          value={`$${salesData.totalRevenue.toLocaleString()}`}
+          value={formatCurrency(salesData.totalRevenue)}
           description="from last month"
           icon={<DollarSign className="h-4 w-4 text-[#1F3368]" />}
           trend={salesData.revenueTrend}
           className="border-[#1F3368]"
-          titleClassName="text-[#1F3368]"
-          valueClassName="text-[#1F3368]"
         />
         <StatsCard
           title="Orders"
@@ -140,8 +139,6 @@ export function Overview() {
           icon={<ShoppingCart className="h-4 w-4 text-[#1F3368]" />}
           trend={salesData.ordersTrend}
           className="border-[#1F3368]"
-          titleClassName="text-[#1F3368]"
-          valueClassName="text-[#1F3368]"
         />
         <StatsCard
           title="Active Users"
@@ -150,8 +147,6 @@ export function Overview() {
           icon={<Users className="h-4 w-4 text-[#1F3368]" />}
           trend={salesData.usersTrend}
           className="border-[#1F3368]"
-          titleClassName="text-[#1F3368]"
-          valueClassName="text-[#1F3368]"
         />
         <StatsCard
           title="Inventory Items"
@@ -160,8 +155,6 @@ export function Overview() {
           icon={<Package className="h-4 w-4 text-[#1F3368]" />}
           trend={salesData.inventoryTrend}
           className="border-[#1F3368]"
-          titleClassName="text-[#1F3368]"
-          valueClassName="text-[#1F3368]"
         />
       </div>
 
@@ -182,7 +175,7 @@ export function Overview() {
                   <XAxis dataKey="month" stroke="#1F3368" />
                   <YAxis stroke="#1F3368" />
                   <Tooltip
-                    formatter={(value) => [`$${value}`, "Sales"]}
+                    formatter={(value) => formatCurrency(value as number)}
                     contentStyle={{
                       backgroundColor: "white",
                       borderColor: "#1F3368",

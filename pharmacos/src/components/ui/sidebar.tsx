@@ -29,10 +29,10 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
 
   const links = [
     { href: "analytics", label: "Analytics", icon: Activity },
-    // { href: "overview", label: "Overview", icon: BarChart3 },
     { href: "inventory", label: "Inventory", icon: Package },
+    { href: "batches", label: "Batch Management", icon: Grid3x3 },
+    { href: "suppliers", label: "Supplier Management", icon: Users },
     { href: "orders", label: "Orders", icon: ShoppingCart },
-    
   ];
 
   const handleLogout = () => {
@@ -76,7 +76,7 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
 
         <ScrollArea className="flex-1 px-3 py-4">
           <nav className="flex flex-col gap-1">
-            <div style={{ paddingBottom: 'calc(100% + 55px)' }}>
+            <div style={{ paddingBottom: "calc(100% + 55px)" }}>
               {links.map((link) => (
                 <NavLink
                   key={link.href}

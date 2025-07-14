@@ -217,16 +217,54 @@ export const getCustomerAddresses = async (): Promise<AddressResponse[]> => {
   return response.json();
 };
 
+// Default API object for components
+export const api = {
+  get: async (url: string) => {
+    const response = await apiFetch(`${API_URL}${url}`);
+    return { data: response };
+  },
+  post: async (url: string, data?: any) => {
+    const response = await apiFetch(`${API_URL}${url}`, {
+      method: "POST",
+      body: data ? JSON.stringify(data) : undefined,
+    });
+    return { data: response };
+  },
+  put: async (url: string, data?: any) => {
+    const response = await apiFetch(`${API_URL}${url}`, {
+      method: "PUT",
+      body: data ? JSON.stringify(data) : undefined,
+    });
+    return { data: response };
+  },
+  delete: async (url: string) => {
+    const response = await apiFetch(`${API_URL}${url}`, {
+      method: "DELETE",
+    });
+    return { data: response };
+  },
+};
+
 // Helper function to ensure valid addressType values
 export function ensureValidAddressType(addressType: any): "Home" | "Office" {
   if (addressType === "Home" || addressType === "Office") {
     return addressType;
   }
   const addressStr = String(addressType || "").toLowerCase();
-  if (addressStr.includes("office") || addressStr === "office" || addressStr.includes("văn phòng") || addressStr === "văn phòng") {
+  if (
+    addressStr.includes("office") ||
+    addressStr === "office" ||
+    addressStr.includes("văn phòng") ||
+    addressStr === "văn phòng"
+  ) {
     return "Office";
   }
-  if (addressStr.includes("home") || addressStr === "home" || addressStr.includes("nhà riêng") || addressStr === "nhà riêng") {
+  if (
+    addressStr.includes("home") ||
+    addressStr === "home" ||
+    addressStr.includes("nhà riêng") ||
+    addressStr === "nhà riêng"
+  ) {
     return "Home";
   }
   return "Home"; // Default to Home
