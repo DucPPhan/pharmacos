@@ -51,6 +51,8 @@ interface Product {
   usage?: string;
   specifications?: Record<string, string>;
   discount?: number;
+  manufacturingDate?: string;
+  expiryDate?: string;
 }
 
 // Reviews interface
@@ -266,6 +268,8 @@ const ProductDetailPage: React.FC = () => {
               "Skin Type": p.skinType?.join(", "),
             },
             discount: undefined, // Nếu có discount thì lấy
+            manufacturingDate: p.manufacturingDate,
+            expiryDate: p.expiryDate,
           });
           setReviews(p.reviews || []);
         }
@@ -907,13 +911,28 @@ const ProductDetailPage: React.FC = () => {
               </span>
             )}
           </div>
+          {/* MFG & EXP */}
+          <div className="flex items-center gap-6 mt-2">
+            <div className="flex items-center gap-1">
+              <span className="text-sm text-gray-500 font-medium">MFG:</span>
+              <span className="text-sm font-semibold">
+                {product.manufacturingDate ? new Date(product.manufacturingDate).toLocaleDateString() : "-"}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-sm text-gray-500 font-medium">EXP:</span>
+              <span className="text-sm font-semibold">
+                {product.expiryDate ? new Date(product.expiryDate).toLocaleDateString() : "-"}
+              </span>
+            </div>
+          </div>
 
           {/* Availability */}
           <div className="flex items-center">
             {product.inStock ? (
               <Badge className="bg-green-500 text-white">In Stock</Badge>
             ) : (
-              <Badge variant="outline" className="text-red-500 border-red-500">
+              <Badge variant="secondary" className="text-red-500 border-red-500">
                 Out of Stock
               </Badge>
             )}
@@ -948,7 +967,14 @@ const ProductDetailPage: React.FC = () => {
                 >
                   -
                 </button>
-                <span className="px-3 py-1">{quantity}</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={quantity}
+                  onChange={e => setQuantity(Math.max(1, Number(e.target.value)))}
+                  className="w-16 text-center border-0 focus:ring-0 focus:outline-none"
+                  disabled={!product.inStock}
+                />
                 <button
                   className="px-3 py-1 text-xl"
                   onClick={() => setQuantity((prev) => prev + 1)}
@@ -1134,14 +1160,14 @@ const ProductDetailPage: React.FC = () => {
                   ) : (
                     <div className="space-y-2">
                       <Button
-                        variant="outline"
+                        variant="secondary"
                         className="w-full"
                         onClick={handleOpenReviewForm}
                       >
                         Edit Your Review
                       </Button>
                       <Button
-                        variant="outline"
+                        variant="secondary"
                         className="w-full text-red-500 border-red-200 hover:bg-red-50"
                         onClick={handleDeleteReview}
                       >
@@ -1182,7 +1208,7 @@ const ProductDetailPage: React.FC = () => {
                           </div>
                         </div>
                         <Badge
-                          variant="outline"
+                          variant="secondary"
                           className="flex items-center gap-1"
                         >
                           <button
