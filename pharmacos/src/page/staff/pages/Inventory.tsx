@@ -85,7 +85,9 @@ export function Inventory() {
     images: [{ url: "", alt: "", isPrimary: true }],
     manufacturingDate: "",
     expiryDate: "",
+    supplierId: "", // Thêm trường supplierId
   });
+  const [suppliers, setSuppliers] = useState<any[]>([]); // Thêm state suppliers
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<any>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
@@ -133,8 +135,28 @@ export function Inventory() {
     }
   };
 
+  const fetchSuppliers = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:10000/api/suppliers?limit=100", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      setSuppliers(data.suppliers || []);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to load suppliers",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
+    fetchSuppliers(); // Fetch suppliers khi load trang
   }, []);
 
   // FILTER
@@ -217,6 +239,7 @@ export function Inventory() {
       manufacturingDate,
       expiryDate,
       images,
+      supplierId,
     } = formData;
 
     if (
@@ -230,7 +253,8 @@ export function Inventory() {
       !subcategory ||
       !instructions ||
       !manufacturingDate ||
-      !expiryDate
+      !expiryDate ||
+      !supplierId
     ) {
       toast({
         title: "Validation Error",
@@ -298,6 +322,7 @@ export function Inventory() {
       images: [{ url: "", alt: "", isPrimary: true }],
       manufacturingDate: "",
       expiryDate: "",
+      supplierId: "", // reset supplierId
     });
     setEditingProduct(null);
     setImagePreview("");
@@ -343,6 +368,7 @@ export function Inventory() {
           : [{ url: "", alt: "", isPrimary: true }],
       manufacturingDate: formatDate(product.manufacturingDate || ""),
       expiryDate: formatDate(product.expiryDate || ""),
+      supplierId: product.supplierId || "", // Set supplierId khi edit
     });
     // Show preview of primary or first image
     let preview = "";
@@ -394,6 +420,7 @@ export function Inventory() {
           expiryDate: formData.expiryDate,
           lowStockThreshold: Number(formData.lowStockThreshold),
           images: formData.images,
+          supplierId: formData.supplierId, // Include supplierId in update
         };
 
         console.log("Update data:", updateData);
@@ -591,6 +618,8 @@ export function Inventory() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {paginatedProducts.map((product) => {
             const isLowStock = product.stock <= product.lowStockThreshold;
+            // Tìm supplier theo supplierId
+            const supplier = suppliers.find((s) => s._id === product.supplierId);
             return (
               <div
                 key={product._id}
@@ -696,6 +725,12 @@ export function Inventory() {
                         {product.expiryDate
                           ? new Date(product.expiryDate).toLocaleDateString()
                           : "-"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-[#1F3368]/70">Supplier:</span>
+                      <span className="bg-[#1F3368]/10 text-[#1F3368] px-2 py-1 rounded-full text-xs">
+                        {supplier ? supplier.name : "Unknown"}
                       </span>
                     </div>
                   </div>
@@ -1059,6 +1094,23 @@ export function Inventory() {
                     }
                     required
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-[#1F3368]">
+                    Supplier *
+                  </label>
+                  <select
+                    name="supplierId"
+                    value={formData.supplierId}
+                    onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
+                    required
+                    className="w-full px-3 py-2 border border-[#1F3368] rounded-lg focus:ring-2 focus:ring-[#1F3368] focus:border-[#1F3368]"
+                  >
+                    <option value="">Select supplier</option>
+                    {suppliers.map((s) => (
+                      <option key={s._id} value={s._id}>{s.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
