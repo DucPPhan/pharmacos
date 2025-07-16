@@ -36,6 +36,8 @@ interface Product {
   id: string;
   name: string;
   price: number;
+  salePrice?: number;
+  isOnSale?: boolean;
   image: string;
   images?: string[];
   category: string;
@@ -242,6 +244,8 @@ const ProductDetailPage: React.FC = () => {
             id: p._id || p.id,
             name: p.name,
             price: p.price,
+            salePrice: p.salePrice,
+            isOnSale: p.isOnSale,
             image: images[0] || "",
             images,
             category: p.category,
@@ -895,15 +899,15 @@ const ProductDetailPage: React.FC = () => {
 
           {/* Price */}
           <div className="flex items-baseline space-x-3">
-            {discountedPrice !== null ? (
+            {product.isOnSale && product.salePrice != null ? (
               <>
-                <span className="text-2xl font-bold text-primary">
-                  {formatVND(discountedPrice)}
+                <span className="text-2xl font-bold text-red-600">
+                  {formatVND(product.salePrice)}
                 </span>
                 <span className="text-lg text-gray-500 line-through">
                   {formatVND(product.price)}
                 </span>
-                <Badge className="bg-red-500">{product.discount}% OFF</Badge>
+                <Badge className="bg-red-500">SALE</Badge>
               </>
             ) : (
               <span className="text-2xl font-bold">

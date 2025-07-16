@@ -674,9 +674,21 @@ export function Inventory() {
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-[#1F3368]/70">Price:</span>
-                      <span className="font-semibold text-[#1F3368]">
-                        {formatVND(product.price)}
-                      </span>
+                      {product.isOnSale && product.salePrice != null ? (
+                        <>
+                          <span className="font-semibold text-red-600 text-lg">
+                            {formatVND(product.salePrice)}
+                          </span>
+                          <span className="text-sm text-gray-400 line-through ml-2">
+                            {formatVND(product.price)}
+                          </span>
+                          <span className="ml-2 px-2 py-1 bg-red-500 text-white text-xs rounded">SALE</span>
+                        </>
+                      ) : (
+                        <span className="font-semibold text-[#1F3368]">
+                          {formatVND(product.price)}
+                        </span>
+                      )}
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-[#1F3368]/70">Stock:</span>
@@ -748,6 +760,23 @@ export function Inventory() {
                       </p>
                     </div>
                   )}
+                  {/* Cảnh báo gần hết hạn và sale */}
+                  {(() => {
+                    if (!product.expiryDate) return null;
+                    const today = new Date();
+                    const expiry = new Date(product.expiryDate);
+                    if (isNaN(expiry.getTime())) return null;
+                    const diffDays = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                    if (diffDays <= 30) {
+                      return (
+                        <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-xs font-semibold flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-red-500" />
+                          Sản phẩm sắp hết hạn ({diffDays} ngày nữa) {product.isOnSale && product.salePrice ? "- Giá ưu đãi!" : ""}
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               </div>
             );

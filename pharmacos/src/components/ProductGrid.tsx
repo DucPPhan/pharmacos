@@ -367,7 +367,7 @@ const ProductGrid = ({
           <p className="text-gray-500">No products found.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-20">
           {currentProducts.map((product) => {
             // Calculate discounted price if applicable
             const hasValidPrice =
@@ -391,7 +391,7 @@ const ProductGrid = ({
             return (
               <Card
                 key={product.id}
-                className="overflow-hidden h-full flex flex-col transition-all duration-200 hover:shadow-lg cursor-pointer"
+                className="overflow-hidden h-full flex flex-col transition-all duration-200 hover:shadow-xl cursor-pointer rounded-2xl shadow-md border border-gray-200 bg-white"
                 onClick={() => handleProductClick(product.id)}
                 onMouseEnter={() => setProductHover(product.id, true)}
                 onMouseLeave={() => setProductHover(product.id, false)}
@@ -400,7 +400,7 @@ const ProductGrid = ({
                   <img
                     src={product.image}
                     alt={product.name}
-                    className="w-full h-64 object-cover transition-transform duration-300 hover:scale-105"
+                    className="w-full h-64 object-cover transition-transform duration-300 hover:scale-105 rounded-t-2xl"
                   />
 
                   {/* Out of stock badge */}

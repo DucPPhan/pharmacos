@@ -58,7 +58,7 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
         )}
       >
         <div className="flex items-center justify-between h-16 px-4 border-b">
-          <NavLink to="/" className="flex items-center">
+          <NavLink to="/staff/dashboard" className="flex items-center">
             <div className="flex items-center justify-center w-10 h-10 rounded-md bg-primary text-primary-foreground">
               <Package className="w-6 h-6" />
             </div>
