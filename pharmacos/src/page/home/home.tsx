@@ -500,9 +500,8 @@ const Home = () => {
                     <button
                       key={index}
                       onClick={() => setCurrentBanner(index)}
-                      className={`h-2 w-10 rounded-full transition-all ${
-                        currentBanner === index ? "bg-white" : "bg-white/50"
-                      }`}
+                      className={`h-2 w-10 rounded-full transition-all ${currentBanner === index ? "bg-white" : "bg-white/50"
+                        }`}
                       aria-label={`Go to slide ${index + 1}`}
                     />
                   ))}
@@ -660,9 +659,10 @@ const Home = () => {
           <div className="container mx-auto px-4">
             <div className="bg-white rounded-lg shadow-lg overflow-hidden">
               <div className="flex flex-col md:flex-row">
-                <div className="md:w-1/2">
+                <div className="md:w-1/2" >
                   <img
-                    src="https://images.unsplash.com/photo-1607703703674-df96941cad76?w=800&q=80"
+                    style={{ borderRadius: "0.5rem" }}
+                    src="https://proskindoctor.com/cdn/shop/files/5_ac2e4e6e-f774-4c55-881e-d9eddd5d8d29.jpg?v=1750104466"
                     alt="Special Offer"
                     className="w-full h-full object-cover"
                   />
@@ -739,11 +739,10 @@ const Home = () => {
                       .map((_, i) => (
                         <StarIcon
                           key={i}
-                          className={`w-4 h-4 ${
-                            i < testimonial.rating
-                              ? "text-yellow-400 fill-yellow-400"
-                              : "text-gray-300"
-                          }`}
+                          className={`w-4 h-4 ${i < testimonial.rating
+                            ? "text-yellow-400 fill-yellow-400"
+                            : "text-gray-300"
+                            }`}
                         />
                       ))}
                   </div>
