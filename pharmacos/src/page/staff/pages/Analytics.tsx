@@ -108,6 +108,28 @@ export default function Analytics() {
         });
         const ordersData = Array.isArray(ordersRes) ? ordersRes : ordersRes?.orders || [];
         setOrders(ordersData);
+
+        // === NEW: Calculate salesData from completed orders ===
+        // Group completed orders by month
+        const completedOrders = ordersData.filter((order: any) => order.status === "completed");
+        const salesByMonthMap: { [key: string]: { sales: number; orders: number } } = {};
+        completedOrders.forEach((order: any) => {
+          const date = new Date(order.createdAt);
+          const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          const orderTotal = order.items?.reduce((s: number, item: any) => s + item.quantity * item.unitPrice, 0) || 0;
+          if (!salesByMonthMap[month]) {
+            salesByMonthMap[month] = { sales: 0, orders: 0 };
+          }
+          salesByMonthMap[month].sales += orderTotal;
+          salesByMonthMap[month].orders += 1;
+        });
+        // Convert to array and sort by month
+        const salesDataFromOrders = Object.entries(salesByMonthMap)
+          .map(([month, { sales, orders }]) => ({ month, sales, orders }))
+          .sort((a, b) => a.month.localeCompare(b.month));
+        setSalesData(salesDataFromOrders);
+        // === END NEW ===
+
       } catch (error) {
         setStats({
           totalSales: '0',

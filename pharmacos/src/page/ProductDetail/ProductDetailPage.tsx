@@ -1203,8 +1203,7 @@ const ProductDetailPage: React.FC = () => {
         </Tabs>
       </div>
 
-      {/* Related products */}
-      <div className="mb-12">
+      {/* <div className="mb-12">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold">You Might Also Like</h2>
           <Link
@@ -1215,8 +1214,7 @@ const ProductDetailPage: React.FC = () => {
           </Link>
         </div>
         <ProductGrid products={similarProducts} />
-      </div>
-      {/* KHÔNG render ReviewFormDialog */}
+      </div> */}
     </div>
   );
 };
