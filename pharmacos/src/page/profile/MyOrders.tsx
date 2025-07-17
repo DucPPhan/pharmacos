@@ -140,11 +140,12 @@ const MyOrders: React.FC = () => {
 
           // Only start countdown if payment is still active
           if (!isExpired && result.data.timeLeft > 0) {
+            const timeLeft = Math.min(result.data.timeLeft, 120); // chỉ tối đa 2 phút
             setPaymentTimers((prev) => ({
               ...prev,
-              [orderId]: result.data.timeLeft,
+              [orderId]: timeLeft,
             }));
-            startCountdown(orderId, result.data.timeLeft);
+            startCountdown(orderId, timeLeft);
           } else {
             // If expired, make sure we mark it clearly
             setPaymentTimeouts((prev) => ({

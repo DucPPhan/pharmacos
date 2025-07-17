@@ -59,14 +59,17 @@ interface Product {
 
 // Reviews interface
 interface Review {
-  userId: string;
-  id: string;
-  userName: string;
+  userId?: string;
+  id?: string;
+  userName?: string;
   rating: number;
-  date: string;
-  title: string;
+  date?: string;
+  title?: string;
   comment: string;
-  helpful: number;
+  helpful?: number;
+  _id?: string;
+  user?: { username?: string };
+  createdAt?: string;
 }
 
 // Star rating component
@@ -133,11 +136,10 @@ const ReviewFormDialog = ({
                 >
                   <Star
                     size={24}
-                    className={`${
-                      star <= reviewRating
-                        ? "text-yellow-400 fill-yellow-400"
-                        : "text-gray-300"
-                    }`}
+                    className={`${star <= reviewRating
+                      ? "text-yellow-400 fill-yellow-400"
+                      : "text-gray-300"
+                      }`}
                   />
                 </button>
               ))}
@@ -255,7 +257,7 @@ const ProductDetailPage: React.FC = () => {
             rating:
               p.reviews && p.reviews.length > 0
                 ? p.reviews.reduce((acc, r) => acc + (r.rating || 0), 0) /
-                  p.reviews.length
+                p.reviews.length
                 : undefined,
             reviewCount: p.reviews ? p.reviews.length : 0,
             brand: p.brand,
@@ -263,8 +265,8 @@ const ProductDetailPage: React.FC = () => {
             benefits: p.benefits,
             ingredients: p.ingredients
               ? p.ingredients.map(
-                  (i) => `${i.name} (${i.percentage}%) - ${i.purpose}`
-                )
+                (i) => `${i.name} (${i.percentage}%) - ${i.purpose}`
+              )
               : undefined,
             usage: p.instructions,
             specifications: {
@@ -292,7 +294,7 @@ const ProductDetailPage: React.FC = () => {
             rating:
               p.reviews && p.reviews.length > 0
                 ? p.reviews.reduce((acc, r) => acc + (r.rating || 0), 0) /
-                  p.reviews.length
+                p.reviews.length
                 : undefined,
             brand: p.brand,
           }))
@@ -406,9 +408,8 @@ const ProductDetailPage: React.FC = () => {
 
     toast({
       title: "Added to cart",
-      description: `${quantity} ${quantity === 1 ? "item" : "items"} of ${
-        product.name
-      } ${quantity === 1 ? "has" : "have"} been added to your cart`,
+      description: `${quantity} ${quantity === 1 ? "item" : "items"} of ${product.name
+        } ${quantity === 1 ? "has" : "have"} been added to your cart`,
     });
   };
 
@@ -477,12 +478,12 @@ const ProductDetailPage: React.FC = () => {
           const updatedReviews = reviews.map((review) =>
             review.id === userReview.id
               ? {
-                  ...review,
-                  userId: userId || "",
-                  rating: reviewRating,
-                  comment: reviewComment,
-                  date: new Date().toISOString(),
-                }
+                ...review,
+                userId: userId || "",
+                rating: reviewRating,
+                comment: reviewComment,
+                date: new Date().toISOString(),
+              }
               : review
           );
 
@@ -501,10 +502,10 @@ const ProductDetailPage: React.FC = () => {
           setProduct((prev) =>
             prev
               ? {
-                  ...prev,
-                  rating: newRating,
-                  reviewCount: updatedReviews.length,
-                }
+                ...prev,
+                rating: newRating,
+                reviewCount: updatedReviews.length,
+              }
               : null
           );
 
@@ -558,10 +559,10 @@ const ProductDetailPage: React.FC = () => {
           setProduct((prev) =>
             prev
               ? {
-                  ...prev,
-                  rating: newRating,
-                  reviewCount: updatedReviews.length,
-                }
+                ...prev,
+                rating: newRating,
+                reviewCount: updatedReviews.length,
+              }
               : null
           );
 
@@ -725,16 +726,16 @@ const ProductDetailPage: React.FC = () => {
         const newRating =
           updatedReviews.length > 0
             ? updatedReviews.reduce((sum, r) => sum + r.rating, 0) /
-              updatedReviews.length
+            updatedReviews.length
             : 0;
 
         setProduct((prev) =>
           prev
             ? {
-                ...prev,
-                rating: newRating,
-                reviewCount: updatedReviews.length,
-              }
+              ...prev,
+              rating: newRating,
+              reviewCount: updatedReviews.length,
+            }
             : null
         );
 
@@ -852,11 +853,10 @@ const ProductDetailPage: React.FC = () => {
               {product.images.map((img, index) => (
                 <button
                   key={index}
-                  className={`border rounded overflow-hidden w-20 h-20 flex-shrink-0 ${
-                    selectedImage === index
-                      ? "border-primary border-2"
-                      : "border-gray-200"
-                  }`}
+                  className={`border rounded overflow-hidden w-20 h-20 flex-shrink-0 ${selectedImage === index
+                    ? "border-primary border-2"
+                    : "border-gray-200"
+                    }`}
                   onClick={() => setSelectedImage(index)}
                 >
                   <img
@@ -1003,9 +1003,8 @@ const ProductDetailPage: React.FC = () => {
                 onClick={toggleFavorite}
               >
                 <Heart
-                  className={`h-5 w-5 ${
-                    isFavorite ? "text-red-500 fill-red-500" : ""
-                  }`}
+                  className={`h-5 w-5 ${isFavorite ? "text-red-500 fill-red-500" : ""
+                    }`}
                 />
               </Button>
             </div>
@@ -1152,106 +1151,50 @@ const ProductDetailPage: React.FC = () => {
                     })}
                   </div>
                 </div>
-
-                <div>
-                  {!userReview ? (
-                    <Button
-                      style={{ backgroundColor: "#7494ec" }}
-                      onClick={handleOpenReviewForm}
-                    >
-                      Write a Review
-                    </Button>
-                  ) : (
-                    <div className="space-y-2">
-                      <Button
-                        variant="secondary"
-                        className="w-full"
-                        onClick={handleOpenReviewForm}
-                      >
-                        Edit Your Review
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        className="w-full text-red-500 border-red-200 hover:bg-red-50"
-                        onClick={handleDeleteReview}
-                      >
-                        Delete Review
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                {/* XÓA các nút review ở đây */}
               </div>
 
               {/* Individual reviews */}
               <div className="space-y-6">
                 {reviews.length > 0 ? (
-                  reviews.map((review) => (
-                    <div
-                      key={review.id}
-                      className={`border-b pb-6 ${
-                        review.id === userReview?.id
-                          ? "bg-blue-50 p-4 rounded-lg"
-                          : ""
-                      }`}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="font-medium">
-                            {review.userName}
-                            {review.id === userReview?.id && (
-                              <span className="ml-2 text-blue-600 text-sm">
-                                (Your review)
+                  reviews.map((review) => {
+                    const key = review._id || review.id;
+                    return (
+                      <div
+                        key={key}
+                        className={`border-b pb-6 ${review.id === userReview?.id ? "bg-blue-50 p-4 rounded-lg" : ""}`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="font-medium">
+                              {review.user?.username || review.userName || "Unknown"}
+                              {review.id === userReview?.id && (
+                                <span className="ml-2 text-blue-600 text-sm">
+                                  (Your review)
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center mt-1">
+                              <StarRating rating={review.rating} />
+                              <span className="ml-2 text-sm text-gray-500">
+                                {review.createdAt
+                                  ? new Date(review.createdAt).toLocaleDateString()
+                                  : review.date
+                                    ? new Date(review.date).toLocaleDateString()
+                                    : ""}
                               </span>
-                            )}
-                          </div>
-                          <div className="flex items-center mt-1">
-                            <StarRating rating={review.rating} />
-                            <span className="ml-2 text-sm text-gray-500">
-                              {new Date(review.date).toLocaleDateString()}
-                            </span>
+                            </div>
                           </div>
                         </div>
-                        <Badge
-                          variant="secondary"
-                          className="flex items-center gap-1"
-                        >
-                          <button
-                            className="text-xs"
-                            onClick={() => {
-                              // Handle marking review as helpful
-                              if (review.id !== userReview?.id) {
-                                const updatedReviews = reviews.map((r) =>
-                                  r.id === review.id
-                                    ? { ...r, helpful: r.helpful + 1 }
-                                    : r
-                                );
-                                setReviews(updatedReviews);
-                              }
-                            }}
-                            disabled={review.id === userReview?.id}
-                          >
-                            Helpful ({review.helpful})
-                          </button>
-                        </Badge>
+                        <h4 className="font-medium mt-3">{review.title}</h4>
+                        <p className="mt-2 text-gray-600">{review.comment}</p>
                       </div>
-                      <h4 className="font-medium mt-3">{review.title}</h4>
-                      <p className="mt-2 text-gray-600">{review.comment}</p>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="text-center py-8 border rounded-lg">
                     <h3 className="text-lg font-medium mb-2">No Reviews Yet</h3>
-                    <p className="text-gray-500 mb-4">
-                      Be the first to review this product
-                    </p>
-                    {!userReview && (
-                      <Button
-                        style={{ backgroundColor: "#7494ec" }}
-                        onClick={handleOpenReviewForm}
-                      >
-                        Write a Review
-                      </Button>
-                    )}
+                    {/* KHÔNG render nút Write a Review ở đây */}
                   </div>
                 )}
               </div>
@@ -1273,18 +1216,7 @@ const ProductDetailPage: React.FC = () => {
         </div>
         <ProductGrid products={similarProducts} />
       </div>
-      {/* Add the ReviewFormDialog component here, outside of any conditional rendering */}
-      <ReviewFormDialog
-        open={showReviewForm}
-        onOpenChange={setShowReviewForm}
-        reviewRating={reviewRating}
-        setReviewRating={setReviewRating}
-        reviewComment={reviewComment}
-        setReviewComment={setReviewComment}
-        isSubmitting={isSubmitting}
-        onSubmit={handleSubmitReview}
-        userReview={userReview}
-      />
+      {/* KHÔNG render ReviewFormDialog */}
     </div>
   );
 };

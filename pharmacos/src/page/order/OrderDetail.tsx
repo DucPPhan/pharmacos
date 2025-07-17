@@ -24,6 +24,7 @@ import {
   CarOutlined,
   ShoppingCartOutlined,
 } from "@ant-design/icons";
+import { StarFilled } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useParams, useNavigate } from "react-router-dom";
 import { useCart } from "../../contexts/CartContext";
@@ -61,8 +62,18 @@ const OrderDetail = () => {
   const [loading, setLoading] = useState(true);
   const [paymentTimeLeft, setPaymentTimeLeft] = useState<number>(0);
   const [paymentExpired, setPaymentExpired] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewProduct, setReviewProduct] = useState<any>(null);
+  const [reviewRating, setReviewRating] = useState<number>(5);
+  const [reviewComment, setReviewComment] = useState<string>("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const navigate = useNavigate();
   const { setCartItems } = useCart();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    setUser(JSON.parse(localStorage.getItem("user") || "{}"));
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -147,6 +158,78 @@ const OrderDetail = () => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+  };
+
+  // Open review modal for a product
+  const openReviewModal = (product: any) => {
+    // Kiểm tra đã review chưa
+    if (product && product.reviews && user) {
+      const hasReviewed = product.reviews.some(
+        (r: any) => (r.user?._id || r.user?.id || r.userId) === user.id
+      );
+      if (hasReviewed) {
+        message.warning("Bạn đã đánh giá sản phẩm này rồi!");
+        return;
+      }
+    }
+    setReviewProduct(product);
+    setReviewRating(5);
+    setReviewComment("");
+    setReviewModalOpen(true);
+  };
+
+  // Submit review
+  const submitReview = async () => {
+    if (!reviewProduct || !reviewComment.trim()) {
+      message.error("Please enter your review comment.");
+      return;
+    }
+    setReviewSubmitting(true);
+    try {
+      const token = localStorage.getItem("token");
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const res = await fetch(
+        `http://localhost:10000/api/products/${reviewProduct._id || reviewProduct.id}/reviews`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            rating: reviewRating,
+            comment: reviewComment,
+            subcategory: "temporary", // avoid validation error
+          }),
+        }
+      );
+      if (res.ok) {
+        message.success("Review submitted successfully!");
+        setReviewModalOpen(false);
+        // Fetch lại order để cập nhật reviews từ backend
+        const token = localStorage.getItem("token");
+        fetch(`http://localhost:10000/api/orders/${id}`,
+          {
+            headers: {
+              Authorization: token ? `Bearer ${token}` : "",
+            },
+          }
+        )
+          .then((res) => res.json())
+          .then((data) => {
+            if (data?.order) {
+              setOrder({ ...data.order, items: data.items });
+            }
+          });
+      } else {
+        const err = await res.json();
+        message.error(err.message || "Failed to submit review.");
+      }
+    } catch (error) {
+      message.error("Error submitting review.");
+    } finally {
+      setReviewSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -517,113 +600,176 @@ const OrderDetail = () => {
             >
               Product list
             </div>
-            {(order.items || []).map((item: any, idx: number) => (
-              <Card
-                key={item._id || idx}
-                style={{
-                  marginBottom: 18,
-                  borderRadius: 16,
-                  background: "#f7fbff",
-                  border: "1.5px solid #b3d1fa",
-                  boxShadow: "0 2px 8px 0 rgba(60,120,200,0.07)",
-                  transition: "box-shadow 0.2s, border 0.2s",
-                  cursor: "pointer",
-                }}
-                styles={{ body: { padding: 18 } }}
-                hoverable
-              >
-                <Row align="middle" gutter={[16, 8]}>
-                  <Col
-                    xs={6}
-                    md={3}
-                    style={{ display: "flex", justifyContent: "center" }}
-                  >
-                    <img
-                      src={
-                        item.productId?.images?.length
-                          ? item.productId.images.find(
-                            (img: any) => img.isPrimary
-                          )?.url || item.productId.images[0].url
-                          : "https://via.placeholder.com/80x80?text=No+Image"
-                      }
-                      alt={item.productId?.name}
-                      style={{
-                        width: 80,
-                        height: 80,
-                        objectFit: "cover",
-                        borderRadius: 12,
-                        border: "2px solid #e3eaf2",
-                        background: "#fff",
-                        boxShadow: "0 1px 6px 0 rgba(60,120,200,0.06)",
-                      }}
-                    />
-                  </Col>
-                  <Col xs={18} md={21}>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        flexWrap: "wrap",
-                      }}
+            {(order.items || []).map((item: any, idx: number) => {
+              // Kiểm tra đã review chưa
+              let hasReviewed = false;
+              if (item.productId && item.productId.reviews && user) {
+                hasReviewed = item.productId.reviews.some((r: any) => {
+                  // So sánh userId với review.user._id hoặc review.user.id
+                  if (r.user && (r.user._id || r.user.id)) {
+                    return (r.user._id === user.id || r.user.id === user.id);
+                  }
+                  // fallback cho trường hợp cũ
+                  return r.userId === user.id;
+                });
+              }
+              return (
+                <Card
+                  key={item._id || idx}
+                  style={{
+                    marginBottom: 18,
+                    borderRadius: 16,
+                    background: "#f7fbff",
+                    border: "1.5px solid #b3d1fa",
+                    boxShadow: "0 2px 8px 0 rgba(60,120,200,0.07)",
+                    transition: "box-shadow 0.2s, border 0.2s",
+                    cursor: "pointer",
+                  }}
+                  styles={{ body: { padding: 18 } }}
+                  hoverable
+                >
+                  <Row align="middle" gutter={[16, 8]}>
+                    <Col
+                      xs={6}
+                      md={3}
+                      style={{ display: "flex", justifyContent: "center" }}
                     >
-                      <div style={{ flex: 1, minWidth: 180 }}>
-                        <div
-                          style={{
-                            fontWeight: 700,
-                            fontSize: 16,
-                            color: "#1976d2",
-                            marginBottom: 2,
-                          }}
-                        >
-                          {item.productId?.name}
+                      <img
+                        src={
+                          item.productId?.images?.length
+                            ? item.productId.images.find(
+                              (img: any) => img.isPrimary
+                            )?.url || item.productId.images[0].url
+                            : "https://via.placeholder.com/80x80?text=No+Image"
+                        }
+                        alt={item.productId?.name}
+                        style={{
+                          width: 80,
+                          height: 80,
+                          objectFit: "cover",
+                          borderRadius: 12,
+                          border: "2px solid #e3eaf2",
+                          background: "#fff",
+                          boxShadow: "0 1px 6px 0 rgba(60,120,200,0.06)",
+                        }}
+                      />
+                    </Col>
+                    <Col xs={18} md={21}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 180 }}>
+                          {/* Make product name clickable */}
+                          <div
+                            style={{
+                              fontWeight: 700,
+                              fontSize: 16,
+                              color: "#1976d2",
+                              marginBottom: 2,
+                              cursor: "pointer",
+                              textDecoration: "underline",
+                            }}
+                            onClick={() => {
+                              const productId =
+                                item.productId?._id ||
+                                item.productId?.id ||
+                                item.productId ||
+                                item.id;
+                              if (productId) {
+                                navigate(`/product/${productId}`);
+                              }
+                            }}
+                          >
+                            {item.productId?.name}
+                          </div>
+                          <div
+                            style={{
+                              color: "#888",
+                              fontSize: 13,
+                              marginBottom: 6,
+                              maxWidth: 350,
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {item.productId?.description || ""}
+                          </div>
+                          {/* Review button chỉ hiện khi đơn hàng completed và chưa review */}
+                          {order.status === "completed" && !hasReviewed && (
+                            <Button
+                              type="default"
+                              icon={<StarFilled style={{ color: "#ffd700" }} />}
+                              style={{
+                                marginTop: 8,
+                                borderRadius: 16,
+                                fontWeight: 500,
+                                background: "#f7f9fb",
+                                color: "#1976d2",
+                              }}
+                              onClick={() => openReviewModal(item.productId)}
+                            >
+                              Review
+                            </Button>
+                          )}
+                          {/* Hiển thị danh sách review nếu có */}
+                          {Array.isArray(item.productId?.reviews) && item.productId.reviews.length > 0 && (
+                            <div style={{ marginTop: 8 }}>
+                              {item.productId.reviews.map((review: any, idx: number) => (
+                                <div key={review._id || idx} style={{ background: '#f5faff', borderRadius: 8, padding: 8, marginBottom: 4 }}>
+                                  <div style={{ fontWeight: 600, color: '#1976d2' }}>
+                                    {review.user?.username || review.userName || 'Unknown'}
+                                    <span style={{ color: '#888', fontWeight: 400, marginLeft: 8, fontSize: 13 }}>
+                                      {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : (review.date ? new Date(review.date).toLocaleDateString() : '')}
+                                    </span>
+                                  </div>
+                                  <div style={{ color: '#ffb400', fontSize: 15, margin: '2px 0' }}>
+                                    {'★'.repeat(review.rating || 0)}
+                                  </div>
+                                  <div style={{ color: '#333', fontSize: 15 }}>{review.comment}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <div
-                          style={{
-                            color: "#888",
-                            fontSize: 13,
-                            marginBottom: 6,
-                            maxWidth: 350,
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {item.productId?.description || ""}
+                        <div style={{ textAlign: "right", minWidth: 120 }}>
+                          <span
+                            style={{
+                              color: "#1677ff",
+                              fontWeight: 800,
+                              fontSize: 18,
+                            }}
+                          >
+                            {formatVND(item.unitPrice ?? item.price ?? 0)}
+                          </span>
+                          <span
+                            style={{
+                              color: "#fff",
+                              background: "#1976d2",
+                              borderRadius: 8,
+                              padding: "2px 12px",
+                              fontWeight: 600,
+                              fontSize: 15,
+                              marginLeft: 14,
+                              display: "inline-block",
+                              minWidth: 36,
+                              textAlign: "center",
+                            }}
+                          >
+                            x{item.quantity ?? 1}
+                          </span>
                         </div>
                       </div>
-                      <div style={{ textAlign: "right", minWidth: 120 }}>
-                        <span
-                          style={{
-                            color: "#1677ff",
-                            fontWeight: 800,
-                            fontSize: 18,
-                          }}
-                        >
-                          {formatVND(item.unitPrice ?? item.price ?? 0)}
-                        </span>
-                        <span
-                          style={{
-                            color: "#fff",
-                            background: "#1976d2",
-                            borderRadius: 8,
-                            padding: "2px 12px",
-                            fontWeight: 600,
-                            fontSize: 15,
-                            marginLeft: 14,
-                            display: "inline-block",
-                            minWidth: 36,
-                            textAlign: "center",
-                          }}
-                        >
-                          x{item.quantity ?? 1}
-                        </span>
-                      </div>
-                    </div>
-                  </Col>
-                </Row>
-              </Card>
-            ))}
+                    </Col>
+                  </Row>
+                </Card>
+              );
+            })}
           </Card>
         </Col>
         <Col xs={24} md={8}>
@@ -941,6 +1087,65 @@ const OrderDetail = () => {
           Back
         </Button>
       </div>
+
+      {/* Review Modal */}
+      <Modal
+        title={`Review: ${reviewProduct?.name || ""}`}
+        open={reviewModalOpen}
+        onCancel={() => setReviewModalOpen(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setReviewModalOpen(false)}>
+            Cancel
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            loading={reviewSubmitting}
+            onClick={submitReview}
+            style={{ background: "#7494ec", border: "none" }}
+          >
+            Submit
+          </Button>,
+        ]}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <span style={{ fontWeight: 500 }}>Rating:</span>
+          <span style={{ marginLeft: 8 }}>
+            {[1, 2, 3, 4, 5].map((star) => (
+              <StarFilled
+                key={star}
+                style={{
+                  color: star <= reviewRating ? "#ffd700" : "#ccc",
+                  fontSize: 24,
+                  cursor: "pointer",
+                  marginRight: 2,
+                }}
+                onClick={() => setReviewRating(star)}
+              />
+            ))}
+          </span>
+          <span style={{ marginLeft: 12, color: "#888" }}>
+            {reviewRating} {reviewRating === 1 ? "star" : "stars"}
+          </span>
+        </div>
+        <div>
+          <span style={{ fontWeight: 500 }}>Your Review:</span>
+          <textarea
+            rows={4}
+            style={{
+              width: "100%",
+              marginTop: 8,
+              borderRadius: 8,
+              border: "1px solid #e3eaf2",
+              padding: 8,
+              fontSize: 15,
+            }}
+            value={reviewComment}
+            onChange={(e) => setReviewComment(e.target.value)}
+            placeholder="Share your experience with this product"
+          />
+        </div>
+      </Modal>
     </div>
   );
 };

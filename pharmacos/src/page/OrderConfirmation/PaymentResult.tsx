@@ -54,21 +54,21 @@ const PaymentResult: React.FC = () => {
   let color = "";
 
   if (cancel === "true") {
-    title = "Thanh toán đã bị huỷ";
+    title = "Payment Cancelled";
     description =
-      "Bạn đã huỷ giao dịch thanh toán. Đơn hàng của bạn chưa được thanh toán.";
+      "You have cancelled the payment transaction. Your order has not been paid.";
     icon = <AlertTriangle className="h-24 w-24 text-yellow-500" />;
     color = "yellow";
   } else if (status === "PAID" || code === "00") {
-    title = "Thanh toán thành công!";
+    title = "Payment Successful!";
     description =
-      "Cảm ơn bạn đã thanh toán. Đơn hàng của bạn đã được ghi nhận.";
+      "Thank you for your payment. Your order has been recorded.";
     icon = <CheckCircle className="h-24 w-24 text-green-500" />;
     color = "green";
   } else {
-    title = "Thanh toán thất bại";
+    title = "Payment Failed";
     description =
-      "Có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại hoặc liên hệ hỗ trợ.";
+      "An error occurred during the payment process. Please try again or contact support.";
     icon = <XCircle className="h-24 w-24 text-red-500" />;
     color = "red";
   }
@@ -86,16 +86,16 @@ const PaymentResult: React.FC = () => {
             style={{ backgroundColor: "#7494ec" }}
           >
             <Link
-              to="/profile/don-hang-cua-toi"
+              to="/profile/my-orders"
               className="flex items-center justify-center"
             >
               <ShoppingBag className="mr-2 h-6 w-6" />
-              Xem đơn hàng của tôi
+              View my order
             </Link>
           </Button>
           <Button variant="outline" asChild className="w-full h-14 text-lg">
             <Link to="/" className="flex items-center justify-center">
-              Về trang chủ
+              Go Home
               <ArrowRight className="ml-2 h-6 w-6" />
             </Link>
           </Button>

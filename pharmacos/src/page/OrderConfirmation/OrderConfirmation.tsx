@@ -316,7 +316,7 @@ const OrderConfirmation = () => {
                       <span className="text-sm flex items-center">
                         <CreditCard className="h-4 w-4 mr-1" />
                         {order.paymentMethod === "online" ||
-                        order.paymentMethod === "bank"
+                          order.paymentMethod === "bank"
                           ? "Online Payment"
                           : "Cash on Delivery (COD)"}
                       </span>
@@ -324,11 +324,10 @@ const OrderConfirmation = () => {
                     <div className="flex justify-between items-center">
                       <span className="text-sm">Payment status:</span>
                       <span
-                        className={`text-sm px-2 py-1 rounded-full ${
-                          isPaid
-                            ? "bg-green-100 text-green-800"
-                            : "bg-orange-100 text-orange-800"
-                        }`}
+                        className={`text-sm px-2 py-1 rounded-full ${isPaid
+                          ? "bg-green-100 text-green-800"
+                          : "bg-orange-100 text-orange-800"
+                          }`}
                       >
                         {isPaid ? "Completed" : "Pending"}
                       </span>
@@ -359,6 +358,17 @@ const OrderConfirmation = () => {
                         Reorder
                       </Link>
                     </Button>
+                    <div className="space-y-2">
+                      <Button asChild variant="outline" className="w-full">
+                        <Link
+                          to="/profile/my-orders"
+                          className="flex items-center justify-center"
+                        >
+                          <ShoppingBag className="mr-2 h-6 w-6" />
+                          View my order
+                        </Link>
+                      </Button>
+                    </div>
 
                     <Button variant="outline" asChild className="w-full">
                       <Link to="/">
