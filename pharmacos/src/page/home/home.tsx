@@ -41,42 +41,36 @@ const categories = [
     name: "Pharmaceuticals",
     image:
       "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&q=80",
-    count: 120,
   },
   {
     id: 2,
     name: "Skincare",
     image:
       "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=800&q=80",
-    count: 85,
   },
   {
     id: 3,
     name: "Haircare",
     image:
       "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&q=80",
-    count: 64,
   },
   {
     id: 4,
     name: "Makeup",
     image:
       "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&q=80",
-    count: 92,
   },
   {
     id: 5,
     name: "Fragrances",
     image:
       "https://images.pexels.com/photos/965990/pexels-photo-965990.jpeg?cs=srgb&dl=pexels-valeriya-965990.jpg&fm=jpg",
-    count: 43,
   },
   {
     id: 6,
     name: "Natural Products",
     image:
       "https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=800&q=80",
-    count: 76,
   },
 ];
 
@@ -412,6 +406,15 @@ const Home = () => {
     }
   };
 
+  // Helper to get product count by category name
+  const getCategoryCount = (categoryName: string) => {
+    return apiProducts.filter(
+      (product) =>
+        product.category &&
+        product.category.toLowerCase() === categoryName.toLowerCase()
+    ).length;
+  };
+
   return (
     <div className="min-h-screen bg-white pb-8">
       <CategoryNav />
@@ -562,7 +565,7 @@ const Home = () => {
                                 {category.name}
                               </h3>
                               <p className="text-sm">
-                                {category.count} products
+                                {getCategoryCount(category.name)} products
                               </p>
                             </div>
                           </div>
