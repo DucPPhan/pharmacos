@@ -233,7 +233,7 @@ export function Overview() {
                             ? "secondary"
                             : order.status === "Processing"
                             ? "destructive"
-                            : "outline"
+                            : "default"
                         }
                         className={
                           order.status === "Delivered"
